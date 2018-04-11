@@ -31,7 +31,7 @@ import java.util.ResourceBundle;
 
 public class StartUI implements Initializable {
 
-    public static final String version = "0.5.0";
+    public static final String version = "0.5.1";
 
     private final static String LICENCE = "    WinLZZ\n" +
             "    Copyright (C) 2017-2018  Trash Software Studio\n" +

@@ -152,7 +152,7 @@ public class FileInfoUI implements Initializable {
         } else if (versionInt == 16) {
             return "0.4.3";
         } else if (versionInt == 17) {
-            return "0.5.0";
+            return "0.5.0 - 0.5.1";
         } else {
             return "未知";
         }

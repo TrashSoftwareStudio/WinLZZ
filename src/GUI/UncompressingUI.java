@@ -24,31 +24,31 @@ import java.util.ResourceBundle;
 public class UncompressingUI implements Initializable {
 
     @FXML
-    ProgressBar progressBar;
+    private ProgressBar progressBar;
 
     @FXML
-    Label messageLabel;
+    private Label messageLabel;
 
     @FXML
-    Label percentageLabel;
+    private Label percentageLabel;
 
     @FXML
-    Label ratioLabel;
+    private Label ratioLabel;
 
     @FXML
-    Label timeUsedLabel;
+    private Label timeUsedLabel;
 
     @FXML
-    Label expectTimeLabel;
+    private Label expectTimeLabel;
 
     @FXML
-    Label totalSizeLabel;
+    private Label totalSizeLabel;
 
     @FXML
-    Label passedSizeLabel;
+    private Label passedSizeLabel;
 
     @FXML
-    Label passedSizeTitleLabel;
+    private Label passedSizeTitleLabel;
 
     private UncompressService service;
 
@@ -70,11 +70,15 @@ public class UncompressingUI implements Initializable {
 
     private Stage stage;
 
+    private UncompressUI parent;
+
     private UnPacker unPacker;
 
     private File targetDir;
 
     private ContextNode startNode;
+
+    private int threadNumber;
 
     private boolean isTest;
 
@@ -92,8 +96,13 @@ public class UncompressingUI implements Initializable {
         passedSizeTitleLabel.setText("已测试大小:  ");
     }
 
-    void setStage(Stage stage) {
+    void setStage(Stage stage, UncompressUI parent) {
         this.stage = stage;
+        this.parent = parent;
+    }
+
+    void setThreadNumber(int threadNumber) {
+        this.threadNumber = threadNumber;
     }
 
     void setParameters(UnPacker unPacker, File targetDir, ContextNode startNode) {
@@ -114,11 +123,8 @@ public class UncompressingUI implements Initializable {
         service.setOnSucceeded(e -> {
             unbindListeners();
             if (isTest) {
-                if (testResult) {
-                    showTestPassInfo();
-                } else {
-                    showTestFailInfo();
-                }
+                if (testResult) showTestPassInfo();
+                else showTestFailInfo();
             } else {
                 showSuccessInfo();
             }
@@ -145,6 +151,8 @@ public class UncompressingUI implements Initializable {
             progressBar.setProgress(0.0);
             System.gc();
             stage.close();
+
+            parent.close();
         });
 
         progressBar.progressProperty().bind(service.progressProperty());
@@ -176,10 +184,7 @@ public class UncompressingUI implements Initializable {
             alert.setHeaderText("取消解压");
             alert.setContentText("确认要取消解压?");
             alert.showAndWait();
-
-            if (alert.getResult() != ButtonType.OK) {
-                return;
-            }
+            if (alert.getResult() != ButtonType.OK) return;
         }
         service.cancel();
     }
@@ -234,6 +239,7 @@ public class UncompressingUI implements Initializable {
                     startTime = System.currentTimeMillis();
 
                     long totalLength = unPacker.getTotalOrigSize();
+                    unPacker.setThreads(threadNumber);
 
                     Platform.runLater(() -> totalSizeLabel.setText(Util.sizeToReadable(totalLength)));
 
@@ -253,11 +259,8 @@ public class UncompressingUI implements Initializable {
                     unPacker.timeExpectedProperty().addListener(timeExpectedListener);
                     unPacker.passedLengthProperty().addListener(passedLengthListener);
 
-                    if (isTest) {
-                        testResult = unPacker.TestPack();
-                    } else {
-                        unPacker.unCompressFrom(targetDir.getAbsolutePath(), startNode);
-                    }
+                    if (isTest) testResult = unPacker.TestPack();
+                    else unPacker.unCompressFrom(targetDir.getAbsolutePath(), startNode);
                     updateProgress(totalLength, totalLength);
                     return null;
                 }

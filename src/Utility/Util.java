@@ -8,17 +8,13 @@ public abstract class Util {
     public static void deleteFile(String fileName) {
         File file = new File(fileName);
         if (file.exists()) {
-            if (!file.delete()) {
-                System.out.println("Deletion Failed: " + fileName);
-            }
+            if (!file.delete()) System.out.println("Deletion Failed: " + fileName);
         }
     }
 
     public static void deleteFile(File file) {
         if (file.exists()) {
-            if (!file.delete()) {
-                System.out.println("Deletion Failed");
-            }
+            if (!file.delete()) System.out.println("Deletion Failed");
         }
     }
 
@@ -62,9 +58,7 @@ public abstract class Util {
      */
     public static int arraySum(int[] source) {
         int sum = 0;
-        for (int i : source) {
-            sum += i;
-        }
+        for (int i : source) sum += i;
         return sum;
     }
 
@@ -77,11 +71,8 @@ public abstract class Util {
      */
     public static int arrayMax(int[] source) {
         int max = 0;
-        for (int i : source) {
-            if (i > max) {
-                max = i;
-            }
-        }
+        for (int i : source)
+            if (i > max) max = i;
         return max;
     }
 
@@ -111,9 +102,7 @@ public abstract class Util {
             BufferedInputStream bis = new BufferedInputStream(new FileInputStream(name));
             byte[] buffer = new byte[bufferSize];
             int read;
-            while ((read = bis.read(buffer)) != -1) {
-                fos.write(buffer, 0, read);
-            }
+            while ((read = bis.read(buffer)) != -1) fos.write(buffer, 0, read);
             bis.close();
         }
         fos.flush();
@@ -206,9 +195,7 @@ public abstract class Util {
     }
 
     public static String secondToString(long seconds) {
-        if (seconds >= 3600) {
-            return "59:59";
-        }
+        if (seconds >= 3600) return "59:59";
         String minutes = String.valueOf(seconds / 60);
         minutes = Bytes.charMultiply('0', 2 - minutes.length()) + minutes;
         String secondsStr = String.valueOf(seconds % 60);
@@ -217,23 +204,15 @@ public abstract class Util {
     }
 
     public static String sizeToReadable(long size) {
-        if (size < Math.pow(2, 20)) {
-            return numToReadable((int) size) + " 字节";
-        } else if (size < Math.pow(2, 30)) {
-            return numToReadable((int) (size / 1024 + 1)) + " KB";
-        } else {
-            return numToReadable((int) (size / 1048576 + 1)) + "MB";
-        }
+        if (size < Math.pow(2, 20)) return numToReadable((int) size) + " 字节";
+        else if (size < Math.pow(2, 30)) return numToReadable((int) (size / 1024 + 1)) + " KB";
+        else return numToReadable((int) (size / 1048576 + 1)) + "MB";
     }
 
     private static String numToReadable(int num) {
-        if (num >= 1048576) {
-            throw new IndexOutOfBoundsException("Number Too large");
-        }
+        if (num >= 1048576) throw new IndexOutOfBoundsException("Number Too large");
         String s = String.valueOf(num);
-        if (s.length() <= 3) {
-            return s;
-        }
+        if (s.length() <= 3) return s;
         int split = s.length() - 3;
         return s.substring(0, split) + "," + s.substring(split);
     }

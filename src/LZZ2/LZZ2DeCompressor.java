@@ -79,10 +79,6 @@ public class LZZ2DeCompressor implements DeCompressor {
         this.bis = new BufferedInputStream(new FileInputStream(inFile));
     }
 
-    public void setParent(UnPacker parent) {
-        this.parent = parent;
-    }
-
     private void generateTempNames() {
         this.mainTempName = inFile + ".main.temp";
         this.lenHeadTempName = inFile + ".len.temp";
@@ -106,16 +102,12 @@ public class LZZ2DeCompressor implements DeCompressor {
 
     private void uncompressHead() throws IOException {
         byte[] csq = new byte[csqLen];
-        if (bis.read(csq) != csqLen) {
-            throw new IOException("Error occurs while reading");
-        }
+        if (bis.read(csq) != csqLen) throw new IOException("Error occurs while reading");
         MapDeCompressor mdc = new MapDeCompressor(csq);
-        byte[] rlcMain = mdc.Uncompress(1024);
+        byte[] rlcMain = mdc.Uncompress(1024, true);
 
         byte[] rlcBytes = new byte[rlcByteLen];
-        if (bis.read(rlcBytes) != rlcByteLen) {
-            throw new IOException("Error occurs while reading");
-        }
+        if (bis.read(rlcBytes) != rlcByteLen) throw new IOException("Error occurs while reading");
         String rlcBits = Bytes.bytesToString(rlcBytes);
 
         RLCDecoder rld = new RLCDecoder(rlcMain, rlcBits);
@@ -154,11 +146,6 @@ public class LZZ2DeCompressor implements DeCompressor {
         Util.deleteFile(mainTempName);
     }
 
-    public void deleteCache() {
-        deleteCmpTemp();
-        deleteTemp();
-    }
-
     private void uncompressMain(OutputStream fos) throws IOException {
         FileBitInputStream flagBis = new FileBitInputStream(new BufferedInputStream(new FileInputStream(flagTempName)));
         BufferedInputStream disHeadBis = new BufferedInputStream(new FileInputStream(disHeadTempName));
@@ -175,11 +162,8 @@ public class LZZ2DeCompressor implements DeCompressor {
         startTime = lastCheckTime;
         if (parent != null) {
             timeOffset = lastCheckTime - parent.startTime;
-            if (parent.isInTest) {
-                parent.step.set("正在测试...");
-            } else {
-                parent.step.set("正在解压...");
-            }
+            if (parent.isInTest) parent.step.set("正在测试...");
+            else parent.step.set("正在解压...");
         }
         long currentTime;
 
@@ -191,49 +175,35 @@ public class LZZ2DeCompressor implements DeCompressor {
                     break;
                 } else if (s == '0') {
                     byte[] b = new byte[1];
-                    if (mainBis.read(b) != 1) {
-                        break;
-                    }
+                    if (mainBis.read(b) != 1) break;
                     tempResult.write(b[0]);
                 } else {
                     int distance;
                     int length;
                     byte[] disCodes = new byte[1];
-                    if (disHeadBis.read(disCodes) != 1) {
-                        break;
-                    }
+                    if (disHeadBis.read(disCodes) != 1) break;
                     int disCodeRep = disCodes[0] & 0xff;
                     if (disCodeRep == 4) {
                         distance = lastDistances.getFirst();
                         length = lastLen;
                     } else {
                         byte[] lenCodes = new byte[1];
-                        if (lenHeadBis.read(lenCodes) != 1) {
-                            throw new IOException("Cannot read length head");
-                        }
+                        if (lenHeadBis.read(lenCodes) != 1) throw new IOException("Cannot read length head");
                         int lenCodeRep = lenCodes[0] & 0xff;
-                        if (disCodeRep < 4) {
-                            distance = lastDistances.get(disCodeRep);
-                        } else {
-                            distance = LZZ2Util.recoverDistance(disCodeRep, dlbBis);
-                        }
+                        if (disCodeRep < 4) distance = lastDistances.get(disCodeRep);
+                        else distance = LZZ2Util.recoverDistance(disCodeRep, dlbBis);
                         length = LZZ2Util.recoverLength(lenCodeRep, dlbBis) + LZZ2Compressor.minimumMatchLen;
                     }
-//                System.out.print(distance + ", " + length + " ");
                     lastDistances.addFirst(distance);
                     lastLen = length;
-                    if (lastDistances.size() > 4) {
-                        lastDistances.removeLast();
-                    }
+                    if (lastDistances.size() > 4) lastDistances.removeLast();
 
                     int index = tempResult.getIndex();
                     int from = index - distance;
                     int to = from + length;
                     if (to <= index) {
                         byte[] repeat = tempResult.subSequence(from, to);
-                        for (byte b : repeat) {
-                            tempResult.write(b);
-                        }
+                        for (byte b : repeat) tempResult.write(b);
                     } else {
                         byte[] overlapRepeat = new byte[length];
                         int overlap = index - from;
@@ -243,14 +213,10 @@ public class LZZ2DeCompressor implements DeCompressor {
                             System.arraycopy(repeat, 0, overlapRepeat, p, Math.min(overlap, length - p));
                             p += overlap;
                         }
-                        for (byte b : overlapRepeat) {
-                            tempResult.write(b);
-                        }
+                        for (byte b : overlapRepeat) tempResult.write(b);
                     }
                 }
-                if (parent != null && parent.isInterrupted) {
-                    break;
-                }
+                if (parent != null && parent.isInterrupted) break;
                 if (parent != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
                     updateInfo(tempResult.getIndex(), currentTime);
                     lastCheckTime = currentTime;
@@ -275,7 +241,22 @@ public class LZZ2DeCompressor implements DeCompressor {
         mainBis.close();
     }
 
+    @Override
+    public void deleteCache() {
+        deleteCmpTemp();
+        deleteTemp();
+    }
 
+    @Override
+    public void setParent(UnPacker parent) {
+        this.parent = parent;
+    }
+
+    @Override
+    public void setThreads(int threads) {
+    }
+
+    @Override
     public void Uncompress(OutputStream outFile) throws IOException {
         generateTempNames();
         if (disHeadLen == 0) {

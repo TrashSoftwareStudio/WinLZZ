@@ -62,11 +62,8 @@ public class HuffmanCompressor {
     public static void addArrayToFreqMap(byte[] array, HashMap<Byte, Integer> freqMap, int range) {
         for (int i = 0; i < range; i++) {
             byte b = array[i];
-            if (freqMap.containsKey(b)) {
-                freqMap.put(b, freqMap.get(b) + 1);
-            } else {
-                freqMap.put(b, 1);
-            }
+            if (freqMap.containsKey(b)) freqMap.put(b, freqMap.get(b) + 1);
+            else freqMap.put(b, 1);
         }
     }
 
@@ -125,12 +122,10 @@ public class HuffmanCompressor {
         for (int i = 1; i < tupleList.size(); i++) {
             code = (code + 1) << (tupleList.get(i).getLength() - tupleList.get(i - 1).getLength());
             String co = Integer.toBinaryString(code);
-            if (co.length() < tupleList.get(i).getLength()) {
+            if (co.length() < tupleList.get(i).getLength())
                 co = Bytes.charMultiply('0', tupleList.get(i).getLength() - co.length()) + co;
-            }
             canonicalCode.put(tupleList.get(i).getValue(), co);
         }
-
         return canonicalCode;
     }
 
@@ -182,14 +177,9 @@ public class HuffmanCompressor {
     private static int[] getStartAndLength(byte[] canonicalMap) {
         int start = 0;
         int last = 255;
-        while (start < 256 && canonicalMap[start] == (byte) 0) {
-            start += 1;
-        }
-        while (last >= 0 && canonicalMap[last] == (byte) 0) {
-            last -= 1;
-        }
+        while (start < 256 && canonicalMap[start] == (byte) 0) start += 1;
+        while (last >= 0 && canonicalMap[last] == (byte) 0) last -= 1;
         last += 1;
-
         return new int[]{start, last - start};
     }
 
@@ -212,7 +202,6 @@ public class HuffmanCompressor {
         out.write((byte) lengthRemainder);
         compressText(huffmanCode, out);
     }
-
 
     /**
      * Compress using huffman algorithm.
@@ -241,9 +230,7 @@ public class HuffmanCompressor {
             outFile.write(Bytes.bitStringToByte(Bytes.booleanArrayToBitString(infoByte)));
             byte[] b = new byte[length];
             FileInputStream fis = new FileInputStream(inFile);
-            if (fis.read(b) != length) {
-                throw new IOException("Error occurs while reading");
-            }
+            if (fis.read(b) != length) throw new IOException("Error occurs while reading");
             outFile.write(b);
             fis.close();
             compressedLength = length + 1;
@@ -264,9 +251,6 @@ public class HuffmanCompressor {
             infoByte[1] = true;
         }
 
-//        boolean[] remainder = Bytes.numToBool3bit(lengthRemainder);
-//        System.arraycopy(remainder, 0, infoByte, 2, 3);
-
         byte[] head = new byte[]{Bytes.bitStringToByte(Bytes.booleanArrayToBitString(infoByte)), (byte) map.length,
                 (byte) startAndLen[0]};
         outFile.write(head);
@@ -283,16 +267,12 @@ public class HuffmanCompressor {
 
     private void heightControl(HashMap<Byte, Integer> codeLength) {
         ArrayList<LengthTuple> list = new ArrayList<>();
-        for (byte key : codeLength.keySet()) {
-            list.add(new LengthTuple(key, codeLength.get(key), freqMap.get(key)));
-        }
+        for (byte key : codeLength.keySet()) list.add(new LengthTuple(key, codeLength.get(key), freqMap.get(key)));
         Collections.sort(list);
 
         int debt = getTotalDebt(list);
         repay(list, debt);
-        for (LengthTuple lt : list) {
-            codeLength.put(lt.getByte(), lt.length);
-        }
+        for (LengthTuple lt : list) codeLength.put(lt.getByte(), lt.length);
     }
 
     private int getTotalDebt(ArrayList<LengthTuple> list) {
@@ -318,9 +298,7 @@ public class HuffmanCompressor {
 
     public static int getLastUnderLimit(ArrayList<LengthTuple> list, int max) {
         int i = list.size() - 1;
-        while (list.get(i).length == max) {
-            i -= 1;
-        }
+        while (list.get(i).length == max) i -= 1;
         return i;
     }
 }

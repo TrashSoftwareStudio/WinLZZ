@@ -17,9 +17,7 @@ public class ShortHuffmanDeCompressor {
         int i = 0;
         for (int j = 0; j < 64; j += 4) {
             int length = Integer.parseInt(mapBits.substring(j, j + 4), 2);
-            if (length != 0) {
-                lengthCode.put((byte) i, length);
-            }
+            if (length != 0) lengthCode.put((byte) i, length);
             i += 1;
         }
         return lengthCode;
@@ -27,9 +25,7 @@ public class ShortHuffmanDeCompressor {
 
     private static HashMap<String, Byte> invertMap(HashMap<Byte, String> map) {
         HashMap<String, Byte> invertedMap = new HashMap<>();
-        for (byte b : map.keySet()) {
-            invertedMap.put(map.get(b), b);
-        }
+        for (byte b : map.keySet()) invertedMap.put(map.get(b), b);
         return invertedMap;
     }
 
@@ -58,16 +54,12 @@ public class ShortHuffmanDeCompressor {
 
     public byte[] Uncompress() {
         StringBuilder builder = new StringBuilder();
-        for (byte b : text) {
-            builder.append(Bytes.byteToBitString(b));
-        }
+        for (byte b : text) builder.append(Bytes.byteToBitString(b));
         if (builder.charAt(0) == '0') {
             byte b = Bytes.bitStringToByte(builder.substring(1, 9));
             int repeat = Integer.parseInt(builder.substring(9, 18), 2);
             byte[] result = new byte[repeat];
-            for (int i = 0; i < repeat; i++) {
-                result[i] = b;
-            }
+            for (int i = 0; i < repeat; i++) result[i] = b;
             return result;
         }
         int lengthRemainder = Integer.parseInt(builder.substring(1, 4), 2);
@@ -75,9 +67,7 @@ public class ShortHuffmanDeCompressor {
         HashMap<Byte, String> huffmanCode = HuffmanCompressor.generateCanonicalCode(lengthCode);
         HashMap<String, Byte> decodeMap = invertMap(huffmanCode);
 
-        while (builder.length() % 8 != lengthRemainder) {
-            builder.deleteCharAt(builder.length() - 1);
-        }
+        while (builder.length() % 8 != lengthRemainder) builder.deleteCharAt(builder.length() - 1);
 
         return decode(builder.substring(68), decodeMap);
     }

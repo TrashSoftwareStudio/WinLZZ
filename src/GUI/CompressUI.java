@@ -55,14 +55,16 @@ public class CompressUI implements Initializable {
     private String[] windowsSizeNames2 = new String[]{"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
 
     private int[] windowSizes = new int[]{4096, 16384, 32768, 65536, 131072, 262144, 524266, 1048576};
+    // Window sizes of LZZ2 and QuickLZZ.
 
-    private int[] windowSizes2 = new int[]{131072, 262144, 524266, 1048576, 2097152, 4194304};
+    private int[] windowSizes2 = new int[]{131072, 262144, 524266, 1048576, 2097152, 4194304, 8388608, 16777216};
+    // Window sizes of BWT.
 
     private Integer[] bufferSizes = new Integer[]{8, 16, 32, 64, 128, 256, 286};
 
     private String[] cmpLevels = new String[]{"快速", "普通", "较强", "强力", "超强"};
 
-    private Integer[] threads = new Integer[]{1, 2, 4, 6, 8};
+    private Integer[] threads = new Integer[]{1, 2, 3, 4};
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -215,9 +217,7 @@ public class CompressUI implements Initializable {
     @FXML
     void startCompress() throws Exception {
         String name = nameText.getText();
-        if (!name.endsWith(".pz")) {
-            name += ".pz";
-        }
+        if (!name.endsWith(".pz")) name += ".pz";
 
         String algName = algBox.getSelectionModel().getSelectedItem();
         String alg;
@@ -241,11 +241,8 @@ public class CompressUI implements Initializable {
             buffer = 0;
             cmpLevel = 0;
         } else {
-            if (alg.equals("bwz")) {
-                window = windowSizes2[windowNameBox.getSelectionModel().getSelectedIndex()];
-            } else {
-                window = windowSizes[windowNameBox.getSelectionModel().getSelectedIndex()];
-            }
+            if (alg.equals("bwz")) window = windowSizes2[windowNameBox.getSelectionModel().getSelectedIndex()];
+            else window = windowSizes[windowNameBox.getSelectionModel().getSelectedIndex()];
             if (alg.equals("lzz2")) {
                 buffer = bufferBox.getSelectionModel().getSelectedItem();
                 cmpLevel = modeBox.getSelectionModel().getSelectedIndex();

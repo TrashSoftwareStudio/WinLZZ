@@ -64,11 +64,8 @@ public class PasswordBox implements Initializable {
             stage.close();
         } else if (p1.equals(p2)) {
             parent.setPassword(p1);
-            if (encryptNameBox.isSelected()) {
-                parent.setEncryptLevel(2);
-            } else {
-                parent.setEncryptLevel(1);
-            }
+            if (encryptNameBox.isSelected()) parent.setEncryptLevel(2);
+            else parent.setEncryptLevel(1);
             stage.close();
         } else {
             promptLabel.setText("两次输入不一致");
@@ -109,9 +106,7 @@ public class PasswordBox implements Initializable {
 
     private void setPasswordListener() {
         setPassword.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (!showPasswordBox.isSelected()) {
-                plainPasswordField.setText(newValue);
-            }
+            if (!showPasswordBox.isSelected()) plainPasswordField.setText(newValue);
         });
     }
 }

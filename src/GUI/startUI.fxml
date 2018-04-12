@@ -11,40 +11,30 @@
 
 <AnchorPane prefHeight="320.0" prefWidth="240.0" xmlns="http://javafx.com/javafx/8.0.121"
             xmlns:fx="http://javafx.com/fxml/1" fx:controller="GUI.StartUI">
-    <children>
-        <VBox prefHeight="320.0" prefWidth="240.0">
-            <children>
-                <MenuBar prefHeight="25.0">
-                    <menus>
-                        <Menu mnemonicParsing="false" text="帮助">
-                            <items>
-                                <MenuItem mnemonicParsing="false" onAction="#aboutAction" text="关于"/>
-                                <MenuItem mnemonicParsing="false" onAction="#licenceAction" text="开源许可证"/>
-                                <MenuItem mnemonicParsing="false" onAction="#changelogAction" text="查看更新日志"/>
-                            </items>
-                        </Menu>
-                    </menus>
-                </MenuBar>
-                <VBox alignment="CENTER" prefHeight="295.0" prefWidth="240.0" spacing="30.0">
-                    <children>
-                        <Label text="WinLZZ">
-                            <font>
-                                <Font size="36.0"/>
-                            </font>
-                        </Label>
-                        <Button mnemonicParsing="false" onAction="#compressMode" text="压缩">
-                            <font>
-                                <Font size="18.0"/>
-                            </font>
-                        </Button>
-                        <Button mnemonicParsing="false" onAction="#uncompressMode" text="解压">
-                            <font>
-                                <Font size="18.0"/>
-                            </font>
-                        </Button>
-                    </children>
-                </VBox>
-            </children>
+    <VBox prefHeight="320.0" prefWidth="240.0">
+        <MenuBar prefHeight="25.0">
+            <Menu mnemonicParsing="false" text="帮助">
+                <MenuItem mnemonicParsing="false" onAction="#aboutAction" text="关于"/>
+                <MenuItem mnemonicParsing="false" onAction="#licenceAction" text="开源许可证"/>
+                <MenuItem mnemonicParsing="false" onAction="#changelogAction" text="查看更新日志"/>
+            </Menu>
+        </MenuBar>
+        <VBox alignment="CENTER" prefHeight="295.0" prefWidth="240.0" spacing="30.0">
+            <Label text="WinLZZ">
+                <font>
+                    <Font size="36.0"/>
+                </font>
+            </Label>
+            <Button mnemonicParsing="false" onAction="#compressMode" text="压缩">
+                <font>
+                    <Font size="18.0"/>
+                </font>
+            </Button>
+            <Button mnemonicParsing="false" onAction="#uncompressMode" text="解压">
+                <font>
+                    <Font size="18.0"/>
+                </font>
+            </Button>
         </VBox>
-    </children>
+    </VBox>
 </AnchorPane>

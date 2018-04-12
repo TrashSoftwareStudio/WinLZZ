@@ -50,14 +50,10 @@ public class HuffmanDeCompressor {
             }
             if (len != 0) {
                 lengthCode.put((byte) i, len);
-                if (len > maxCodeLen) {
-                    maxCodeLen = len;
-                }
+                if (len > maxCodeLen) maxCodeLen = len;
             }
         }
-        if (average > maxCodeLen) {
-            average = maxCodeLen;
-        }
+        if (average > maxCodeLen) average = maxCodeLen;
         return lengthCode;
     }
 
@@ -120,7 +116,6 @@ public class HuffmanDeCompressor {
             if (shortMap.containsKey(index)) {
                 value = shortMap.get(index);
                 len = lengthMap.get(value);
-
             } else {
                 value = longMap.get(Integer.parseInt(builder.substring(i, i + maxCodeLen), 2));
                 len = lengthMap.get(value);
@@ -165,9 +160,7 @@ public class HuffmanDeCompressor {
         FileInputStream fis = new FileInputStream(inFile);
 
         byte[] firstByte = new byte[1];
-        if (fis.read(firstByte) != 1) {
-            throw new IOException("Error occurs while reading");
-        }
+        if (fis.read(firstByte) != 1) throw new IOException("Error occurs while reading");
         lengthRemainder = firstByte[0] & 0xff;
 
         HashMap<Byte, Integer> lengthCode = recoverLengthCode(map);
@@ -216,20 +209,15 @@ public class HuffmanDeCompressor {
         byte[] head = new byte[2];
         if (bis.read(head) != 2) throw new IOException("Error occurs while reading");
         int cmpMapLen = head[0] & 0xff;
-        if (cmpMapLen == 0) {
-            cmpMapLen = 256;
-        }
+        if (cmpMapLen == 0) cmpMapLen = 256;
         int mapStart = head[1] & 0xff;
 
         // Read canonical map
         byte[] cmpMap = new byte[cmpMapLen];
         if (bis.read(cmpMap) != cmpMapLen) throw new IOException("Error occurs while reading");
         byte[] map;
-        if (info.charAt(1) == '0') {
-            map = new ShortHuffmanDeCompressor(cmpMap).Uncompress();
-        } else {
-            map = cmpMap;
-        }
+        if (info.charAt(1) == '0') map = new ShortHuffmanDeCompressor(cmpMap).Uncompress();
+        else map = cmpMap;
         byte[] fullMap = new byte[256];
         System.arraycopy(map, 0, fullMap, mapStart, map.length);
 

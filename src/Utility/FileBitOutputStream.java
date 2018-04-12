@@ -26,9 +26,7 @@ public class FileBitOutputStream {
     }
 
     public void write(String s) throws IOException {
-        for (int i = 0; i < s.length(); i++) {
-            write(s.charAt(i));
-        }
+        for (int i = 0; i < s.length(); i++) write(s.charAt(i));
     }
 
     private byte charArrayToByte() {

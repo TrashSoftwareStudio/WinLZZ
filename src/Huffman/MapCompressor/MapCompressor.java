@@ -24,13 +24,9 @@ public class MapCompressor {
 
     private static byte[] generateMap(HashMap<Byte, Integer> lengthMap) {
         byte[] cmpMap = new byte[19];
-        for (int i = 0; i < 19; i++) {
-            if (lengthMap.containsKey((byte) i)) {
-                cmpMap[i] = (byte) (int) (lengthMap.get((byte) i));
-            } else {
-                cmpMap[i] = (byte) 0;
-            }
-        }
+        for (int i = 0; i < 19; i++)
+            if (lengthMap.containsKey((byte) i)) cmpMap[i] = (byte) (int) (lengthMap.get((byte) i));
+            else cmpMap[i] = (byte) 0;
         return cmpMap;
     }
 
@@ -42,16 +38,13 @@ public class MapCompressor {
 
     private void heightControl(HashMap<Byte, Integer> codeLength) {
         ArrayList<Huffman.LengthTuple> list = new ArrayList<>();
-        for (byte key : codeLength.keySet()) {
+        for (byte key : codeLength.keySet())
             list.add(new Huffman.LengthTuple(key, codeLength.get(key), freqMap.get(key)));
-        }
         Collections.sort(list);
 
         int debt = getTotalDebt(list);
         repay(list, debt);
-        for (Huffman.LengthTuple lt : list) {
-            codeLength.put(lt.getByte(), lt.length);
-        }
+        for (Huffman.LengthTuple lt : list) codeLength.put(lt.getByte(), lt.length);
     }
 
     private int getTotalDebt(ArrayList<Huffman.LengthTuple> list) {
@@ -77,24 +70,20 @@ public class MapCompressor {
 
     private byte[] swapCcl(byte[] ccl) {
         byte[] cclResult = new byte[19];
-        for (int i = 0; i < 19; i++) {
-            cclResult[i] = ccl[positions[i]];
-        }
+        for (int i = 0; i < 19; i++) cclResult[i] = ccl[positions[i]];
         return cclResult;
     }
 
     private byte[] cclTruncate(byte[] ccl) {
         int i = 18;
-        while (ccl[i] == (byte) 0) {
-            i -= 1;
-        }
+        while (ccl[i] == (byte) 0) i -= 1;
         i += 1;
         byte[] shortCCL = new byte[i];
         System.arraycopy(ccl, 0, shortCCL, 0, i);
         return shortCCL;
     }
 
-    public byte[] Compress() {
+    public byte[] Compress(boolean swap) {
 
         HuffmanCompressor.addArrayToFreqMap(map, freqMap, map.length);
         HashMap<Byte, Integer> codeLengthMap = new HashMap<>();
@@ -103,12 +92,14 @@ public class MapCompressor {
         heightControl(codeLengthMap);
         HashMap<Byte, String> huffmanCode = HuffmanCompressor.generateCanonicalCode(codeLengthMap);
 
-//        System.out.println(huffmanCode);
-
         byte[] origCCL = generateMap(codeLengthMap);
-//        System.out.println(Arrays.toString(origCCL));
-        byte[] swappedCCL = swapCcl(origCCL);
-        byte[] CCL = cclTruncate(swappedCCL);
+        byte[] CCL;
+        if (swap) {
+            byte[] swappedCCL = swapCcl(origCCL);
+            CCL = cclTruncate(swappedCCL);
+        } else {
+            CCL = cclTruncate(origCCL);
+        }
 
         String cmpMap = compressText(huffmanCode, map);
 
@@ -117,10 +108,7 @@ public class MapCompressor {
         builder.append(hcLen);
         builder.append(Bytes.numberToBitString(cmpMap.length() % 8, 3));  // Record length remainder.
 
-        for (byte b : CCL) {
-            builder.append(Bytes.numberToBitString((b & 0xff), 3));
-        }
-
+        for (byte b : CCL) builder.append(Bytes.numberToBitString((b & 0xff), 3));
         builder.append(cmpMap);
 
         return Bytes.stringBuilderToBytesFull(builder);

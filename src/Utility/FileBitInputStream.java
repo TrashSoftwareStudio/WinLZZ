@@ -19,9 +19,7 @@ public class FileBitInputStream {
         char c;
         if (index % 8 == 0) {
             byte[] b = new byte[1];
-            if (bis.read(b) != 1) {
-                return '2';
-            }
+            if (bis.read(b) != 1) return '2';
             currentByte = Bytes.byteToBitString(b[0]);
             c = currentByte.charAt(0);
         } else {

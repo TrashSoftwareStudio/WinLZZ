@@ -236,6 +236,7 @@ public class QuickLZZCompressor implements Compressor {
      * @param outFile the target output stream.
      * @throws IOException if io error occurs during compression.
      */
+    @Override
     public void Compress(OutputStream outFile) throws IOException {
         compressText();
 
@@ -278,7 +279,7 @@ public class QuickLZZCompressor implements Compressor {
         byte[] rlcBytes = Bytes.stringToBytesFull(rlcBits);
 
         MapCompressor mc = new MapCompressor(rlcMain);
-        byte[] csq = mc.Compress();
+        byte[] csq = mc.Compress(true);
 
         outFile.write(csq);
         outFile.write(rlcBytes);
@@ -311,19 +312,21 @@ public class QuickLZZCompressor implements Compressor {
      *
      * @return size after compressed.
      */
+    @Override
     public long getCompressedSize() {
         return cmpSize;
     }
 
+    @Override
     public void setParent(Packer parent) {
         this.parent = parent;
     }
 
+    @Override
     public void setCompressionLevel(int compressionLevel) {
     }
 
     @Override
     public void setThreads(int threads) {
-
     }
 }

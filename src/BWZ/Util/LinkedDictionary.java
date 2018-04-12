@@ -4,14 +4,6 @@ public class LinkedDictionary {
 
     private Node head;
 
-    public static void main(String[] args) {
-        LinkedDictionary ld = new LinkedDictionary();
-        ld.initialize(257);
-        System.out.println(ld);
-        System.out.println(ld.findAndMove((short) 14));
-        System.out.println(ld);
-    }
-
     public void initialize(int size) {
         head = new Node((short) (size - 1));
         for (int i = size - 2; i >= 0; i--) {
@@ -25,7 +17,6 @@ public class LinkedDictionary {
         Node prev = head;
         Node current = head;
         int count = 0;
-//        System.out.println(value);
         while (current.getValue() != value) {
             prev = current;
             current = current.getNext();

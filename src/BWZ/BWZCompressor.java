@@ -5,24 +5,20 @@
  * This algorithm is implemented by using Burrows-Wheeler Transform, Move-To-Front Transform,
  * Run-Length Coding and Huffman Coding.
  * A suffix array is presented in case to build the BWT string.
- * The suffix array is constructed using Doubling Algorithm, which takes O(n * log n) time.
  */
 
 package BWZ;
 
 import Huffman.MapCompressor.MapCompressor;
-import Huffman.RLCCoder.RLCCoder;
 import Interface.Compressor;
 import LZZ2.Util.LZZ2Util;
 import LongHuffman.LongHuffmanCompressorRam;
 import Packer.Packer;
-import Utility.Bytes;
 import Utility.Util;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -32,11 +28,18 @@ public class BWZCompressor implements Compressor {
 
     private String mainTempName;
 
+    final static int maxHuffmanSize = 1048576;  // Maximum size of a huffman-coding block.
+
+    final static int dc3DecisionSize = 1048576;  // Decision size of suffix array building algorithm.
+    // DC3 algorithm is used if the window size if greater than or equal to this size in case of increasing speed.
+    // Otherwise, doubling algorithm is used (since doubling algorithm takes O(n * log n) while dc3 takes O(n),
+    // But doubling algorithm has a much smaller constant).
+
     private OutputStream mainOut;
 
     private FileChannel fis;
 
-    private long cmpSize;
+    private long cmpSize;  // Total size after compression.
 
     int mainLen;
 
@@ -55,7 +58,6 @@ public class BWZCompressor implements Compressor {
     long ratio;
 
     long pos;
-
 
     /**
      * Creates a new instance of BWZCompressor.
@@ -79,64 +81,71 @@ public class BWZCompressor implements Compressor {
     }
 
     private void compress() throws Exception {
-
         long lastCheckTime = System.currentTimeMillis();
         long currentTime;
 
-        ArrayList<byte[]> blocks = new ArrayList<>();
-
         int read;
-        ByteBuffer buffer = ByteBuffer.allocate(windowSize);
-        while ((read = fis.read(buffer)) > 0) {
-            buffer.flip();
+        ByteBuffer block = ByteBuffer.allocate(windowSize * threadNumber);
+        while ((read = fis.read(block)) > 0) {
+            block.flip();
             byte[] validBlock;
-
-            if (read == windowSize) {
-                validBlock = buffer.array();
+            if (read == windowSize * threadNumber) {
+                validBlock = block.array();
             } else {
                 validBlock = new byte[read];
-                System.arraycopy(buffer.array(), 0, validBlock, 0, read);
-            }
-            buffer.clear();
-            blocks.add(validBlock);
-
-            if (blocks.size() == threadNumber || read < windowSize) {
-                EncodeThread[] threads = new EncodeThread[blocks.size()];
-                ExecutorService es = Executors.newCachedThreadPool();
-                for (int i = 0; i < threads.length; i++) {
-                    EncodeThread et = new EncodeThread(blocks.get(i));
-                    threads[i] = et;
-                    es.execute(et);
-                }
-                es.shutdown();
-                es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
-
-                for (EncodeThread et : threads) {
-                    byte[] array = et.getResult();
-                    mainLen += array.length;
-                    mainOut.write(array);
-                    huffmanMaps.addLast(et.getMap());
-                    pos += et.origLen();
-                }
-                blocks.clear();
-
-                if (parent != null) {
-                    if (parent.isInterrupted) {
-                        break;
-                    } else {
-                        currentTime = System.currentTimeMillis();
-                        updateInfo(currentTime, lastCheckTime);
-                        lastCheckTime = currentTime;
-                    }
-                }
+                System.arraycopy(block.array(), 0, validBlock, 0, read);
             }
 
+            int threadsNeed;
+            if (read % windowSize == 0) {
+                threadsNeed = read / windowSize;
+            } else {
+                threadsNeed = read / windowSize + 1;
+            }
+
+            EncodeThread[] threads = new EncodeThread[threadsNeed];
+            ExecutorService es = Executors.newCachedThreadPool();
+            for (int i = 0; i < threads.length; i++) {
+                byte[] buffer;
+                if ((i + 1) * windowSize <= validBlock.length) {
+                    buffer = new byte[windowSize];
+                    System.arraycopy(validBlock, i * windowSize, buffer, 0, windowSize);
+                } else {
+                    int len = validBlock.length % windowSize;
+                    buffer = new byte[len];
+                    System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
+                }
+                EncodeThread et = new EncodeThread(buffer, windowSize);
+                threads[i] = et;
+                es.execute(et);
+            }
+            es.shutdown();
+            es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
+
+            for (EncodeThread et : threads) {
+                et.writeTo(mainOut, this);
+                byte[][] maps = et.getMaps();
+                for (byte[] map : maps) {
+                    huffmanMaps.addLast(map);
+                }
+                pos += et.origLen();
+            }
+            block.clear();
+
+            if (parent != null) {
+                if (parent.isInterrupted) {
+                    break;
+                } else {
+                    currentTime = System.currentTimeMillis();
+                    updateInfo(currentTime, lastCheckTime);
+                    lastCheckTime = currentTime;
+                }
+            }
         }
     }
 
-
+    @Override
     public void Compress(OutputStream out) throws Exception {
-
         mainOut = new BufferedOutputStream(new FileOutputStream(mainTempName));
 
         Thread timer;
@@ -148,7 +157,7 @@ public class BWZCompressor implements Compressor {
         try {
             compress();
         } catch (InterruptedException e) {
-            //
+            // The process is interrupted by user.
         }
         fis.close();
 
@@ -162,41 +171,28 @@ public class BWZCompressor implements Compressor {
         }
 
         byte[] mainMap = new byte[huffmanMaps.size() * 259];
-        for (int i = 0; i < huffmanMaps.size(); i++) {
+        for (int i = 0; i < huffmanMaps.size(); i++)
             System.arraycopy(huffmanMaps.get(i), 0, mainMap, i * 259, 259);
-        }
+        byte[] mtfMap = new MTFTransformByte(mainMap).Transform();
 
-        RLCCoder rlc = new RLCCoder(mainMap);
-        rlc.Encode();
-        byte[] rlcMain = rlc.getMainResult();
-        String rlcBits = rlc.getRlcBits();
-
-        byte[] rlcBytes = Bytes.stringToBytesFull(rlcBits);
-
-        MapCompressor mc = new MapCompressor(rlcMain);
-        byte[] csq = mc.Compress();
-
+        MapCompressor mc = new MapCompressor(mtfMap);
+        byte[] csq = mc.Compress(false);
         out.write(csq);
-        out.write(rlcBytes);
 
         mainLen = Util.fileConcatenate(out, new String[]{mainTempName}, 8192);
 
         deleteTemp();
-
         int csqLen = csq.length;
-        int rlcByteLen = rlcBytes.length;
-        int[] sizes = new int[]{csqLen, rlcByteLen};
+        int[] sizes = new int[]{csqLen};
         byte[] sizeBlock = LZZ2Util.generateSizeBlock(sizes);
         out.write(sizeBlock);
 
-        cmpSize = mainLen + csqLen + rlcByteLen + sizeBlock.length;
+        cmpSize = mainLen + csqLen + sizeBlock.length;
         isRunning = false;
-
     }
 
     private void updateInfo(long currentTime, long lastUpdateTime) {
         parent.progress.set(pos);
-
         int newUpdated = (int) (pos - lastUpdateProgress);
         lastUpdateProgress = parent.progress.get();
         ratio = (long) ((double) newUpdated / (currentTime - lastUpdateTime) * 1.024);
@@ -227,30 +223,62 @@ class EncodeThread implements Runnable {
 
     private byte[] buffer;
 
-    private byte[] result;
+    private byte[][] results;
 
-    private byte[] map;
+    private byte[][] maps;
 
-    EncodeThread(byte[] partData) {
+    private int windowSize;
+
+    EncodeThread(byte[] partData, int windowSize) {
         this.buffer = partData;
+        this.windowSize = windowSize;
     }
 
     private void start() {
-        BWTEncoder be = new BWTEncoder(buffer);
-        short[] bwtResult = be.Transform2();
+        boolean isDc3 = buffer.length >= BWZCompressor.dc3DecisionSize;
+        int huffmanBlockNumber;
+        if (buffer.length <= BWZCompressor.maxHuffmanSize) {
+            huffmanBlockNumber = 1;
+        } else {
+            huffmanBlockNumber = buffer.length / BWZCompressor.maxHuffmanSize;
+            if (buffer.length < windowSize) huffmanBlockNumber += 1;
+        }
+
+        maps = new byte[huffmanBlockNumber][];
+        results = new byte[huffmanBlockNumber][];
+
+        BWTEncoder be = new BWTEncoder(buffer, isDc3);
+        short[] bwtResult = be.Transform();
         MTFTransform mtf = new MTFTransform(bwtResult);
         short[] array = mtf.Transform();  // Also contains RLC Result.
-        LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(array, 259, (short) 258);
-        map = hcr.getMap(259);
-        result = hcr.Compress();
+
+        int eachLength = array.length / huffmanBlockNumber;
+        int pos = 0;
+        for (int i = 0; i < huffmanBlockNumber - 1; i++) {
+            short[] part = new short[eachLength];
+            System.arraycopy(array, pos, part, 0, eachLength);
+            pos += eachLength;
+            LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(part, 259, (short) 258);
+            maps[i] = hcr.getMap(259);
+            results[i] = hcr.Compress();
+        }
+
+        short[] lastPart = new short[array.length - pos];
+        System.arraycopy(array, pos, lastPart, 0, lastPart.length);
+        LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(lastPart, 259, (short) 258);
+        maps[huffmanBlockNumber - 1] = hcr.getMap(259);
+        results[huffmanBlockNumber - 1] = hcr.Compress();
     }
 
-    public byte[] getResult() {
-        return result;
+    void writeTo(OutputStream out, BWZCompressor parent) throws IOException {
+        for (byte[] result : results) {
+            parent.mainLen += result.length;
+            out.write(result);
+        }
     }
 
-    public byte[] getMap() {
-        return map;
+    byte[][] getMaps() {
+        return maps;
     }
 
     long origLen() {

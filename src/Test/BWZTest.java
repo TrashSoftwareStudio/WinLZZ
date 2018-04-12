@@ -1,5 +1,7 @@
-package BWZ;
+package Test;
 
+import BWZ.BWZCompressor;
+import BWZ.BWZDeCompressor;
 import Utility.Util;
 
 import java.io.BufferedOutputStream;
@@ -15,7 +17,7 @@ public class BWZTest {
 //        name = "p1.png";
 //        name = "t1.bmp";
 //        name = "cmpFiles.tar";
-        int ws = 8192;
+        int ws = 65536;
         String cmpName = Util.getCompressFileName(name, "bwz");
         long start = System.currentTimeMillis();
 

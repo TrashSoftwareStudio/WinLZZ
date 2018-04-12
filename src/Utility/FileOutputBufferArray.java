@@ -42,27 +42,18 @@ public class FileOutputBufferArray {
         if (index % bufferSize == 0) {
             activeArray2 = !activeArray2;
             if (activeArray2) {
-                if (array2Init) {
-                    fos.write(array2);
-                } else {
-                    array2Init = true;
-                }
+                if (array2Init) fos.write(array2);
+                else array2Init = true;
                 array2[0] = b;
             } else {
-                if (array1Init) {
-                    fos.write(array1);
-                } else {
-                    array1Init = true;
-                }
+                if (array1Init) fos.write(array1);
+                else array1Init = true;
                 array1[0] = b;
             }
             front += bufferSize;
         } else {
-            if (activeArray2) {
-                array2[index % bufferSize] = b;
-            } else {
-                array1[index % bufferSize] = b;
-            }
+            if (activeArray2) array2[index % bufferSize] = b;
+            else array1[index % bufferSize] = b;
         }
         index += 1;
     }
@@ -70,11 +61,8 @@ public class FileOutputBufferArray {
     public byte[] subSequence(int from, int to) {
         int len = to - from;
         byte[] rtn = new byte[len];
-        if (to > index) {
-            throw new IndexOutOfBoundsException("Index Out Of Bounds: Index: " + index + ", To: " + to);
-        } else if (from > to) {
-            throw new NegativeArraySizeException("Negative sequence size");
-        }
+        if (to > index) throw new IndexOutOfBoundsException("Index Out Of Bounds: Index: " + index + ", To: " + to);
+        else if (from > to) throw new NegativeArraySizeException("Negative sequence size");
         if (activeArray2) {
             if (front - from <= bufferSize) {
                 System.arraycopy(array2, from % bufferSize, rtn, 0, len);

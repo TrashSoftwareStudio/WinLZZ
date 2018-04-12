@@ -27,16 +27,16 @@ import java.util.ResourceBundle;
 public class UncompressUI implements Initializable {
 
     @FXML
-    Label dirText;
+    private Label dirText;
 
     @FXML
-    Button goBackButton;
+    private Button goBackButton;
 
     @FXML
-    Button uncompressPart;
+    private Button uncompressPart;
 
     @FXML
-    Button infoButton;
+    private Button infoButton;
 
     @FXML
     private TableView<FileNode> fileList;
@@ -49,6 +49,9 @@ public class UncompressUI implements Initializable {
 
     @FXML
     private TableColumn<FileNode, String> typeColumn;
+
+    @FXML
+    private ComboBox<Integer> threadNumberBox;
 
     private Stage stage;
 
@@ -68,6 +71,9 @@ public class UncompressUI implements Initializable {
         fileListSelectionListener();
         backButtonHoverListener();
         infoButtonHoverListener();
+
+        threadNumberBox.getItems().addAll(1, 2, 3, 4);
+        threadNumberBox.getSelectionModel().select(0);
     }
 
     void setStage(Stage stage) {
@@ -94,11 +100,8 @@ public class UncompressUI implements Initializable {
             return;
         }
         dirText.setText("");
-        if (unPacker.getEncryptLevel() != 2) {
-            showContext();
-        } else {
-            passwordInputAction(true);
-        }
+        if (unPacker.getEncryptLevel() != 2) showContext();
+        else passwordInputAction(true);
     }
 
     private void showContext() {
@@ -118,10 +121,7 @@ public class UncompressUI implements Initializable {
             fileList.setPlaceholder(new Label("空文件夹"));
         } else {
             fileList.setPlaceholder(new Label("正在读取"));
-            for (ContextNode cn : currentNode.getChildren()) {
-                FileNode fn = new FileNode(cn);
-                fileList.getItems().add(fn);
-            }
+            for (ContextNode cn : currentNode.getChildren()) fileList.getItems().add(new FileNode(cn));
         }
         dirText.setText(currentNode.getPath());
     }
@@ -170,11 +170,8 @@ public class UncompressUI implements Initializable {
         });
 
         fileList.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue == null) {
-                uncompressPart.setDisable(true);
-            } else {
-                uncompressPart.setDisable(false);
-            }
+            if (newValue == null) uncompressPart.setDisable(true);
+            else uncompressPart.setDisable(false);
         });
     }
 
@@ -215,9 +212,7 @@ public class UncompressUI implements Initializable {
     }
 
     private void checkPassword() {
-        if (unPacker.getEncryptLevel() == 1 && !unPacker.isPasswordSet()) {
-            passwordInputAction(false);
-        }
+        if (unPacker.getEncryptLevel() == 1 && !unPacker.isPasswordSet()) passwordInputAction(false);
     }
 
     private void uncompressHandler(ContextNode cn) throws IOException {
@@ -235,8 +230,9 @@ public class UncompressUI implements Initializable {
             stage.setScene(new Scene(root));
 
             UncompressingUI uui = loader.getController();
-            uui.setStage(stage);
+            uui.setStage(stage, this);
             uui.setParameters(unPacker, selected, cn);
+            uui.setThreadNumber(threadNumberBox.getSelectionModel().getSelectedItem());
 
             stage.show();
 
@@ -255,9 +251,10 @@ public class UncompressUI implements Initializable {
         stage.setScene(new Scene(root));
 
         UncompressingUI uui = loader.getController();
-        uui.setStage(stage);
+        uui.setStage(stage, this);
         uui.setTest();
         uui.setParameters(unPacker);
+        uui.setThreadNumber(threadNumberBox.getSelectionModel().getSelectedItem());
 
         stage.show();
 
@@ -266,6 +263,7 @@ public class UncompressUI implements Initializable {
 
     void close() {
         unPacker.close();
+        this.stage.close();
     }
 
     private void passwordInputAction(boolean isName) {
@@ -290,10 +288,7 @@ public class UncompressUI implements Initializable {
 
         root.getChildren().addAll(box);
 
-        stage.setOnCloseRequest(e -> {
-            close();
-            this.stage.close();
-        });
+        stage.setOnCloseRequest(e -> close());
 
         if (isName) {
             confirm.setOnAction(event -> {

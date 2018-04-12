@@ -1,8 +1,6 @@
 package BWZ;
 
-class SuffixArray {
-
-    private final static int max_n = 20_000_000;
+class SuffixArrayDoubling {
 
     private short[] text;
 
@@ -10,8 +8,9 @@ class SuffixArray {
 
     private int[] sa, t, t2, c;
 
-    SuffixArray(short[] text) {
-        this.n = text.length;
+    SuffixArrayDoubling(short[] text) {
+        n = text.length;
+        int max_n = n + 256;
         this.text = text;
         sa = new int[n];
         t = new int[max_n];

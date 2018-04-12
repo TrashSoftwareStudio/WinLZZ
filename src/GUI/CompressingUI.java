@@ -171,11 +171,13 @@ public class CompressingUI implements Initializable {
             Alert info = new Alert(Alert.AlertType.INFORMATION);
             info.setTitle("WinLZZ");
             info.setHeaderText("压缩失败");
+
             info.show();
             System.gc();
             stage.close();
 
-            e.getSource().getException().printStackTrace();
+            Throwable exception = e.getSource().getException();
+            exception.printStackTrace();
         });
 
         service.setOnCancelled(e -> {
@@ -217,10 +219,7 @@ public class CompressingUI implements Initializable {
         alert.setHeaderText("取消压缩");
         alert.setContentText("确认要取消压缩?");
         alert.showAndWait();
-
-        if (alert.getResult() == ButtonType.OK) {
-            service.cancel();
-        }
+        if (alert.getResult() == ButtonType.OK) service.cancel();
     }
 
     private class CompressService extends Service<Void> {

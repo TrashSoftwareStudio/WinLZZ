@@ -22,10 +22,7 @@ class HuffmanTuple implements Comparable<HuffmanTuple> {
     @Override
     public int compareTo(HuffmanTuple o) {
         int lengthCmp = Integer.compare(codeLength, o.codeLength);
-        if (lengthCmp == 0) {
-            return Byte.compare(value, o.value);
-        } else {
-            return lengthCmp;
-        }
+        if (lengthCmp == 0) return Byte.compare(value, o.value);
+        else return lengthCmp;
     }
 }

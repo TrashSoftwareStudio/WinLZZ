@@ -14,7 +14,7 @@ public class LongHuffmanCompressorRam {
 
     private HashMap<Short, String> huffmanCode = new HashMap<>();
 
-    private int maxHeight = 15;
+    private final static int maxHeight = 15;
 
     private short endSig;
 
@@ -25,13 +25,13 @@ public class LongHuffmanCompressorRam {
     }
 
     private void generateFreqMap() {
-        LongHuffmanCompressor.addArrayToFreqMap(text, freqMap, text.length);
+        LongHuffmanUtil.addArrayToFreqMap(text, freqMap, text.length);
         freqMap.put(endSig, 1);
     }
 
     private byte[] compressText() {
         StringBuilder builder = new StringBuilder();
-        LongHuffmanCompressor.addCompressed(text, text.length, builder, huffmanCode);
+        LongHuffmanUtil.addCompressed(text, text.length, builder, huffmanCode);
         builder.append(huffmanCode.get(endSig));
         return Bytes.stringBuilderToBytesFull(builder);
     }
@@ -47,45 +47,17 @@ public class LongHuffmanCompressorRam {
         return lengthCode;
     }
 
-    public long calculateExpectLength(byte[] codeLengthMap) {
-        long aftLen = 0;
-        for (int i = 0; i < codeLengthMap.length; i++) {
-            Integer freq = freqMap.get((short) i);
-            if (freq != null) {
-                aftLen += freq * (codeLengthMap[i] & 0xff);
-            }
-        }
-        return aftLen;
-    }
-
-    public double calculateAverageCodeLength(byte[] codeLengthMap) {
-        long aftLen = 0;
-        long origLen = 0;
-        for (int i = 0; i < codeLengthMap.length; i++) {
-            Integer freq = freqMap.get((short) i);
-            if (freq != null) {
-                aftLen += freq * (codeLengthMap[i] & 0xff);
-                origLen += freq;
-            }
-        }
-        return (double) aftLen / origLen;
-    }
-
     public byte[] getMap(int length) {
         generateFreqMap();
-        HuffmanNode rootNode = LongHuffmanCompressor.generateHuffmanTree(freqMap);
+        HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freqMap);
         HashMap<Short, Integer> codeLengthMap = new HashMap<>();
-        LongHuffmanCompressor.generateCodeLengthMap(codeLengthMap, rootNode, 0);
+        LongHuffmanUtil.generateCodeLengthMap(codeLengthMap, rootNode, 0);
 
-        LongHuffmanCompressor.heightControl(codeLengthMap, freqMap, maxHeight);
-        huffmanCode = LongHuffmanCompressor.generateCanonicalCode(codeLengthMap);
+        LongHuffmanUtil.heightControl(codeLengthMap, freqMap, maxHeight);
+        huffmanCode = LongHuffmanUtil.generateCanonicalCode(codeLengthMap);
         byte[] result = new byte[length];
-        System.arraycopy(LongHuffmanCompressor.generateCanonicalCodeBlock(codeLengthMap, alphabetSize), 0, result, 0, length);
+        System.arraycopy(LongHuffmanUtil.generateCanonicalCodeBlock(codeLengthMap, alphabetSize), 0, result, 0, length);
         return result;
-    }
-
-    public HashMap<Short, Integer> getFreqMap() {
-        return freqMap;
     }
 
     public byte[] Compress() {
@@ -94,7 +66,7 @@ public class LongHuffmanCompressorRam {
 
     public byte[] Compress(byte[] anotherMap) {
         HashMap<Short, Integer> lengthCode = generateLengthCode(anotherMap);
-        huffmanCode = LongHuffmanCompressor.generateCanonicalCode(lengthCode);
+        huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
         return compressText();
     }
 }

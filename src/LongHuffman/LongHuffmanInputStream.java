@@ -1,13 +1,11 @@
 package LongHuffman;
 
 import Utility.Bytes;
-import Utility.Util;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.HashMap;
-import java.util.LinkedList;
 
 public class LongHuffmanInputStream {
 
@@ -33,14 +31,16 @@ public class LongHuffmanInputStream {
 
     private boolean isTerminated;
 
-    private LinkedList<Short> result = new LinkedList<>();
+    private short[] result;
+
+    private int currentIndex;
 
     private StringBuilder builder = new StringBuilder();
 
-    public LongHuffmanInputStream(FileChannel fc, int alphabetSize) {
+    public LongHuffmanInputStream(FileChannel fc, int alphabetSize, int maxLength) {
         this.fc = fc;
         this.alphabetSize = alphabetSize;
-
+        this.result = new short[maxLength];
     }
 
     private HashMap<Short, Integer> recoverLengthCode(byte[] map) {
@@ -49,9 +49,7 @@ public class LongHuffmanInputStream {
             int len = map[i] & 0xff;
             if (len != 0) {
                 lengthCode.put((short) i, len);
-                if (len > maxCodeLen) {
-                    maxCodeLen = len;
-                }
+                if (len > maxCodeLen) maxCodeLen = len;
             }
         }
         if (average > maxCodeLen) {
@@ -95,25 +93,21 @@ public class LongHuffmanInputStream {
             int index = Integer.parseInt(builder.substring(i, i + average), 2);
             short value;
             int len;
-
             if (shortMap.containsKey(index)) {
                 value = shortMap.get(index);
                 len = lengthMap.get(value);
-
             } else {
                 value = longMap.get(Integer.parseInt(builder.substring(i, i + maxCodeLen), 2));
                 len = lengthMap.get(value);
             }
             compressedBitLength += len;
             if (value == endSig) {
-                while (compressedBitLength % 8 != 0) {
-                    compressedBitLength += 1;
-                }
+                while (compressedBitLength % 8 != 0) compressedBitLength += 1;
                 isTerminated = true;
                 break;
             }
-
-            result.addLast(value);
+            result[currentIndex] = value;
+            currentIndex += 1;
             i += len;
         }
         String rem = builder.substring(i);
@@ -124,7 +118,6 @@ public class LongHuffmanInputStream {
     private void unCompressLastText() {
         builder.append(Bytes.charMultiply('0', maxCodeLen * 8));
         int i = 0;
-
         while (true) {
             int index = Integer.parseInt(builder.substring(i, i + average), 2);
             short value;
@@ -141,7 +134,8 @@ public class LongHuffmanInputStream {
                 isTerminated = true;
                 break;
             }
-            result.addLast(value);
+            result[currentIndex] = value;
+            currentIndex += 1;
             i += len;
         }
     }
@@ -151,10 +145,7 @@ public class LongHuffmanInputStream {
         int read;
         while ((read = fc.read(buffer)) > 0) {
             buffer.flip();
-            for (int i = 0; i < read; i++) {
-                String s = Bytes.byteToBitString(buffer.get(i));
-                builder.append(s);
-            }
+            for (int i = 0; i < read; i++) builder.append(Bytes.byteToBitString(buffer.get(i)));
             buffer.clear();
             uncompressToArray();
             if (isTerminated) {
@@ -162,27 +153,27 @@ public class LongHuffmanInputStream {
                 break;
             }
         }
-        if (!isTerminated) {
-            unCompressLastText();
-        }
-        if (!isTerminated) {
-            throw new IOException("Cannot find EOF character");
-        }
+        if (!isTerminated) unCompressLastText();
+        if (!isTerminated) throw new IOException("Cannot find EOF character");
     }
 
     private long getCompressedLength() {
-        if (compressedBitLength % 8 == 0) {
-            return compressedBitLength / 8;
-        } else {
-            return compressedBitLength / 8 + 1;
-        }
+        if (compressedBitLength % 8 == 0) return compressedBitLength / 8;
+        else return compressedBitLength / 8 + 1;
     }
 
+    /**
+     * Read and uncompress the huffman compression file until reaches the next endSig.
+     *
+     * @param map    Canonical huffman map for this read action.
+     * @param endSig The EOF character.
+     * @return The uncompressed text.
+     * @throws IOException If the file is not readable.
+     */
     public short[] read(byte[] map, short endSig) throws IOException {
-
         this.endSig = endSig;
 
-        result.clear();
+        currentIndex = 0;
         builder.setLength(0);
         isTerminated = false;
         shortMap.clear();
@@ -190,11 +181,12 @@ public class LongHuffmanInputStream {
         lengthMap.clear();
 
         HashMap<Short, Integer> lengthCode = recoverLengthCode(map);
-        HashMap<Short, String> huffmanCode = LongHuffmanCompressor.generateCanonicalCode(lengthCode);
+        HashMap<Short, String> huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
         generateIdenticalMap(huffmanCode);
-
         unCompress();
 
-        return Util.collectionToShortArray(result);
+        short[] rtn = new short[currentIndex];
+        System.arraycopy(result, 0, rtn, 0, currentIndex);
+        return rtn;
     }
 }

@@ -52,6 +52,8 @@ public class UnPacker {
 
     private byte[] origMD5Value;
 
+    private int threadNumber;
+
     private int cmpMapLen;
 
     private String alg;
@@ -100,18 +102,12 @@ public class UnPacker {
         bis = new BufferedInputStream(new FileInputStream(packName));
 
         byte[] versionByte = new byte[2];
-        if (bis.read(versionByte) != 2) {
-            throw new IOException("Error occurs while reading");
-        }
+        if (bis.read(versionByte) != 2) throw new IOException("Error occurs while reading");
         version = Bytes.bytesToShort(versionByte);
-        if (version != Packer.version) {
-            throw new UnsupportedVersionException("Unsupported file version");
-        }
+        if (version != Packer.version) throw new UnsupportedVersionException("Unsupported file version");
 
         byte[] infoByte = new byte[1];
-        if (bis.read(infoByte) != 1) {
-            throw new IOException("Error occurs while reading");
-        }
+        if (bis.read(infoByte) != 1) throw new IOException("Error occurs while reading");
         String info = Bytes.byteToBitString(infoByte[0]);
         String enc = info.substring(0, 2);
         switch (enc) {
@@ -140,21 +136,14 @@ public class UnPacker {
         }
 
         byte[] windowSizeByte = new byte[1];
-        if (bis.read(windowSizeByte) != 1) {
-            throw new IOException("Error occurs while reading");
-        }
-        if ((windowSizeByte[0] & 0xff) == 0) {
-            windowSize = 0;
-        } else {
-            windowSize = (int) Math.pow(2, windowSizeByte[0] & 0xff);
-        }
+        if (bis.read(windowSizeByte) != 1) throw new IOException("Error occurs while reading");
+        if ((windowSizeByte[0] & 0xff) == 0) windowSize = 0;
+        else windowSize = (int) Math.pow(2, windowSizeByte[0] & 0xff);
 
         if (encryptLevel != 0) {
             cmpMainLength -= 16;
             origMD5Value = new byte[16];
-            if (bis.read(origMD5Value) != 16) {
-                throw new IOException("Error occurs while reading");
-            }
+            if (bis.read(origMD5Value) != 16) throw new IOException("Error occurs while reading");
         }
     }
 
@@ -220,40 +209,26 @@ public class UnPacker {
         BufferedInputStream mapInputStream = new BufferedInputStream(new FileInputStream(mapName));
         while (true) {
             byte[] flag = new byte[1];
-            if (mapInputStream.read(flag) != 1) {
-                break;
-            }
+            if (mapInputStream.read(flag) != 1) break;
             boolean isDir = (flag[0] & 0xff) == 0;
-            if (mapInputStream.read(flag) != 1) {
-                throw new IOException("Error occurs while reading");
-            }
+            if (mapInputStream.read(flag) != 1) throw new IOException("Error occurs while reading");
             int nameLen = flag[0] & 0xff;
             byte[] nameBytes = new byte[nameLen];
-            if (mapInputStream.read(nameBytes) != nameLen) {
-                throw new IOException("Error occurs while reading");
-            }
+            if (mapInputStream.read(nameBytes) != nameLen) throw new IOException("Error occurs while reading");
             String name = Bytes.stringDecode(nameBytes);
             IndexNodeUnp inu = new IndexNodeUnp(name);
             if (isDir) {
                 byte[] numberBytes = new byte[4];
-                if (mapInputStream.read(numberBytes) != 4) {
-                    throw new IOException("Error occurs while reading");
-                }
+                if (mapInputStream.read(numberBytes) != 4) throw new IOException("Error occurs while reading");
                 int begin = Bytes.bytesToInt32(numberBytes);
-                if (mapInputStream.read(numberBytes) != 4) {
-                    throw new IOException("Error occurs while reading");
-                }
+                if (mapInputStream.read(numberBytes) != 4) throw new IOException("Error occurs while reading");
                 inu.setChildrenRange(begin, Bytes.bytesToInt32(numberBytes));
                 dirCount += 1;
             } else {
                 byte[] sizeByte = new byte[4];
-                if (mapInputStream.read(sizeByte) != 4) {
-                    throw new IOException("Error occurs while reading");
-                }
+                if (mapInputStream.read(sizeByte) != 4) throw new IOException("Error occurs while reading");
                 int start = Bytes.bytesToInt32(sizeByte);
-                if (mapInputStream.read(sizeByte) != 4) {
-                    throw new IOException("Error occurs while reading");
-                }
+                if (mapInputStream.read(sizeByte) != 4) throw new IOException("Error occurs while reading");
                 int end = Bytes.bytesToInt32(sizeByte);
                 inu.setScale(start, end);
                 origSize = end;
@@ -274,9 +249,7 @@ public class UnPacker {
                 cn.setParent(node);
                 node.addChild(cn);
             }
-            for (int i = 0; i < children.size(); i++) {
-                buildContextTree(node.getChildren().get(i), children.get(i));
-            }
+            for (int i = 0; i < children.size(); i++) buildContextTree(node.getChildren().get(i), children.get(i));
         } else {
             node.setLocation(inu.getStart(), inu.getEnd());
         }
@@ -305,9 +278,7 @@ public class UnPacker {
     private void unCompressMain() throws Exception {
         if (origSize == 0) {
             File f = new File(tempName);
-            if (!f.createNewFile()) {
-                System.out.println("Creation failed");
-            }
+            if (!f.createNewFile()) System.out.println("Creation failed");
         } else if (!isUnCompressed()) {
             if (encryptLevel != 0) {
                 Util.fileTruncate(bis, encMainName, 8192, cmpMainLength);
@@ -338,6 +309,7 @@ public class UnPacker {
                         throw new NoSuchAlgorithmException("No such algorithm");
                 }
                 mainDec.setParent(this);
+                mainDec.setThreads(threadNumber);
                 FileOutputStream mainFos = new FileOutputStream(tempName);
                 try {
                     mainDec.Uncompress(mainFos);
@@ -358,16 +330,11 @@ public class UnPacker {
         step.set("正在读取...");
         progress.set(1);
         unCompressMain();
-        if (isInterrupted) {
-            return;
-        }
+        if (isInterrupted) return;
         RandomAccessFile raf = new RandomAccessFile(tempName, "r");
         String dirOffset;
-        if (!cn.getPath().contains(File.separator)) {
-            dirOffset = "";
-        } else {
-            dirOffset = cn.getPath().substring(0, cn.getPath().lastIndexOf(File.separator));
-        }
+        if (!cn.getPath().contains(File.separator)) dirOffset = "";
+        else dirOffset = cn.getPath().substring(0, cn.getPath().lastIndexOf(File.separator));
         traverseUncompress(targetDir, cn, raf, dirOffset);
         raf.close();
     }
@@ -379,9 +346,7 @@ public class UnPacker {
             if (!f.exists()) {
                 if (!f.mkdirs()) System.out.println("Failed to create directory");
             }
-            for (ContextNode scn : cn.getChildren()) {
-                traverseUncompress(targetDir, scn, raf, dirOffset);
-            }
+            for (ContextNode scn : cn.getChildren()) traverseUncompress(targetDir, scn, raf, dirOffset);
         } else {
             int[] location = cn.getLocation();
             raf.seek(location[0]);
@@ -419,11 +384,12 @@ public class UnPacker {
     public void setPassword(String password) throws Exception {
         this.password = password;
         byte[] md5Value = ZSEFileEncoder.md5PlainCode(password);
-        if (!Arrays.equals(md5Value, origMD5Value)) {
-            throw new WrongPasswordException();
-        } else {
-            passwordSet = true;
-        }
+        if (!Arrays.equals(md5Value, origMD5Value)) throw new WrongPasswordException();
+        else passwordSet = true;
+    }
+
+    public void setThreads(int threads) {
+        this.threadNumber = threads;
     }
 
     public String getAlg() {
@@ -547,11 +513,8 @@ class IndexNodeUnp {
 
     @Override
     public String toString() {
-        if (isDir) {
-            return "Dir(" + name + ", " + Arrays.toString(childrenRange) + ")";
-        } else {
-            return "File(" + name + ": " + start + ", " + end + ")";
-        }
+        if (isDir) return "Dir(" + name + ", " + Arrays.toString(childrenRange) + ")";
+        else return "File(" + name + ": " + start + ", " + end + ")";
     }
 }
 

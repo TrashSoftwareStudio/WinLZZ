@@ -26,23 +26,17 @@ public class RLCDecoder {
                 byte repeat = tempResult.get(tempResult.size() - 1);
                 String bitString = rlcBits.substring(j, j + 2);
                 int runLength = Integer.parseInt(bitString, 2) + 3;
-                for (int k = 0 ; k < runLength; k++) {
-                    tempResult.add(repeat);
-                }
+                for (int k = 0 ; k < runLength; k++) tempResult.add(repeat);
                 j += 2;
             } else  if (rlcMain[i] == (byte) 17) {
                 String bitString = rlcBits.substring(j, j + 3);
                 int runLength = Integer.parseInt(bitString, 2) + 3;
-                for (int k = 0 ; k < runLength; k++) {
-                    tempResult.add((byte) 0);
-                }
+                for (int k = 0 ; k < runLength; k++) tempResult.add((byte) 0);
                 j += 3;
             } else  if (rlcMain[i] == (byte) 18) {
                 String bitString = rlcBits.substring(j, j + 7);
                 int runLength = Integer.parseInt(bitString, 2) + 11;
-                for (int k = 0 ; k < runLength; k++) {
-                    tempResult.add((byte) 0);
-                }
+                for (int k = 0 ; k < runLength; k++) tempResult.add((byte) 0);
                 j += 7;
             } else {
                 tempResult.add(rlcMain[i]);

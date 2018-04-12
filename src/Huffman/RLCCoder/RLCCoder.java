@@ -28,13 +28,10 @@ public class RLCCoder {
             byte current = text[i];
             if (current == (byte) 0) {
                 int runLength = 0;
-                while (i + runLength + 1 < text.length && runLength < 137 && current == text[i + runLength + 1]) {
+                while (i + runLength + 1 < text.length && runLength < 137 && current == text[i + runLength + 1])
                     runLength += 1;
-                }
                 if (runLength < 2) {
-                    for (int j = 0; j < runLength + 1; j++) {
-                        result.add(current);
-                    }
+                    for (int j = 0; j < runLength + 1; j++) result.add(current);
                 } else {
                     if (runLength < 10) {
                         result.add((byte) 17);
@@ -48,13 +45,9 @@ public class RLCCoder {
                 i += 1;
             } else {
                 int runLength = 0;
-                while (i + runLength + 1 < text.length && current == text[i + runLength + 1]) {
-                    runLength += 1;
-                }
+                while (i + runLength + 1 < text.length && current == text[i + runLength + 1]) runLength += 1;
                 if (runLength < 3) {
-                    for (int j = 0; j < runLength + 1; j++) {
-                        result.add(current);
-                    }
+                    for (int j = 0; j < runLength + 1; j++) result.add(current);
                 } else {
                     result.add(text[i]);
                     int remain = runLength;
@@ -64,7 +57,6 @@ public class RLCCoder {
 
                         result.add((byte) 16);
                         bits.append(Bytes.numberToBitString(currentLength - 3, 2));
-
                     }
                     i -= remain;
                 }

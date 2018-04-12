@@ -1,7 +1,6 @@
 package BWZ;
 
 import Utility.Bytes;
-import Utility.Sort;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,8 +28,8 @@ public class BWTDecoder {
 
     /**
      * Inverses the BWT.
-     *
-     * Method found in:
+     * <p>
+     * Algorithm found in:
      * https://www.geeksforgeeks.org/inverting-burrows-wheeler-transform/
      *
      * @return The original text.
@@ -38,24 +37,15 @@ public class BWTDecoder {
     public byte[] Decode() {
         int len = cmpText.length;
         int[] lShift = new int[len];
+
         short[] sorted = new short[cmpText.length];
-
         System.arraycopy(cmpText, 0, sorted, 0, len);
-
         Arrays.sort(sorted);
 
         IntegerLinkedList[] lists = new IntegerLinkedList[257];
-        for (int i = 0; i < 257; i++) {
-            lists[i] = new IntegerLinkedList();
-        }
-
-        for (int i = 0; i < len; i++) {
-            lists[cmpText[i]].addLast(i);
-        }
-
-        for (int i = 0; i < len; i++) {
-            computeShift(lists[sorted[i]], lShift, i);
-        }
+        for (int i = 0; i < 257; i++) lists[i] = new IntegerLinkedList();
+        for (int i = 0; i < len; i++) lists[cmpText[i]].addLast(i);
+        for (int i = 0; i < len; i++) computeShift(lists[sorted[i]], lShift, i);
 
         ArrayList<Short> temp = new ArrayList<>();
         int i = 0;
@@ -64,18 +54,14 @@ public class BWTDecoder {
             temp.add(cmpText[origIndex]);
             i++;
         }
-
         byte[] result = new byte[temp.size() - 1];
-        for (int j = 0; j < result.length; j++) {
-            result[j] = (byte) (temp.get(j) - 1);
-        }
+        for (int j = 0; j < result.length; j++) result[j] = (byte) (temp.get(j) - 1);
 
         return result;
     }
 }
 
 class IntegerLinkedList extends LinkedList<Integer> {
-
     IntegerLinkedList() {
         super();
     }

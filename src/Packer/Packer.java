@@ -35,7 +35,7 @@ public class Packer {
 
     private int threads;
 
-    public final static short version = 17;
+    public final static short version = 18;
 
     static final int defaultWindowSize = 32768;
 
@@ -83,16 +83,8 @@ public class Packer {
             }
             currentNode.setChildrenRange(currentCount, fileCount);
             indexNodes.addAll(tempList);
-            for (int i = 0; i < sub.length; i++) {
-                if (!sub[i].isDirectory()) {
-                    buildIndexTree(sub[i], tempList.get(i));
-                }
-            }
-            for (int i = 0; i < sub.length; i++) {
-                if (sub[i].isDirectory()) {
-                    buildIndexTree(sub[i], tempList.get(i));
-                }
-            }
+            for (int i = 0; i < sub.length; i++) if (!sub[i].isDirectory()) buildIndexTree(sub[i], tempList.get(i));
+            for (int i = 0; i < sub.length; i++) if (sub[i].isDirectory()) buildIndexTree(sub[i], tempList.get(i));
         } else {
             int start = totalLength;
             totalLength += file.length();
@@ -107,9 +99,7 @@ public class Packer {
                 FileInputStream bis = new FileInputStream(in.getFile());
                 byte[] mid = new byte[8192];
                 int read;
-                while ((read = bis.read(mid)) != -1) {
-                    mainBos.write(mid, 0, read);
-                }
+                while ((read = bis.read(mid)) != -1) mainBos.write(mid, 0, read);
             }
         }
     }
@@ -162,9 +152,6 @@ public class Packer {
                 inf = (byte) (inf | 0b00010000);
                 break;
         }
-//        if (totalLength == 0) {
-//            inf = (byte) (inf | 0b00010000);
-//        }
         compressedLength = 4;
 
         bos.write(inf);  // Write info: 1 byte
@@ -402,7 +389,6 @@ class IndexNode {
     byte[] toByteArray() throws UnsupportedEncodingException {
         byte[] nameBytes = Bytes.stringEncode(name);
         int len = nameBytes.length;
-//        System.out.print(len + " ");
         byte[] result = new byte[len + 10];
         if (isDir) {
             result[0] = 0;
@@ -426,10 +412,7 @@ class IndexNode {
 
     @Override
     public String toString() {
-        if (isDir) {
-            return "Dir(" + name + ", " + Arrays.toString(childrenRange) + ")";
-        } else {
-            return "File(" + name + ": " + start + ", " + end + ")";
-        }
+        if (isDir) return "Dir(" + name + ", " + Arrays.toString(childrenRange) + ")";
+        else return "File(" + name + ": " + start + ", " + end + ")";
     }
 }

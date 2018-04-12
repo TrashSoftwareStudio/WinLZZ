@@ -16,11 +16,8 @@ public class FileNode {
     FileNode(ContextNode cn) {
         this.cn = cn;
         String fullName = cn.getPath();
-        if (!fullName.contains(File.separator)) {
-            this.name = fullName;
-        } else {
-            this.name = fullName.substring(fullName.lastIndexOf(File.separator) + 1);
-        }
+        this.name = !fullName.contains(File.separator) ?
+                fullName : fullName.substring(fullName.lastIndexOf(File.separator) + 1);
         this.isDir = cn.isDir();
     }
 
@@ -38,9 +35,7 @@ public class FileNode {
         } else {
             String t = "";
             String oName = displayName(name);
-            if (oName.contains(".")) {
-                t = oName.substring(oName.lastIndexOf(".") + 1) + " ";
-            }
+            if (oName.contains(".")) t = oName.substring(oName.lastIndexOf(".") + 1) + " ";
             return t + "文件";
         }
     }

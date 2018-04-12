@@ -54,10 +54,7 @@ public class ContextNode {
 
     @Override
     public String toString() {
-        if (isDir) {
-            return "Dir(" + path + ": " + children + ")";
-        } else {
-            return "File(" + path + ": " + Arrays.toString(location) + ")";
-        }
+        if (isDir) return "Dir(" + path + ": " + children + ")";
+        else return "File(" + path + ": " + Arrays.toString(location) + ")";
     }
 }

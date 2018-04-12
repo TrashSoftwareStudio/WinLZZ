@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2017-2018, Trash Software Studio. All rights reserved.
  */
-
 /*
  * Author: Bohan Zhang(a65123731@gmail.com)
  * Tester: Zhaoheng Yang(yzh8687@gmail.com)
@@ -31,7 +30,7 @@ import java.util.ResourceBundle;
 
 public class StartUI implements Initializable {
 
-    public static final String version = "0.5.1";
+    public static final String version = "0.5.2";
 
     private final static String LICENCE = "    WinLZZ\n" +
             "    Copyright (C) 2017-2018  Trash Software Studio\n" +
@@ -51,12 +50,10 @@ public class StartUI implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
     }
 
     @FXML
     public void compressMode() throws Exception {
-
         DirectoryChooser dc = new DirectoryChooser();
         dc.setInitialDirectory(readLastDir());
         File selected = dc.showDialog(null);

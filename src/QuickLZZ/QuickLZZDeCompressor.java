@@ -78,10 +78,6 @@ public class QuickLZZDeCompressor implements DeCompressor {
         this.bis = new BufferedInputStream(new FileInputStream(inFile));
     }
 
-    public void setParent(UnPacker parent) {
-        this.parent = parent;
-    }
-
     private void generateTempNames() {
         this.mainTempName = inFile + ".main.temp";
         this.lenHeadTempName = inFile + ".len.temp";
@@ -109,7 +105,7 @@ public class QuickLZZDeCompressor implements DeCompressor {
             throw new IOException("Error occurs while reading");
         }
         MapDeCompressor mdc = new MapDeCompressor(csq);
-        byte[] rlcMain = mdc.Uncompress(1024);
+        byte[] rlcMain = mdc.Uncompress(1024, true);
 
         byte[] rlcBytes = new byte[rlcByteLen];
         if (bis.read(rlcBytes) != rlcByteLen) {
@@ -153,11 +149,6 @@ public class QuickLZZDeCompressor implements DeCompressor {
         Util.deleteFile(mainTempName);
     }
 
-    public void deleteCache() {
-        deleteCmpTemp();
-        deleteTemp();
-    }
-
     private void uncompressMain(OutputStream fos) throws IOException {
         FileBitInputStream flagBis = new FileBitInputStream(new BufferedInputStream(new FileInputStream(flagTempName)));
         BufferedInputStream disHeadBis = new BufferedInputStream(new FileInputStream(disHeadTempName));
@@ -166,9 +157,6 @@ public class QuickLZZDeCompressor implements DeCompressor {
         BufferedInputStream mainBis = new BufferedInputStream(new FileInputStream(mainTempName));
 
         FileOutputBufferArray tempResult = new FileOutputBufferArray(fos, windowSize);
-
-//        LinkedList<Integer> lastDistances = new LinkedList<>();
-//        int lastLen = -1;
 
         long lastCheckTime = System.currentTimeMillis();
         startTime = lastCheckTime;
@@ -212,8 +200,6 @@ public class QuickLZZDeCompressor implements DeCompressor {
                     distance = LZZ2Util.recoverDistance(disCodeRep, dlbBis);
 
                     length = LZZ2Util.recoverLength(lenCodeRep, dlbBis) * 3;
-
-//                System.out.print(distance + ", " + length + " ");
 
                     int index = tempResult.getIndex();
                     int from = index - distance;
@@ -264,7 +250,22 @@ public class QuickLZZDeCompressor implements DeCompressor {
         mainBis.close();
     }
 
+    @Override
+    public void setParent(UnPacker parent) {
+        this.parent = parent;
+    }
 
+    @Override
+    public void deleteCache() {
+        deleteCmpTemp();
+        deleteTemp();
+    }
+
+    @Override
+    public void setThreads(int threads) {
+    }
+
+    @Override
     public void Uncompress(OutputStream outFile) throws Exception {
         generateTempNames();
         if (disHeadLen == 0) {

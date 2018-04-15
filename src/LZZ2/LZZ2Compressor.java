@@ -1,12 +1,17 @@
+/*
+ * LZZ2 (Lempel-Ziv-ZBH 2) compressor.
+ *
+ * An improved version of LZ77 algorithm, implemented by Bohan Zhang.
+ */
+
 package LZZ2;
 
+import BWZ.MTFTransformByte;
 import Huffman.HuffmanCompressor;
 import Interface.Compressor;
 import LZZ2.Util.*;
 import Huffman.MapCompressor.MapCompressor;
-import Huffman.RLCCoder.RLCCoder;
 import Packer.Packer;
-import Utility.Bytes;
 import Utility.FileBitOutputStream;
 import Utility.FileInputBufferArray;
 import Utility.Util;
@@ -382,18 +387,12 @@ public class LZZ2Compressor implements Compressor {
         System.arraycopy(fcMap, 0, totalMap, 96, 256);
         System.arraycopy(mtcMap, 0, totalMap, 352, 256);
 
-        RLCCoder rlc = new RLCCoder(totalMap);
-        rlc.Encode();
-        byte[] rlcMain = rlc.getMainResult();
-        String rlcBits = rlc.getRlcBits();
-
-        byte[] rlcBytes = Bytes.stringToBytesFull(rlcBits);
+        byte[] rlcMain = new MTFTransformByte(totalMap).Transform();
 
         MapCompressor mc = new MapCompressor(rlcMain);
-        byte[] csq = mc.Compress(true);
+        byte[] csq = mc.Compress(false);
 
         outFile.write(csq);
-        outFile.write(rlcBytes);
 
         dhc.SepCompress(outFile);
         int disHeadLen = dhc.getCompressedLength();
@@ -410,11 +409,10 @@ public class LZZ2Compressor implements Compressor {
         deleteTemp();
 
         int csqLen = csq.length;
-        int rlcByteLen = rlcBytes.length;
-        int[] sizes = new int[]{csqLen, rlcByteLen, disHeadLen, lenHeadLen, flagLen, dlbLen};
+        int[] sizes = new int[]{csqLen, disHeadLen, lenHeadLen, flagLen, dlbLen};
         byte[] sizeBlock = LZZ2Util.generateSizeBlock(sizes);
         outFile.write(sizeBlock);
-        cmpSize = disHeadLen + lenHeadLen + flagLen + dlbLen + mainLen + csqLen + rlcByteLen + sizeBlock.length;
+        cmpSize = disHeadLen + lenHeadLen + flagLen + dlbLen + mainLen + csqLen + sizeBlock.length;
     }
 
 

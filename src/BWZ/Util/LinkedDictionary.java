@@ -32,25 +32,6 @@ public class LinkedDictionary {
         }
     }
 
-    public short getAndMove(int index) {
-        Node prev = head;
-        Node current = head;
-        int count = 0;
-        while (count < index) {
-            prev = current;
-            current = current.getNext();
-            count += 1;
-        }
-        if (count == 0) {
-            return current.getValue();
-        } else {
-            prev.setNext(current.getNext());
-            current.setNext(head);
-            head = current;
-            return current.getValue();
-        }
-    }
-
     @Override
     public String toString() {
         Node node = head;

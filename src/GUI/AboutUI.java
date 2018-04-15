@@ -1,6 +1,7 @@
 package GUI;
 
 import Packer.Packer;
+import ResourcesPack.Languages.LanguageLoader;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
@@ -11,14 +12,23 @@ import java.util.ResourceBundle;
 public class AboutUI implements Initializable {
 
     @FXML
-    private Label versionLabel;
+    private Label versionLabel, coreVersionLabel, trashSoftwareLabel, coreVersionTextLabel;
 
-    @FXML
-    private Label coreVersionLabel;
+    private LanguageLoader lanLoader;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         versionLabel.setText(StartUI.version);
         coreVersionLabel.setText(String.valueOf(Packer.version));
+    }
+
+    void setLanLoader(LanguageLoader lanLoader) {
+        this.lanLoader = lanLoader;
+        fillText();
+    }
+
+    private void fillText() {
+        trashSoftwareLabel.setText("(C) " + lanLoader.get(700));
+        coreVersionTextLabel.setText(lanLoader.get(701) + ":");
     }
 }

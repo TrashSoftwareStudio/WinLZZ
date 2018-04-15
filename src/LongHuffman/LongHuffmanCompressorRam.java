@@ -69,4 +69,28 @@ public class LongHuffmanCompressorRam {
         huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
         return compressText();
     }
+
+    /**
+     * Returns true iff the given canonical map contains all symbol of this huffman compressor.
+     *
+     * @param anotherMap the map to be compare.
+     * @return whether anotherMap contains all symbol needed for this compression.
+     */
+    public boolean compareMap(byte[] anotherMap) {
+        for (Short s : huffmanCode.keySet()) {
+            if (anotherMap[s] == 0) return false;
+        }
+        return true;
+    }
+
+    public long calculateExpectLength(byte[] codeLengthMap) {
+        long aftLen = 0;
+        for (int i = 0; i < codeLengthMap.length; i++) {
+            Integer freq = freqMap.get((short) i);
+            if (freq != null) {
+                aftLen += freq * (codeLengthMap[i] & 0xff);
+            }
+        }
+        return aftLen;
+    }
 }

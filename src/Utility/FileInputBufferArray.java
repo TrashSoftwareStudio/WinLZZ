@@ -6,17 +6,11 @@ public class FileInputBufferArray {
 
     private InputStream bis;
 
-    private int bufferSize;
+    private int bufferSize, remainSize, index;
 
-    private int remainSize = 0;
+    private byte[] array1, array2;
 
-    private int index;
-
-    private byte[] array1;
-
-    private byte[] array2;
-
-    private boolean activeArray2 = false;
+    private boolean activeArray2;
 
     private long length;
 

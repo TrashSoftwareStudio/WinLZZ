@@ -45,60 +45,44 @@ public class ZSEDecoder {
     }
 
     private byte[] switchRCBack(byte[] text) {
-
-//        if (text.length < password[0]) {
-//            return text;
-//        }
-
-
-//        System.out.println(Arrays.toString(password));
-
-        ArrayList<ArrayList<Byte>> result = new ArrayList<>();
+        ArrayList<byte[]> result = new ArrayList<>();
         int i = 0;
         while (i < text.length) {
             int current = password[result.size() % password.length];
-            ArrayList<Byte> segment = new ArrayList<>();
+            int index = 0;
             for (int j = 0; j < current; j++) {
                 if (i < text.length) {
-                    segment.add((byte) 0);
+                    index += 1;
                     i += 1;
                 } else {
                     break;
                 }
             }
+            byte[] segment = new byte[index];
             result.add(segment);
         }
 
         int maxLen = Util.arrayMax(password);
         int p = 0;
         for (int j = 0; j < maxLen; j++) {
-            for (ArrayList<Byte> aResult : result) {
-                try {
-                    aResult.set(j, text[p]);
+            for (byte[] aResult : result) {
+                if (j < aResult.length) {
+                    aResult[j] = text[p];
                     p += 1;
-                } catch (IndexOutOfBoundsException aie) {
-                    //
                 }
             }
         }
 
         byte[] toReturn = new byte[text.length];
-
-        ArrayList<Byte> result2 = new ArrayList<>();
-
-        for (ArrayList<Byte> list : result) {
-            result2.addAll(list);
+        int index = 0;
+        for (byte[] block : result) {
+            System.arraycopy(block, 0, toReturn, index, block.length);
+            index += block.length;
         }
-
-        for (int l = 0; l < text.length; l ++) {
-            toReturn[l] = result2.get(l);
-        }
-
         return toReturn;
     }
 
     byte[] Decode() {
-
         byte[] swappedTail = swapTail(encodedText);
         byte[] swappedBack = ZSEEncoder.swap(swappedTail, password);
 

@@ -1,6 +1,7 @@
 package GUI;
 
 import Packer.Packer;
+import ResourcesPack.Languages.LanguageLoader;
 import Utility.Util;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -8,10 +9,7 @@ import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
 
 import java.io.File;
@@ -24,71 +22,25 @@ public class CompressingUI implements Initializable {
     ProgressBar progressBar;
 
     @FXML
-    Label messageLabel;
+    private Label messageLabel, percentageLabel, ratioLabel, timeUsedLabel, expectTimeLabel, totalSizeLabel,
+            passedSizeLabel, cmpSizeTextLabel, currentCmpRatioTextLabel, compressedSizeLabel, currentCmpRatioLabel,
+            origSizeTextLabel, timeUsedTextLabel, passedSizeTextLabel, timeRemainTextLabel, speedTextLabel;
 
     @FXML
-    Label percentageLabel;
-
-    @FXML
-    Label ratioLabel;
-
-    @FXML
-    Label timeUsedLabel;
-
-    @FXML
-    Label expectTimeLabel;
-
-    @FXML
-    Label totalSizeLabel;
-
-    @FXML
-    Label passedSizeLabel;
-
-    @FXML
-    Label cmpSizeTextLabel;
-
-    @FXML
-    Label currentCmpRatioTextLabel;
-
-    @FXML
-    Label compressedSizeLabel;
-
-    @FXML
-    Label currentCmpRatioLabel;
+    private Button cancelButton;
 
     private CompressService service;
 
     private ChangeListener<Number> progressListener;
 
-    private ChangeListener<String> percentageListener;
+    private ChangeListener<String> percentageListener, stepListener ,speedRatioListener, timeUsedListener,
+            timeExpectedListener, passedLengthListener, cmpSizeListener, currentCmpRatioListener;
 
-    private ChangeListener<String> stepListener;
-
-    private ChangeListener<String> speedRatioListener;
-
-    private ChangeListener<String> timeUsedListener;
-
-    private ChangeListener<String> timeExpectedListener;
-
-    private ChangeListener<String> passedLengthListener;
-
-    private ChangeListener<String> cmpSizeListener;
-
-    private ChangeListener<String> currentCmpRatioListener;
-
-    private String name;
+    private String name, alg;
 
     private File path;
 
-    private int windowSize;
-
-    private int bufferSize;
-
-    private int cmpLevel;
-
-    private int encryptLevel;
-
-    private String alg;
+    private int windowSize, bufferSize, cmpLevel, encryptLevel, threads;
 
     private String password;
 
@@ -98,15 +50,15 @@ public class CompressingUI implements Initializable {
 
     private Stage stage;
 
-    private int threads;
+    private LanguageLoader lanLoader;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        timeUsedLabel.setText("--:--");
-        expectTimeLabel.setText("--:--");
-        passedSizeLabel.setText("0 字节");
-        compressedSizeLabel.setText("0 字节");
-        currentCmpRatioLabel.setText("0.0%");
+    }
+
+    public void setLanLoader(LanguageLoader lanLoader) {
+        this.lanLoader = lanLoader;
+        fillText();
     }
 
     void setStage(Stage stage) {
@@ -150,7 +102,7 @@ public class CompressingUI implements Initializable {
 
             Alert info = new Alert(Alert.AlertType.INFORMATION);
             info.setTitle("WinLZZ");
-            info.setHeaderText("压缩完成");
+            info.setHeaderText(lanLoader.get(251));
             double seconds = (double) timeUsed / 1000;
             double rounded;
             if (packer.getTotalOrigSize() == 0) {
@@ -159,7 +111,8 @@ public class CompressingUI implements Initializable {
                 double compressRate = (double) packer.getCompressedLength() / packer.getTotalOrigSize();
                 rounded = (double) Math.round(compressRate * 10000) / 100;
             }
-            info.setContentText("共耗时" + seconds + "秒，压缩率" + rounded + "%");
+            info.setContentText(lanLoader.get(252) + seconds + lanLoader.get(253) + " " + lanLoader.get(254)
+                    + ": " + rounded + "%");
             info.show();
             System.gc();
             stage.close();
@@ -170,7 +123,7 @@ public class CompressingUI implements Initializable {
 
             Alert info = new Alert(Alert.AlertType.INFORMATION);
             info.setTitle("WinLZZ");
-            info.setHeaderText("压缩失败");
+            info.setHeaderText(lanLoader.get(255));
 
             info.show();
             System.gc();
@@ -216,8 +169,8 @@ public class CompressingUI implements Initializable {
     public void interruptAction() {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("WinLZZ");
-        alert.setHeaderText("取消压缩");
-        alert.setContentText("确认要取消压缩?");
+        alert.setHeaderText(lanLoader.get(256));
+        alert.setContentText(lanLoader.get(257));
         alert.showAndWait();
         if (alert.getResult() == ButtonType.OK) service.cancel();
     }
@@ -235,6 +188,7 @@ public class CompressingUI implements Initializable {
                     packer.setEncrypt(password, encryptLevel);
                     packer.setAlgorithm(alg);
                     packer.setThreads(threads);
+                    packer.setLanLoader(lanLoader);
 
                     long totalLength = packer.getTotalOrigSize();
 
@@ -270,5 +224,23 @@ public class CompressingUI implements Initializable {
                 }
             };
         }
+    }
+
+    private void fillText() {
+        timeUsedLabel.setText("--:--");
+        expectTimeLabel.setText("--:--");
+        passedSizeLabel.setText("0 " + lanLoader.get(250));
+        compressedSizeLabel.setText("0 "  + lanLoader.get(250));
+        currentCmpRatioLabel.setText("0.0%");
+
+        origSizeTextLabel.setText(lanLoader.get(200));
+        timeUsedTextLabel.setText(lanLoader.get(201));
+        passedSizeTextLabel.setText(lanLoader.get(202));
+        timeRemainTextLabel.setText(lanLoader.get(203));
+        cmpSizeTextLabel.setText(lanLoader.get(204));
+        currentCmpRatioTextLabel.setText(lanLoader.get(205));
+        speedTextLabel.setText(lanLoader.get(207));
+        cancelButton.setText(lanLoader.get(2));
+        messageLabel.setText(lanLoader.get(350));
     }
 }

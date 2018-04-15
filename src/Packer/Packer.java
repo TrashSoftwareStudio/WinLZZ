@@ -1,11 +1,25 @@
+/*
+ * PZ archive packer.
+ *
+ * Archive header info:
+ * 4 bytes: PZ header
+ * 2 bytes: version
+ * 1 byte: info byte
+ * 1 byte: window size
+ * 4 bytes: time of creation
+ * 4 bytes: CRC32 checksum
+ * 4 bytes: followed context length
+ */
+
 package Packer;
 
 import BWZ.BWZCompressor;
 import Interface.Compressor;
 import LZZ2.LZZ2Compressor;
 import LZZ2.Util.LZZ2Util;
-import QuickLZZ.QuickLZZCompressor;
+import ResourcesPack.Languages.LanguageLoader;
 import Utility.Bytes;
+import Utility.CRC32Generator;
 import Utility.Util;
 import ZSE.ZSEFileEncoder;
 import javafx.beans.property.*;
@@ -17,25 +31,28 @@ import java.util.Arrays;
 
 public class Packer {
 
-    private int totalLength = 0;
+    /**
+     * The core version.
+     */
+    public final static short version = 20;
 
-    private int compressedLength;
+    /**
+     * The format check code for a WinLZZ archive (*.pz) file.
+     */
+    final static int HEADER = 0x03F92FBD;
+
+    /**
+     * Set 1999-12-31 19:00 as the initial time.
+     */
+    final static long dateOffset = 946684800000L;
+
+    private int totalLength, compressedLength, fileCount, cmpLevel, encryptLevel, threads;
 
     private ArrayList<IndexNode> indexNodes = new ArrayList<>();
-
-    private int fileCount;
-
-    private int cmpLevel;
-
-    private int encryptLevel;
 
     private String password;
 
     private String alg;
-
-    private int threads;
-
-    public final static short version = 18;
 
     static final int defaultWindowSize = 32768;
 
@@ -61,6 +78,8 @@ public class Packer {
 
     public boolean isInterrupted;
 
+    private LanguageLoader lanLoader;
+
     public Packer(File inDir) {
         IndexNode rootNode = new IndexNode(inDir.getName(), inDir);
         fileCount = 1;
@@ -69,7 +88,6 @@ public class Packer {
     }
 
     private void buildIndexTree(File file, IndexNode currentNode) {
-
         if (file.isDirectory()) {
             File[] sub = file.listFiles();
 
@@ -100,6 +118,7 @@ public class Packer {
                 byte[] mid = new byte[8192];
                 int read;
                 while ((read = bis.read(mid)) != -1) mainBos.write(mid, 0, read);
+                bis.close();
             }
         }
     }
@@ -118,10 +137,11 @@ public class Packer {
      * @throws Exception if any IO error occurs.
      */
     public void Pack(String outFile, int windowSize, int bufferSize) throws Exception {
-        step.setValue("创建数据库...");
+        if (lanLoader != null) step.setValue(lanLoader.get(270));
         percentage.set("0.0");
         progress.set(1);
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outFile));
+        bos.write(Bytes.intToBytes32(HEADER));  // Write header : 4 bytes
         bos.write(Bytes.shortToBytes(version));  // Write version : 2 bytes
 
         /*
@@ -145,17 +165,17 @@ public class Packer {
         switch (alg) {
             case "lzz2":
                 break;
-            case "qlz":
+            case "bwz":
                 inf = (byte) (inf | 0b00100000);
                 break;
-            case "bwz":
-                inf = (byte) (inf | 0b00010000);
-                break;
         }
-        compressedLength = 4;
+        compressedLength = 20;
 
         bos.write(inf);  // Write info: 1 byte
         bos.write(LZZ2Util.windowSizeToByte(windowSize));  // Write window size: 1 byte
+        bos.write(new byte[4]);  // Reserved for creation time.
+        bos.write(new byte[4]);  // Reserved for crc32 checksum
+        bos.write(new byte[4]);  // Reserved for header size.
 
         String tempHeadName = outFile + ".head";
         String tempMainName = outFile + ".main";
@@ -169,6 +189,11 @@ public class Packer {
         mainBos.flush();
         mainBos.close();
 
+        long crc32 = CRC32Generator.generateCRC32(tempMainName);
+        byte[] fullBytes = Bytes.longToBytes(crc32);
+        byte[] crc32Checksum = new byte[4];
+        System.arraycopy(fullBytes, 4, crc32Checksum, 0, 4);
+
         if (encryptLevel != 0) {
             bos.write(ZSEFileEncoder.md5PlainCode(password));
             compressedLength += 16;
@@ -179,9 +204,6 @@ public class Packer {
             switch (alg) {
                 case "lzz2":
                     headCompressor = new LZZ2Compressor(tempHeadName, defaultWindowSize, 64);
-                    break;
-                case "qlz":
-                    headCompressor = new QuickLZZCompressor(tempHeadName, defaultWindowSize);
                     break;
                 case "bwz":
                     headCompressor = new BWZCompressor(tempHeadName, defaultWindowSize);
@@ -194,9 +216,6 @@ public class Packer {
                 case "lzz2":
                     headCompressor = new LZZ2Compressor(tempHeadName, windowSize, bufferSize);
                     headCompressor.setCompressionLevel(cmpLevel);
-                    break;
-                case "qlz":
-                    headCompressor = new QuickLZZCompressor(tempHeadName, windowSize);
                     break;
                 case "bwz":
                     headCompressor = new BWZCompressor(tempHeadName, windowSize);
@@ -221,7 +240,7 @@ public class Packer {
 
         Util.deleteFile(tempHeadName);
 
-        step.setValue("正在压缩...");
+        if (lanLoader != null) step.setValue(lanLoader.get(206));
 
         String encMainName = outFile + ".enc";
 
@@ -238,9 +257,6 @@ public class Packer {
             switch (alg) {
                 case "lzz2":
                     mainCompressor = new LZZ2Compressor(tempMainName, windowSize, bufferSize);
-                    break;
-                case "qlz":
-                    mainCompressor = new QuickLZZCompressor(tempMainName, windowSize);
                     break;
                 case "bwz":
                     mainCompressor = new BWZCompressor(tempMainName, windowSize);
@@ -272,10 +288,17 @@ public class Packer {
             return;
         }
 
-        bos.write(Bytes.intToBytes32((int) headCompressor.getCompressedSize()));
-        compressedLength += 4;
         bos.flush();
         bos.close();
+
+        RandomAccessFile raf = new RandomAccessFile(outFile, "rw");
+        raf.seek(8);
+        int currentTimeInt = (int) ((System.currentTimeMillis() - dateOffset) / 1000);  // Creation time,
+        // rounded to second. Starting from 1999-12-31 19:00
+        raf.writeInt(currentTimeInt);
+        raf.write(crc32Checksum);
+        raf.writeInt((int) headCompressor.getCompressedSize());
+        raf.close();
 
         Util.deleteFile(tempMainName);
     }
@@ -303,6 +326,10 @@ public class Packer {
 
     public void interrupt() {
         this.isInterrupted = true;
+    }
+
+    public void setLanLoader(LanguageLoader lanLoader) {
+        this.lanLoader = lanLoader;
     }
 
     public ReadOnlyLongProperty progressProperty() {

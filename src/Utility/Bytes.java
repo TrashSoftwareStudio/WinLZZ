@@ -36,8 +36,7 @@ public abstract class Bytes {
         int i = 0;
         int j = 0;
         while (i < length) {
-            result[i] = bitStringToByte(builder.substring(j, j + 8));
-            i += 1;
+            result[i++] = bitStringToByte(builder.substring(j, j + 8));
             j += 8;
         }
         return result;
@@ -59,9 +58,8 @@ public abstract class Bytes {
         int i = 0;
         int j = 0;
         while (i < builder.length() - 8) {
-            res[j] = bitStringToByte(builder.substring(i, i + 8));
+            res[j++] = bitStringToByte(builder.substring(i, i + 8));
             i += 8;
-            j += 1;
         }
         res[j] = bitStringToByteNo8(builder.substring(i));
         return res;
@@ -85,9 +83,8 @@ public abstract class Bytes {
         int i = 0;
         int j = 0;
         while (i < builder.length() - 8) {
-            res[j] = bitStringToByte(builder.substring(i, i + 8));
+            res[j++] = bitStringToByte(builder.substring(i, i + 8));
             i += 8;
-            j += 1;
         }
         res[j] = bitStringToByteNo8(builder.substring(i));
         return res;
@@ -209,4 +206,22 @@ public abstract class Bytes {
         return result;
     }
 
+    public static String longToHex(long value, boolean showAll) {
+        char[] hexArray = "0123456789ABCDEF".toCharArray();
+        byte[] array = longToBytes(value);
+        char[] temp = new char[16];
+        for (int i = 0; i < 8; i++) {
+            int num = array[i] & 0xff;
+            temp[i * 2] = hexArray[num >> 4];
+            temp[i * 2 + 1] = hexArray[num & 0x0f];
+        }
+        if (showAll) return new String(temp);
+        else {
+            int i = 0;
+            while (i < 16 && temp[i] == '0') i += 1;
+            char[] result = new char[16 - i];
+            System.arraycopy(temp, i, result, 0, 16 - i);
+            return new String(result);
+        }
+    }
 }

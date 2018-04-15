@@ -1,11 +1,14 @@
 package GUI;
 
+import ResourcesPack.Languages.LanguageLoader;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
@@ -21,22 +24,16 @@ public class CompressUI implements Initializable {
     private TextField nameText;
 
     @FXML
-    private ComboBox<String> algBox;
+    private ComboBox<String> algBox, levelBox, windowNameBox, modeBox;
 
     @FXML
-    private ComboBox<String> levelBox;
+    private ComboBox<Integer> bufferBox, threadBox;
 
     @FXML
-    private ComboBox<String> windowNameBox;
+    private Label nameLabel, algLabel, levelLabel, windowLabel, bufferLabel, strongModeLabel, threadLabel;
 
     @FXML
-    private ComboBox<Integer> bufferBox;
-
-    @FXML
-    private ComboBox<String> modeBox;
-
-    @FXML
-    private ComboBox<Integer> threadBox;
+    private Button startCompressButton, passwordButton;
 
     private File rootDir;
 
@@ -46,28 +43,35 @@ public class CompressUI implements Initializable {
 
     private int encryptLevel = 0;
 
-    private String[] algNames = new String[]{"BWZ", "LZZ2", "QuickLZZ"};
+    private String[] algNames = new String[]{"BWZ", "LZZ2"};
 
-    private String[] compressionLevels = new String[]{"仅存储", "最快", "较快", "标准", "较好", "最好"};
+    private String[] compressionLevels = new String[6];
 
-    private String[] windowsSizeNames = new String[]{"4KB", "16KB", "32KB", "64KB", "128KB", "256KB", "512KB", "1MB"};
+    private String[] windowsSizeNames = new String[]{"4KB", "16KB", "32KB", "64KB", "128KB", "256KB"};
 
     private String[] windowsSizeNames2 = new String[]{"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
 
-    private int[] windowSizes = new int[]{4096, 16384, 32768, 65536, 131072, 262144, 524266, 1048576};
-    // Window sizes of LZZ2 and QuickLZZ.
+    private int[] windowSizes = new int[]{4096, 16384, 32768, 65536, 131072, 262144};
+    // Window sizes of LZZ2.
 
-    private int[] windowSizes2 = new int[]{131072, 262144, 524266, 1048576, 2097152, 4194304, 8388608, 16777216};
+    private int[] windowSizes2 = new int[]{131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
     // Window sizes of BWT.
 
     private Integer[] bufferSizes = new Integer[]{8, 16, 32, 64, 128, 256, 286};
 
-    private String[] cmpLevels = new String[]{"快速", "普通", "较强", "强力", "超强"};
+    private String[] cmpLevels = new String[5];
 
     private Integer[] threads = new Integer[]{1, 2, 3, 4};
 
+    private LanguageLoader lanLoader;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+    }
+
+    void load(LanguageLoader lanLoader) {
+        this.lanLoader = lanLoader;
+        fillTexts();
         setBoxes();
         algBox.getSelectionModel().select(0);
         setWindowSizeBox();
@@ -178,12 +182,6 @@ public class CompressUI implements Initializable {
                     bufferBox.getSelectionModel().select(3);
                     modeBox.getSelectionModel().select(1);
                     break;
-                case "QuickLZZ":
-                    bufferBox.getSelectionModel().clearSelection();
-                    modeBox.getSelectionModel().clearSelection();
-                    bufferBox.setDisable(true);
-                    modeBox.setDisable(true);
-                    break;
                 case "BWZ":
                     bufferBox.getSelectionModel().clearSelection();
                     modeBox.getSelectionModel().clearSelection();
@@ -209,6 +207,7 @@ public class CompressUI implements Initializable {
 
         PasswordBox pb = loader.getController();
         pb.setParent(this);
+        pb.setLanLoader(lanLoader);
         pb.setStage(stage);
 
         stage.show();
@@ -224,9 +223,6 @@ public class CompressUI implements Initializable {
         switch (algName) {
             case "LZZ2":
                 alg = "lzz2";
-                break;
-            case "QuickLZZ":
-                alg = "qlz";
                 break;
             case "BWZ":
                 alg = "bwz";
@@ -263,6 +259,7 @@ public class CompressUI implements Initializable {
 
         CompressingUI cui = loader.getController();
         cui.setName(name, rootDir);
+        cui.setLanLoader(lanLoader);
         cui.setPref(window, buffer, cmpLevel, alg, threads);
         cui.setStage(stage);
         cui.setEncrypt(password, encryptLevel);
@@ -270,5 +267,20 @@ public class CompressUI implements Initializable {
         cui.compress();
 
         pStage.close();
+    }
+
+    private void fillTexts() {
+        nameLabel.setText(lanLoader.get(100));
+        passwordButton.setText(lanLoader.get(101));
+        algLabel.setText(lanLoader.get(102));
+        levelLabel.setText(lanLoader.get(103));
+        windowLabel.setText(lanLoader.get(104));
+        bufferLabel.setText(lanLoader.get(105));
+        strongModeLabel.setText(lanLoader.get(106));
+        threadLabel.setText(lanLoader.get(107));
+        startCompressButton.setText(lanLoader.get(108));
+
+        for (int i = 0; i < 6; i++) compressionLevels[i] = lanLoader.get(110 + i);
+        for (int i = 0; i < 5; i++) cmpLevels[i] = lanLoader.get(116 + i);
     }
 }

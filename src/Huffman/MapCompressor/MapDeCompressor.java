@@ -45,7 +45,6 @@ public class MapDeCompressor {
     }
 
     private static byte[] decode(String bits, HashMap<String, Byte> decodeMap, int maxMapLen) {
-
         StringBuilder temp = new StringBuilder();
         byte[] result = new byte[maxMapLen];
 
@@ -63,7 +62,6 @@ public class MapDeCompressor {
         }
         byte[] rtn = new byte[j];
         System.arraycopy(result, 0, rtn, 0, j);
-
         return rtn;
     }
 

@@ -6,23 +6,23 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="320.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8.0.121"
-            xmlns:fx="http://javafx.com/fxml/1" fx:controller="GUI.FileInfoUI">
-    <VBox alignment="CENTER" prefHeight="320.0" prefWidth="400.0" spacing="10.0">
-        <Label fx:id="typeLabel" text="类型"/>
-        <Label fx:id="algLabel" text="压缩方法"/>
-        <Label fx:id="versionNeededLabel" text="版本"/>
-        <ProgressBar fx:id="compressRateBar" prefWidth="300.0" progress="0.0"/>
-        <Label fx:id="compressRateLabel" text="压缩率"/>
-        <Label fx:id="windowSizeLabel" text="字典大小"/>
-        <HBox alignment="CENTER" prefHeight="30.0" prefWidth="200.0" spacing="10.0">
-            <Label fx:id="origSizeLabel" text="原大小"/>
-            <Label fx:id="compressSizeLabel" text="压缩后大小"/>
+<AnchorPane prefHeight="340.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="GUI.FileInfoUI">
+    <VBox alignment="CENTER" prefHeight="340.0" prefWidth="400.0" spacing="12.0">
+        <Label fx:id="typeLabel" text="类型" />
+        <Label fx:id="algLabel" text="压缩方法" />
+        <Label fx:id="versionNeededLabel" text="版本" />
+        <ProgressBar fx:id="compressRateBar" prefWidth="300.0" progress="0.0" />
+        <Label fx:id="compressRateLabel" text="压缩率" />
+        <Label fx:id="windowSizeLabel" text="字典大小" />
+        <HBox alignment="CENTER" prefHeight="20.0" prefWidth="200.0" spacing="10.0">
+            <Label fx:id="origSizeLabel" text="原大小" />
+            <Label fx:id="compressSizeLabel" text="压缩后大小" />
         </HBox>
-        <HBox alignment="CENTER" prefHeight="30.0" prefWidth="200.0" spacing="10.0">
-            <Label fx:id="fileCountLabel" text="文件数"/>
-            <Label fx:id="dirCountLabel" text="文件夹数"/>
+        <HBox alignment="CENTER" prefHeight="20.0" prefWidth="200.0" spacing="10.0">
+            <Label fx:id="fileCountLabel" text="文件数" />
+            <Label fx:id="dirCountLabel" text="文件夹数" />
         </HBox>
-        <Label fx:id="timeLabel" text="创建日期"/>
+        <Label fx:id="timeLabel" text="创建时间" />
+        <Label fx:id="crcChecksumLabel" text="CRC32校验值" />
     </VBox>
 </AnchorPane>

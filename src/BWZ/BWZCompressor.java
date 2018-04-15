@@ -28,7 +28,7 @@ public class BWZCompressor implements Compressor {
 
     private String mainTempName;
 
-    final static int maxHuffmanSize = 1048576;  // Maximum size of a huffman-coding block.
+    final static int maxHuffmanSize = 32768;  // Maximum size of a huffman-coding block.
 
     final static int dc3DecisionSize = 1048576;  // Decision size of suffix array building algorithm.
     // DC3 algorithm is used if the window size if greater than or equal to this size in case of increasing speed.
@@ -50,6 +50,8 @@ public class BWZCompressor implements Compressor {
     private long lastUpdateProgress;
 
     private LinkedList<byte[]> huffmanMaps = new LinkedList<>();
+
+    private LinkedList<Byte> huffmanFlags = new LinkedList<>();
 
     private int threadNumber = 1;
 
@@ -125,9 +127,9 @@ public class BWZCompressor implements Compressor {
             for (EncodeThread et : threads) {
                 et.writeTo(mainOut, this);
                 byte[][] maps = et.getMaps();
-                for (byte[] map : maps) {
-                    huffmanMaps.addLast(map);
-                }
+                byte[] flags = et.getFlags();
+                for (byte[] map : maps) huffmanMaps.addLast(map);
+                for (byte flag : flags) huffmanFlags.addLast(flag);
                 pos += et.origLen();
             }
             block.clear();
@@ -153,7 +155,6 @@ public class BWZCompressor implements Compressor {
             timer = new Thread(new Timer(parent, this));
             timer.start();
         }
-
         try {
             compress();
         } catch (InterruptedException e) {
@@ -170,10 +171,19 @@ public class BWZCompressor implements Compressor {
             return;
         }
 
-        byte[] mainMap = new byte[huffmanMaps.size() * 259];
-        for (int i = 0; i < huffmanMaps.size(); i++)
-            System.arraycopy(huffmanMaps.get(i), 0, mainMap, i * 259, 259);
-        byte[] mtfMap = new MTFTransformByte(mainMap).Transform();
+        byte[] mainMap = new byte[Util.collectionOfArrayLength(huffmanMaps) + huffmanFlags.size()];
+        int i = 0;
+        while (!huffmanFlags.isEmpty()) {
+            byte[] map = huffmanMaps.removeFirst();
+            byte flag = huffmanFlags.removeFirst();
+            mainMap[i++] = flag;
+            System.arraycopy(map, 0, mainMap, i, map.length);
+            i += map.length;
+        }
+
+        BWTEncoderByte beb = new BWTEncoderByte(mainMap);
+        byte[] bwtMap = beb.Transform();
+        byte[] mtfMap = new MTFTransformByte(bwtMap).Transform();
 
         MapCompressor mc = new MapCompressor(mtfMap);
         byte[] csq = mc.Compress(false);
@@ -183,7 +193,7 @@ public class BWZCompressor implements Compressor {
 
         deleteTemp();
         int csqLen = csq.length;
-        int[] sizes = new int[]{csqLen};
+        int[] sizes = new int[]{csqLen, LZZ2Util.windowSizeToByte(maxHuffmanSize), beb.getOrigRowIndex()};
         byte[] sizeBlock = LZZ2Util.generateSizeBlock(sizes);
         out.write(sizeBlock);
 
@@ -227,6 +237,8 @@ class EncodeThread implements Runnable {
 
     private byte[][] maps;
 
+    private byte[] flags;
+
     private int windowSize;
 
     EncodeThread(byte[] partData, int windowSize) {
@@ -246,6 +258,7 @@ class EncodeThread implements Runnable {
 
         maps = new byte[huffmanBlockNumber][];
         results = new byte[huffmanBlockNumber][];
+        flags = new byte[huffmanBlockNumber];
 
         BWTEncoder be = new BWTEncoder(buffer, isDc3);
         short[] bwtResult = be.Transform();
@@ -259,15 +272,32 @@ class EncodeThread implements Runnable {
             System.arraycopy(array, pos, part, 0, eachLength);
             pos += eachLength;
             LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(part, 259, (short) 258);
-            maps[i] = hcr.getMap(259);
-            results[i] = hcr.Compress();
+            byte[] map = hcr.getMap(259);
+            int x = findAvailableOldMap(hcr, map, i);
+            flags[i] = (byte) x;
+            if (x > 0) {
+                maps[i] = new byte[0];
+                results[i] = hcr.Compress(maps[i - x]);
+            } else {
+                maps[i] = map;
+                results[i] = hcr.Compress();
+            }
         }
 
+        int i = huffmanBlockNumber - 1;
         short[] lastPart = new short[array.length - pos];
         System.arraycopy(array, pos, lastPart, 0, lastPart.length);
         LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(lastPart, 259, (short) 258);
-        maps[huffmanBlockNumber - 1] = hcr.getMap(259);
-        results[huffmanBlockNumber - 1] = hcr.Compress();
+        byte[] map = hcr.getMap(259);
+        int x = findAvailableOldMap(hcr, map, i);
+        flags[i] = (byte) x;
+        if (x > 0) {
+            maps[i] = new byte[0];
+            results[i] = hcr.Compress(maps[i - x]);
+        } else {
+            maps[i] = map;
+            results[i] = hcr.Compress();
+        }
     }
 
     void writeTo(OutputStream out, BWZCompressor parent) throws IOException {
@@ -281,8 +311,28 @@ class EncodeThread implements Runnable {
         return maps;
     }
 
+    byte[] getFlags() {
+        return flags;
+    }
+
     long origLen() {
         return buffer.length;
+    }
+
+    private int findAvailableOldMap(LongHuffmanCompressorRam hcr, byte[] origMap, int currentIndex) {
+        long closest = 32;
+        int distance = 0;
+        for (int i = currentIndex - 1; i > currentIndex - 15; i--) {
+            if (i < 0 || maps[i] == null) break;
+            if (maps[i].length > 0 && hcr.compareMap(maps[i])) {
+                long diff = hcr.calculateExpectLength(maps[i]) - hcr.calculateExpectLength(origMap);
+                if (diff < closest) {
+                    closest = diff;
+                    distance = currentIndex - i;
+                }
+            }
+        }
+        return distance;
     }
 
     @Override

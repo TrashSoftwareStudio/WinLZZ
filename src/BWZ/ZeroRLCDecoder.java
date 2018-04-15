@@ -9,12 +9,16 @@ class ZeroRLCDecoder {
 
     private short[] text;
 
-    ZeroRLCDecoder(short[] text) {
+    private int maxBlockLength;
+
+    ZeroRLCDecoder(short[] text, int maxBlockLength) {
         this.text = text;
+        this.maxBlockLength = maxBlockLength;
     }
 
     short[] Decode() {
-        ArrayList<Short> temp = new ArrayList<>();
+        short[] temp = new short[maxBlockLength];
+        int index = 0;
         ArrayList<Short> runLengths = new ArrayList<>();
         int i = 0;
         while (i < text.length) {
@@ -23,63 +27,25 @@ class ZeroRLCDecoder {
                 runLengths.add(b);
             } else {
                 if (!runLengths.isEmpty()) {
-                    int length = BWZUtil.runLengthInverse(Util.collectionToShortArray(runLengths));
+                    int length = BWZUtil.runLengthInverse(runLengths);
                     runLengths.clear();
-                    for (int j = 0; j < length; j++) {
-                        temp.add((short) 0);
-                    }
+                    for (int j = 0; j < length; j++) temp[index++] = 0;
                 }
-                temp.add((short) (b - 1));
+                temp[index++] = (short) (b - 1);
             }
             i += 1;
-
         }
         if (!runLengths.isEmpty()) {  // Last few 0's
             int length = BWZUtil.runLengthInverse(Util.collectionToShortArray(runLengths));
             for (int j = 0; j < length; j++) {
-                temp.add((short) 0);
+                temp[index++] = 0;
             }
         }
-        return Util.collectionToShortArray(temp);
-    }
-}
-
-
-class ZeroRLCDecoderByte {
-
-    private byte[] text;
-
-    ZeroRLCDecoderByte(byte[] text) {
-        this.text = text;
-    }
-
-    byte[] Decode() {
-        ArrayList<Byte> temp = new ArrayList<>();
-        ArrayList<Byte> runLengths = new ArrayList<>();
-        int i = 0;
-        while (i < text.length) {
-            byte b = text[i];
-            if (b < (byte) 2) {
-                runLengths.add(b);
-            } else {
-                if (!runLengths.isEmpty()) {
-                    int length = BWZUtil.runLengthInverse(Util.collectionToArray(runLengths));
-                    runLengths.clear();
-                    for (int j = 0; j < length; j++) {
-                        temp.add((byte) 0);
-                    }
-                }
-                temp.add((byte) (b - 1));
-            }
-            i += 1;
-
+        if (index == maxBlockLength) return temp;
+        else {
+            short[] rtn = new short[index];
+            System.arraycopy(temp, 0, rtn, 0, index);
+            return rtn;
         }
-        if (!runLengths.isEmpty()) {  // Last few 0's
-            int length = BWZUtil.runLengthInverse(Util.collectionToArray(runLengths));
-            for (int j = 0; j < length; j++) {
-                temp.add((byte) 0);
-            }
-        }
-        return Util.collectionToArray(temp);
     }
 }

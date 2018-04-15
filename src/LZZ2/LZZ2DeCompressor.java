@@ -1,10 +1,10 @@
 package LZZ2;
 
+import BWZ.MTFInverseByte;
+import BWZ.ZeroRLCDecoderByte;
 import Huffman.HuffmanDeCompressor;
 import Huffman.MapCompressor.MapDeCompressor;
-import Huffman.RLCCoder.RLCDecoder;
 import Interface.DeCompressor;
-import Utility.Bytes;
 import Utility.FileBitInputStream;
 import Utility.FileOutputBufferArray;
 import LZZ2.Util.LZZ2Util;
@@ -22,7 +22,7 @@ public class LZZ2DeCompressor implements DeCompressor {
 
     private final static int readBufferSize = 8192;
 
-    private int disHeadLen, lenHeadLen, flagLen, dlbLen, mainLen, csqLen, rlcByteLen;
+    private int disHeadLen, lenHeadLen, flagLen, dlbLen, mainLen, csqLen;
 
     private int windowSize;
 
@@ -51,7 +51,6 @@ public class LZZ2DeCompressor implements DeCompressor {
         int sizeBlockSize = raf.readByte() & 0xff;
         if (sizeBlockSize == 0) {
             csqLen = 0;
-            rlcByteLen = 0;
             disHeadLen = 0;
             lenHeadLen = 0;
             flagLen = 0;
@@ -65,17 +64,15 @@ public class LZZ2DeCompressor implements DeCompressor {
         raf.seek(length - sizeBlockSize - 1);
         raf.read(block);
 
-        int[] sizes = LZZ2Util.recoverSizeBlock(block, 6);
+        int[] sizes = LZZ2Util.recoverSizeBlock(block, 5);
         csqLen = sizes[0];
-        rlcByteLen = sizes[1];
-        disHeadLen = sizes[2];
-        lenHeadLen = sizes[3];
-        flagLen = sizes[4];
-        dlbLen = sizes[5];
-
+        disHeadLen = sizes[1];
+        lenHeadLen = sizes[2];
+        flagLen = sizes[3];
+        dlbLen = sizes[4];
         raf.close();
 
-        mainLen = length - disHeadLen - lenHeadLen - flagLen - dlbLen - csqLen - rlcByteLen - sizeBlockSize - 1;
+        mainLen = length - disHeadLen - lenHeadLen - flagLen - dlbLen - csqLen  - sizeBlockSize - 1;
         this.bis = new BufferedInputStream(new FileInputStream(inFile));
     }
 
@@ -104,14 +101,10 @@ public class LZZ2DeCompressor implements DeCompressor {
         byte[] csq = new byte[csqLen];
         if (bis.read(csq) != csqLen) throw new IOException("Error occurs while reading");
         MapDeCompressor mdc = new MapDeCompressor(csq);
-        byte[] rlcMain = mdc.Uncompress(1024, true);
+        byte[] rlcMain = mdc.Uncompress(1024, false);
 
-        byte[] rlcBytes = new byte[rlcByteLen];
-        if (bis.read(rlcBytes) != rlcByteLen) throw new IOException("Error occurs while reading");
-        String rlcBits = Bytes.bytesToString(rlcBytes);
-
-        RLCDecoder rld = new RLCDecoder(rlcMain, rlcBits);
-        byte[] totalMap = rld.Decode();
+        byte[] rlc = new ZeroRLCDecoderByte(rlcMain).Decode();
+        byte[] totalMap = new MTFInverseByte(rlc).Inverse();
 
         byte[] dhdMap = new byte[64];
         byte[] lhdMap = new byte[32];
@@ -160,11 +153,7 @@ public class LZZ2DeCompressor implements DeCompressor {
 
         long lastCheckTime = System.currentTimeMillis();
         startTime = lastCheckTime;
-        if (parent != null) {
-            timeOffset = lastCheckTime - parent.startTime;
-            if (parent.isInTest) parent.step.set("正在测试...");
-            else parent.step.set("正在解压...");
-        }
+        if (parent != null) timeOffset = lastCheckTime - parent.startTime;
         long currentTime;
 
         try {

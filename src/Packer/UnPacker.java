@@ -3,8 +3,9 @@ package Packer;
 import BWZ.BWZDeCompressor;
 import Interface.DeCompressor;
 import LZZ2.LZZ2DeCompressor;
-import QuickLZZ.QuickLZZDeCompressor;
+import ResourcesPack.Languages.LanguageLoader;
 import Utility.Bytes;
+import Utility.CRC32Generator;
 import Utility.Util;
 import ZSE.WrongPasswordException;
 import ZSE.ZSEFileDecoder;
@@ -64,7 +65,7 @@ public class UnPacker {
 
     public final ReadOnlyStringWrapper ratio = new ReadOnlyStringWrapper();
 
-    public final ReadOnlyStringWrapper step = new ReadOnlyStringWrapper();
+    private final ReadOnlyStringWrapper step = new ReadOnlyStringWrapper();
 
     public final ReadOnlyStringWrapper timeUsed = new ReadOnlyStringWrapper();
 
@@ -74,9 +75,11 @@ public class UnPacker {
 
     public long startTime;
 
+    private long creationTime, crc32Checksum;
+
     public boolean isInterrupted;
 
-    public boolean isInTest;
+    private LanguageLoader languageLoader;
 
     public UnPacker(String packName) {
         this.packName = packName;
@@ -92,14 +95,15 @@ public class UnPacker {
         File f = new File(packName);
         int totalCmpLength = (int) f.length();
 
-        RandomAccessFile raf = new RandomAccessFile(f, "r");
-        raf.seek(totalCmpLength - 4);
-        cmpMapLen = raf.readInt();
-        raf.close();
-
-        cmpMainLength = totalCmpLength - cmpMapLen - 8;  // 4 for cmpMapLen, 2 for version, 1 for window size, 1 for info.
+        cmpMainLength = totalCmpLength - cmpMapLen - 20;  // 4 for cmpMapLen, 4 for header, 2 for version,
+        // 1 for window size, 1 for info, 4 for creation time, 4 reserved.
 
         bis = new BufferedInputStream(new FileInputStream(packName));
+
+        byte[] headerByte = new byte[4];
+        if (bis.read(headerByte) != 4) throw new IOException("Error occurs while reading");
+        int headerInt = Bytes.bytesToInt32(headerByte);
+        if (headerInt != Packer.HEADER) throw new NotAPzFileException("Not a PZ archive");
 
         byte[] versionByte = new byte[2];
         if (bis.read(versionByte) != 2) throw new IOException("Error occurs while reading");
@@ -108,6 +112,26 @@ public class UnPacker {
 
         byte[] infoByte = new byte[1];
         if (bis.read(infoByte) != 1) throw new IOException("Error occurs while reading");
+
+        byte[] windowSizeByte = new byte[1];
+        if (bis.read(windowSizeByte) != 1) throw new IOException("Error occurs while reading");
+        if ((windowSizeByte[0] & 0xff) == 0) windowSize = 0;
+        else windowSize = (int) Math.pow(2, windowSizeByte[0] & 0xff);
+
+        byte[] creationTimeByte = new byte[4];
+        if (bis.read(creationTimeByte) != 4) throw new IOException("Error occurs while reading");
+        creationTime = (long) Bytes.bytesToInt32(creationTimeByte) * 1000 + Packer.dateOffset;
+
+        byte[] crc32Bytes = new byte[4];
+        if (bis.read(crc32Bytes) != 4) throw new IOException("Error occurs while reading");
+        byte[] fullCRC32Bytes = new byte[8];
+        System.arraycopy(crc32Bytes, 0, fullCRC32Bytes, 4, 4);
+        crc32Checksum = Bytes.bytesToLong(fullCRC32Bytes);
+
+        byte[] cmpHeadLengthByte = new byte[4];
+        if (bis.read(cmpHeadLengthByte) != 4) throw new IOException("Error occurs while reading");
+        cmpMapLen = Bytes.bytesToInt32(cmpHeadLengthByte);
+
         String info = Bytes.byteToBitString(infoByte[0]);
         String enc = info.substring(0, 2);
         switch (enc) {
@@ -127,18 +151,10 @@ public class UnPacker {
             case "00":
                 alg = "lzz2";
                 break;
-            case "01":
+            case "10":
                 alg = "bwz";
                 break;
-            case "10":
-                alg = "qlz";
-                break;
         }
-
-        byte[] windowSizeByte = new byte[1];
-        if (bis.read(windowSizeByte) != 1) throw new IOException("Error occurs while reading");
-        if ((windowSizeByte[0] & 0xff) == 0) windowSize = 0;
-        else windowSize = (int) Math.pow(2, windowSizeByte[0] & 0xff);
 
         if (encryptLevel != 0) {
             cmpMainLength -= 16;
@@ -174,9 +190,6 @@ public class UnPacker {
                 case "lzz2":
                     mapDec = new LZZ2DeCompressor(cmpMapName, Packer.defaultWindowSize);
                     break;
-                case "qlz":
-                    mapDec = new QuickLZZDeCompressor(cmpMapName, Packer.defaultWindowSize);
-                    break;
                 case "bwz":
                     mapDec = new BWZDeCompressor(cmpMapName, Packer.defaultWindowSize);
                     break;
@@ -187,9 +200,6 @@ public class UnPacker {
             switch (alg) {
                 case "lzz2":
                     mapDec = new LZZ2DeCompressor(cmpMapName, windowSize);
-                    break;
-                case "qlz":
-                    mapDec = new QuickLZZDeCompressor(cmpMapName, windowSize);
                     break;
                 case "bwz":
                     mapDec = new BWZDeCompressor(cmpMapName, windowSize);
@@ -299,9 +309,6 @@ public class UnPacker {
                     case "lzz2":
                         mainDec = new LZZ2DeCompressor(cmpTempName, windowSize);
                         break;
-                    case "qlz":
-                        mainDec = new QuickLZZDeCompressor(cmpTempName, windowSize);
-                        break;
                     case "bwz":
                         mainDec = new BWZDeCompressor(cmpTempName, windowSize);
                         break;
@@ -323,11 +330,15 @@ public class UnPacker {
                 }
             }
         }
+        long currentCRC32 = CRC32Generator.generateCRC32(tempName);
+        if (currentCRC32 != crc32Checksum) {
+            throw new Exception("CRC32 Checksum do not match");
+        }
     }
 
     public void unCompressFrom(String targetDir, ContextNode cn) throws Exception {
         startTime = System.currentTimeMillis();
-        step.set("正在读取...");
+        if (languageLoader != null) step.set(languageLoader.get(350));
         progress.set(1);
         unCompressMain();
         if (isInterrupted) return;
@@ -361,16 +372,13 @@ public class UnPacker {
      * @return true if the file can be uncompress successfully and the total length is equal to the original length.
      */
     public boolean TestPack() {
-        step.set("正在读取...");
-        isInTest = true;
+        if (languageLoader != null) step.set(languageLoader.get(350));
         try {
             unCompressMain();
             return true;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
-        } finally {
-            isInTest = false;
         }
     }
 
@@ -414,6 +422,10 @@ public class UnPacker {
     }
 
 
+    public void setLanguageLoader(LanguageLoader languageLoader) {
+        this.languageLoader = languageLoader;
+    }
+
     /**
      * Closes the decompressor and delete temp files.
      */
@@ -429,6 +441,13 @@ public class UnPacker {
         this.isInterrupted = true;
     }
 
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    public long getCrc32Checksum() {
+        return crc32Checksum;
+    }
 
     private boolean isUnCompressed() {
         File f = new File(tempName);
@@ -437,10 +456,6 @@ public class UnPacker {
 
     public ReadOnlyLongProperty progressProperty() {
         return progress;
-    }
-
-    public ReadOnlyStringProperty stepProperty() {
-        return step;
     }
 
     public ReadOnlyStringProperty percentageProperty() {

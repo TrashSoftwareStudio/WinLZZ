@@ -2,6 +2,7 @@ package BWZ.Util;
 
 import Utility.Util;
 import java.util.LinkedList;
+import java.util.List;
 
 public abstract class BWZUtil {
 
@@ -37,6 +38,12 @@ public abstract class BWZUtil {
     public static int runLengthInverse(short[] s) {
         int result = 0;
         for (int i = 0; i < s.length; i++) result += (Math.pow(2, i) * (s[i] + 1));
+        return result;
+    }
+
+    public static int runLengthInverse(List<Short> s) {
+        int result = 0;
+        for (int i = 0; i < s.size(); i++) result += (Math.pow(2, i) * (s.get(i) + 1));
         return result;
     }
 

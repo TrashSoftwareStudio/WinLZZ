@@ -2,6 +2,7 @@ package GUI;
 
 import Packer.ContextNode;
 import Packer.UnPacker;
+import ResourcesPack.Languages.LanguageLoader;
 import Utility.Util;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -10,6 +11,7 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -27,44 +29,19 @@ public class UncompressingUI implements Initializable {
     private ProgressBar progressBar;
 
     @FXML
-    private Label messageLabel;
+    private Label messageLabel, percentageLabel, ratioLabel, timeUsedLabel, expectTimeLabel, totalSizeLabel,
+            passedSizeLabel, passedSizeTitleLabel, origSizeTextLabel, timeUsedTextLabel, timeRemainTextLabel,
+            speedTextLabel;
 
     @FXML
-    private Label percentageLabel;
-
-    @FXML
-    private Label ratioLabel;
-
-    @FXML
-    private Label timeUsedLabel;
-
-    @FXML
-    private Label expectTimeLabel;
-
-    @FXML
-    private Label totalSizeLabel;
-
-    @FXML
-    private Label passedSizeLabel;
-
-    @FXML
-    private Label passedSizeTitleLabel;
+    private Button cancelButton;
 
     private UncompressService service;
 
     private ChangeListener<Number> progressListener;
 
-    private ChangeListener<String> percentageListener;
-
-    private ChangeListener<String> stepListener;
-
-    private ChangeListener<String> speedRatioListener;
-
-    private ChangeListener<String> timeUsedListener;
-
-    private ChangeListener<String> timeExpectedListener;
-
-    private ChangeListener<String> passedLengthListener;
+    private ChangeListener<String> percentageListener, speedRatioListener, timeUsedListener,
+            timeExpectedListener, passedLengthListener;
 
     private long startTime;
 
@@ -80,20 +57,22 @@ public class UncompressingUI implements Initializable {
 
     private int threadNumber;
 
-    private boolean isTest;
+    private boolean isTest, testResult;
 
-    private boolean testResult;
+    private LanguageLoader lanLoader;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        timeUsedLabel.setText("--:--");
-        expectTimeLabel.setText("--:--");
-        passedSizeLabel.setText("0 字节");
+    }
+
+    void setLanLoader(LanguageLoader lanLoader) {
+        this.lanLoader = lanLoader;
+        fillText();
     }
 
     void setTest() {
         this.isTest = true;
-        passedSizeTitleLabel.setText("已测试大小:  ");
+        passedSizeTitleLabel.setText(lanLoader.get(550));
     }
 
     void setStage(Stage stage, UncompressUI parent) {
@@ -137,7 +116,7 @@ public class UncompressingUI implements Initializable {
 
             Alert info = new Alert(Alert.AlertType.INFORMATION);
             info.setTitle("WinLZZ");
-            info.setHeaderText("解压失败");
+            info.setHeaderText(lanLoader.get(551));
             info.show();
             System.gc();
             stage.close();
@@ -156,22 +135,22 @@ public class UncompressingUI implements Initializable {
         });
 
         progressBar.progressProperty().bind(service.progressProperty());
-        messageLabel.textProperty().bind(service.titleProperty());
         ratioLabel.textProperty().bind(service.messageProperty());
+
+        if (isTest) messageLabel.setText(lanLoader.get(506));
+        else messageLabel.setText(lanLoader.get(504));
 
         service.start();
     }
 
     private void unbindListeners() {
         unPacker.progressProperty().removeListener(progressListener);
-        unPacker.stepProperty().removeListener(stepListener);
         unPacker.ratioProperty().removeListener(speedRatioListener);
         unPacker.percentageProperty().removeListener(percentageListener);
         unPacker.timeUsedProperty().removeListener(timeUsedListener);
         unPacker.timeExpectedProperty().removeListener(timeExpectedListener);
         unPacker.passedLengthProperty().removeListener(passedLengthListener);
 
-        messageLabel.textProperty().unbind();
         progressBar.progressProperty().unbind();
         ratioLabel.textProperty().unbind();
     }
@@ -181,8 +160,8 @@ public class UncompressingUI implements Initializable {
         if (!isTest) {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("WinLZZ");
-            alert.setHeaderText("取消解压");
-            alert.setContentText("确认要取消解压?");
+            alert.setHeaderText(lanLoader.get(552));
+            alert.setContentText(lanLoader.get(553));
             alert.showAndWait();
             if (alert.getResult() != ButtonType.OK) return;
         }
@@ -191,12 +170,13 @@ public class UncompressingUI implements Initializable {
 
     private void showSuccessInfo() {
         long timeUsed = System.currentTimeMillis() - startTime;
+        messageLabel.setText(lanLoader.get(560));
 
         Alert info = new Alert(Alert.AlertType.CONFIRMATION);
         info.setTitle("WinLZZ");
         double seconds = (double) timeUsed / 1000;
-        info.setHeaderText("解压完成, 共耗时" + seconds + "秒");
-        info.setContentText("打开目标文件夹？");
+        info.setHeaderText(lanLoader.get(554) + lanLoader.get(555) + " " + seconds + lanLoader.get(559));
+        info.setContentText(lanLoader.get(556));
         info.showAndWait();
         if (info.getResult() == ButtonType.OK) {
             try {
@@ -213,8 +193,8 @@ public class UncompressingUI implements Initializable {
         Alert info = new Alert(Alert.AlertType.INFORMATION);
         info.setTitle("WinLZZ");
         double seconds = (double) timeUsed / 1000;
-        info.setHeaderText("测试结束，未发现问题");
-        info.setContentText("共耗时" + seconds + "秒");
+        info.setHeaderText(lanLoader.get(557));
+        info.setContentText(lanLoader.get(555) + " " + seconds + lanLoader.get(559));
         info.showAndWait();
     }
 
@@ -224,8 +204,8 @@ public class UncompressingUI implements Initializable {
         Alert info = new Alert(Alert.AlertType.INFORMATION);
         info.setTitle("WinLZZ");
         double seconds = (double) timeUsed / 1000;
-        info.setHeaderText("测试未通过，文件已损坏");
-        info.setContentText("共耗时" + seconds + "秒");
+        info.setHeaderText(lanLoader.get(558));
+        info.setContentText(lanLoader.get(555) + " " + seconds + lanLoader.get(559));
         info.showAndWait();
     }
 
@@ -244,14 +224,12 @@ public class UncompressingUI implements Initializable {
                     Platform.runLater(() -> totalSizeLabel.setText(Util.sizeToReadable(totalLength)));
 
                     progressListener = (observable, oldValue, newValue) -> updateProgress(newValue.longValue(), totalLength);
-                    stepListener = (observable, oldValue, newValue) -> updateTitle(newValue);
                     speedRatioListener = (observable, oldValue, newValue) -> updateMessage(newValue);
                     percentageListener = (observable, oldValue, newValue) -> Platform.runLater(() -> percentageLabel.setText(newValue));
                     timeUsedListener = (observable, oldValue, newValue) -> Platform.runLater(() -> timeUsedLabel.setText(newValue));
                     timeExpectedListener = (observable, oldValue, newValue) -> Platform.runLater(() -> expectTimeLabel.setText(newValue));
                     passedLengthListener = (observable, oldValue, newValue) -> Platform.runLater(() -> passedSizeLabel.setText(newValue));
 
-                    unPacker.stepProperty().addListener(stepListener);
                     unPacker.progressProperty().addListener(progressListener);
                     unPacker.ratioProperty().addListener(speedRatioListener);
                     unPacker.percentageProperty().addListener(percentageListener);
@@ -266,5 +244,18 @@ public class UncompressingUI implements Initializable {
                 }
             };
         }
+    }
+
+    private void fillText() {
+        timeUsedLabel.setText("--:--");
+        expectTimeLabel.setText("--:--");
+        passedSizeLabel.setText("0 " + lanLoader.get(250));
+
+        origSizeTextLabel.setText(lanLoader.get(500));
+        passedSizeTitleLabel.setText(lanLoader.get(501));
+        timeUsedTextLabel.setText(lanLoader.get(502));
+        timeRemainTextLabel.setText(lanLoader.get(503));
+        speedTextLabel.setText(lanLoader.get(505));
+        cancelButton.setText(lanLoader.get(2));
     }
 }

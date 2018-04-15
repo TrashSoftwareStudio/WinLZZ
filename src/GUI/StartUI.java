@@ -3,19 +3,22 @@
  */
 /*
  * Author: Bohan Zhang(a65123731@gmail.com)
- * Tester: Zhaoheng Yang(yzh8687@gmail.com)
+ * Attributes to testing: Zhaoheng Yang(yzh8687@gmail.com)
  */
 
 package GUI;
 
+import ResourcesPack.ConfigLoader.GeneralLoaders;
+import ResourcesPack.Languages.LanguageLoader;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
@@ -30,7 +33,7 @@ import java.util.ResourceBundle;
 
 public class StartUI implements Initializable {
 
-    public static final String version = "0.5.2";
+    public static final String version = "0.6.0";
 
     private final static String LICENCE = "    WinLZZ\n" +
             "    Copyright (C) 2017-2018  Trash Software Studio\n" +
@@ -48,17 +51,30 @@ public class StartUI implements Initializable {
             "    You should have received a copy of the GNU General Public License\n" +
             "    along with this program.  If not, see <https://www.gnu.org/licenses/>.";
 
+    @FXML
+    private Button compressButton, uncompressButton;
+
+    @FXML
+    private Menu settingsMenu, helpMenu;
+
+    @FXML
+    private MenuItem languageSetting, about, licence, changelogView;
+
+    private LanguageLoader lanLoader;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        lanLoader = new LanguageLoader();
+        fillText();
     }
 
     @FXML
     public void compressMode() throws Exception {
         DirectoryChooser dc = new DirectoryChooser();
-        dc.setInitialDirectory(readLastDir());
+        dc.setInitialDirectory(GeneralLoaders.readLastDir());
         File selected = dc.showDialog(null);
         if (selected != null) {
-            writeLastDir(selected);
+            GeneralLoaders.writeLastDir(selected);
             FXMLLoader loader = new FXMLLoader(getClass().getResource("compressUI.fxml"));
 
             Parent root = loader.load();
@@ -70,6 +86,7 @@ public class StartUI implements Initializable {
             CompressUI cui = loader.getController();
             cui.setDir(selected);
             cui.setStage(stage);
+            cui.load(lanLoader);
             stage.show();
         }
     }
@@ -78,41 +95,36 @@ public class StartUI implements Initializable {
     public void uncompressMode() throws Exception {
         FileChooser fileChooser = new FileChooser();
         FileChooser.ExtensionFilter pzFilter =
-                new FileChooser.ExtensionFilter("LZZ 压缩包 (*.pz)", "*.pz");
+                new FileChooser.ExtensionFilter( lanLoader.get(50) + " (*.pz)", "*.pz");
         fileChooser.getExtensionFilters().addAll(pzFilter);
-        fileChooser.setInitialDirectory(readLastDir());
+        fileChooser.setInitialDirectory(GeneralLoaders.readLastDir());
         File selected = fileChooser.showOpenDialog(null);
         if (selected != null) {
-
-            writeLastDir(selected);
+            GeneralLoaders.writeLastDir(selected);
 
             FXMLLoader loader = new FXMLLoader(getClass().getResource("uncompressUI.fxml"));
-
             Parent root = loader.load();
 
             Stage stage = new Stage();
-
             stage.setTitle("WinLZZ");
             stage.setScene(new Scene(root));
 
             UncompressUI uui = loader.getController();
             uui.setPackFile(selected);
             uui.setStage(stage);
+            uui.setLanLoader(lanLoader);
 
             stage.setOnCloseRequest(event -> uui.close());
-
             stage.show();
             try {
                 uui.loadContext();
             } catch (Exception e) {
                 e.printStackTrace();
                 Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("无法打开文件");
-                alert.setHeaderText("无法读取该压缩文件");
-                alert.setContentText("该文件已经损坏");
-
+                alert.setTitle(lanLoader.get(51));
+                alert.setHeaderText(lanLoader.get(52));
+                alert.setContentText(lanLoader.get(53));
                 alert.showAndWait();
-
                 stage.close();
             }
         }
@@ -121,15 +133,13 @@ public class StartUI implements Initializable {
     @FXML
     public void aboutAction() throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("aboutUI.fxml"));
-
         Parent root = loader.load();
-
+        AboutUI aui = loader.getController();
+        aui.setLanLoader(lanLoader);
         Stage stage = new Stage();
-
         stage.setTitle("WinLZZ");
         stage.setScene(new Scene(root));
         stage.initStyle(StageStyle.UTILITY);
-
         stage.show();
     }
 
@@ -138,7 +148,7 @@ public class StartUI implements Initializable {
         Pane root = new Pane();
         Stage dialog = new Stage();
         Scene scene = new Scene(root);
-        dialog.setTitle("开源许可证");
+        dialog.setTitle(lanLoader.get(17));
         dialog.setScene(scene);
 
         VBox pane = new VBox();
@@ -158,46 +168,47 @@ public class StartUI implements Initializable {
     @FXML
     public void changelogAction() throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("changelogViewer.fxml"));
-
         Parent root = loader.load();
-
+        ChangelogViewer clv = loader.getController();
+        clv.setLanLoader(lanLoader);
         Stage stage = new Stage();
-
         stage.setTitle("WinLZZ");
         stage.setScene(new Scene(root));
         stage.initStyle(StageStyle.UTILITY);
-
         stage.show();
     }
 
-    static File readLastDir() {
-        File pref = new File("pref.ini");
-        try {
-            InputStreamReader isr = new InputStreamReader(new FileInputStream(pref));
-            BufferedReader br = new BufferedReader(isr);
-            String dir = br.readLine();
-            File f = new File(dir);
-            if (f.exists()) {
-                return f;
-            } else {
-                return null;
-            }
-        } catch (Exception e) {
-            return null;
-        }
+    @FXML
+    public void languageSelection() {
+        Stage lsStage = new Stage();
+        HBox pane = new HBox();
+        pane.setSpacing(10.0);
+        pane.setPadding(new Insets(10.0));
+        ComboBox<String> languageBox = new ComboBox<>();
+        languageBox.getItems().addAll(lanLoader.getAllLanguageNames());
+        languageBox.getSelectionModel().select(lanLoader.getCurrentLanguage());
+
+        Button confirm = new Button(lanLoader.get(15));  // Confirm
+        confirm.setOnAction(e -> {
+            if (!lanLoader.changeLanguage(languageBox.getSelectionModel().getSelectedItem()))
+                System.out.println("Failed to change language");
+            fillText();
+            lsStage.close();
+        });
+        pane.getChildren().addAll(languageBox, confirm);
+        Scene scene = new Scene(pane);
+        lsStage.setScene(scene);
+        lsStage.show();
     }
 
-    private static void writeLastDir(File lastDir) throws IOException {
-        File pref = new File("pref.ini");
-        if (!pref.exists()) {
-            if (!pref.createNewFile()) {
-                throw new IOException("Cannot create preference file");
-            }
-        }
-        String path = lastDir.getParentFile().getAbsolutePath();
-        BufferedWriter out = new BufferedWriter(new FileWriter(pref));
-        out.write(path);
-        out.flush();
-        out.close();
+    private void fillText() {
+        compressButton.setText(lanLoader.get(10));
+        uncompressButton.setText(lanLoader.get(11));
+        settingsMenu.setText(lanLoader.get(12));
+        helpMenu.setText(lanLoader.get(13));
+        languageSetting.setText(lanLoader.get(14));
+        about.setText(lanLoader.get(16));
+        licence.setText(lanLoader.get(17));
+        changelogView.setText(lanLoader.get(18));
     }
 }

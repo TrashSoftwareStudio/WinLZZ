@@ -217,4 +217,12 @@ public abstract class Util {
         return s.substring(0, split) + "," + s.substring(split);
     }
 
+    public static int collectionOfArrayLength(Collection<byte[]> c) {
+        int sum = 0;
+        for (byte[] b : c) {
+            sum += b.length;
+        }
+        return sum;
+    }
+
 }

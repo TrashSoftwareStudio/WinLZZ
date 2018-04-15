@@ -1,6 +1,8 @@
 package GUI;
 
 import Packer.*;
+import ResourcesPack.ConfigLoader.GeneralLoaders;
+import ResourcesPack.Languages.LanguageLoader;
 import ZSE.WrongPasswordException;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -27,28 +29,16 @@ import java.util.ResourceBundle;
 public class UncompressUI implements Initializable {
 
     @FXML
-    private Label dirText;
+    private Label dirText, threadNumberLabel;
 
     @FXML
-    private Button goBackButton;
-
-    @FXML
-    private Button uncompressPart;
-
-    @FXML
-    private Button infoButton;
+    private Button goBackButton, uncompressPart, uncompressAll, infoButton, testButton;
 
     @FXML
     private TableView<FileNode> fileList;
 
     @FXML
-    private TableColumn<FileNode, String> nameColumn;
-
-    @FXML
-    private TableColumn<FileNode, String> origSizeColumn;
-
-    @FXML
-    private TableColumn<FileNode, String> typeColumn;
+    private TableColumn<FileNode, String> nameColumn, origSizeColumn, typeColumn;
 
     @FXML
     private ComboBox<Integer> threadNumberBox;
@@ -61,9 +51,10 @@ public class UncompressUI implements Initializable {
 
     private ContextNode currentNode;
 
+    private LanguageLoader lanLoader;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        fileList.setPlaceholder(new Label("正在读取..."));
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("Name"));
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("Type"));
         origSizeColumn.setCellValueFactory(new PropertyValueFactory<>("Size"));
@@ -71,9 +62,12 @@ public class UncompressUI implements Initializable {
         fileListSelectionListener();
         backButtonHoverListener();
         infoButtonHoverListener();
+    }
 
-        threadNumberBox.getItems().addAll(1, 2, 3, 4);
-        threadNumberBox.getSelectionModel().select(0);
+    void setLanLoader(LanguageLoader lanLoader) {
+        this.lanLoader = lanLoader;
+        fileList.setPlaceholder(new Label(lanLoader.get(350)));
+        fillText();
     }
 
     void setStage(Stage stage) {
@@ -88,20 +82,34 @@ public class UncompressUI implements Initializable {
         unPacker = new UnPacker(packFile.getAbsolutePath());
         try {
             unPacker.readInfo();
+        } catch (NotAPzFileException npe) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle(lanLoader.get(351));
+            alert.setHeaderText(lanLoader.get(361));
+            alert.setContentText(lanLoader.get(362));
+            alert.showAndWait();
+            stage.close();
+            return;
         } catch (UnsupportedVersionException uve) {
             Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle("无法打开文件");
-            alert.setHeaderText("不兼容的压缩文件版本");
-            alert.setContentText("当前软件内核版本：" + Packer.version + "，解压所需内核版本：" + unPacker.versionNeeded());
-
+            alert.setTitle(lanLoader.get(351));
+            alert.setHeaderText(lanLoader.get(352));
+            alert.setContentText(lanLoader.get(353) + Packer.version + lanLoader.get(354) + unPacker.versionNeeded());
             alert.showAndWait();
-
             stage.close();
             return;
         }
         dirText.setText("");
+        setThreadNumberBox();
         if (unPacker.getEncryptLevel() != 2) showContext();
         else passwordInputAction(true);
+    }
+
+    private void setThreadNumberBox() {
+        threadNumberBox.getItems().clear();
+        if (unPacker.getAlg().equals("bwz")) threadNumberBox.getItems().addAll(1, 2, 3, 4);
+        else threadNumberBox.getItems().add(1);
+        threadNumberBox.getSelectionModel().select(0);
     }
 
     private void showContext() {
@@ -118,9 +126,9 @@ public class UncompressUI implements Initializable {
         fileList.getItems().clear();
         ArrayList<ContextNode> contexts = currentNode.getChildren();
         if (contexts.isEmpty()) {
-            fileList.setPlaceholder(new Label("空文件夹"));
+            fileList.setPlaceholder(new Label(lanLoader.get(355)));
         } else {
-            fileList.setPlaceholder(new Label("正在读取"));
+            fileList.setPlaceholder(new Label(lanLoader.get(350)));
             for (ContextNode cn : currentNode.getChildren()) fileList.getItems().add(new FileNode(cn));
         }
         dirText.setText(currentNode.getPath());
@@ -178,17 +186,14 @@ public class UncompressUI implements Initializable {
     @FXML
     public void fileInfoAction() throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("fileInfoUI.fxml"));
-
         Parent root = loader.load();
-
         Stage stage = new Stage();
-
         stage.setTitle("WinLZZ");
         stage.setScene(new Scene(root));
 
         FileInfoUI fi = loader.getController();
         fi.setInfo(packFile, unPacker);
-
+        fi.setLanLoader(lanLoader);
         fi.setItems();
         stage.show();
     }
@@ -217,13 +222,11 @@ public class UncompressUI implements Initializable {
 
     private void uncompressHandler(ContextNode cn) throws IOException {
         DirectoryChooser dc = new DirectoryChooser();
-        dc.setInitialDirectory(StartUI.readLastDir());
+        dc.setInitialDirectory(GeneralLoaders.readLastDir());
         File selected = dc.showDialog(null);
         if (selected != null) {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("uncompressingUI.fxml"));
-
             Parent root = loader.load();
-
             Stage stage = new Stage();
 
             stage.setTitle("WinLZZ");
@@ -231,6 +234,7 @@ public class UncompressUI implements Initializable {
 
             UncompressingUI uui = loader.getController();
             uui.setStage(stage, this);
+            uui.setLanLoader(lanLoader);
             uui.setParameters(unPacker, selected, cn);
             uui.setThreadNumber(threadNumberBox.getSelectionModel().getSelectedItem());
 
@@ -242,9 +246,7 @@ public class UncompressUI implements Initializable {
 
     private void testHandler() throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("uncompressingUI.fxml"));
-
         Parent root = loader.load();
-
         Stage stage = new Stage();
 
         stage.setTitle("WinLZZ");
@@ -252,6 +254,7 @@ public class UncompressUI implements Initializable {
 
         UncompressingUI uui = loader.getController();
         uui.setStage(stage, this);
+        uui.setLanLoader(lanLoader);
         uui.setTest();
         uui.setParameters(unPacker);
         uui.setThreadNumber(threadNumberBox.getSelectionModel().getSelectedItem());
@@ -270,7 +273,7 @@ public class UncompressUI implements Initializable {
         Pane root = new Pane();
 
         Stage stage = new Stage();
-        stage.setTitle("输入密码");
+        stage.setTitle(lanLoader.get(356));
         stage.initStyle(StageStyle.UTILITY);
         Scene scene = new Scene(root);
         stage.setScene(scene);
@@ -283,8 +286,8 @@ public class UncompressUI implements Initializable {
 
         PasswordField pwdField = new PasswordField();
         Label prompt = new Label();
-        Button confirm = new Button("确认");
-        box.getChildren().addAll(new Label("请输入密码"), pwdField, prompt, confirm);
+        Button confirm = new Button(lanLoader.get(1));
+        box.getChildren().addAll(new Label(lanLoader.get(357)), pwdField, prompt, confirm);
 
         root.getChildren().addAll(box);
 
@@ -297,7 +300,7 @@ public class UncompressUI implements Initializable {
                     showContext();
                     stage.close();
                 } catch (WrongPasswordException wpe) {
-                    prompt.setText("密码错误");
+                    prompt.setText(lanLoader.get(358));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -308,7 +311,7 @@ public class UncompressUI implements Initializable {
                     unPacker.setPassword(pwdField.getText());
                     stage.close();
                 } catch (WrongPasswordException wpe) {
-                    prompt.setText("密码错误");
+                    prompt.setText(lanLoader.get(358));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -321,7 +324,7 @@ public class UncompressUI implements Initializable {
         goBackButton.hoverProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
                 Tooltip tt = new Tooltip();
-                tt.setText("返回上级目录");
+                tt.setText(lanLoader.get(359));
                 goBackButton.setTooltip(tt);
             } else {
                 goBackButton.setTooltip(null);
@@ -333,12 +336,22 @@ public class UncompressUI implements Initializable {
         infoButton.hoverProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
                 Tooltip tt = new Tooltip();
-                tt.setText("文件信息");
+                tt.setText(lanLoader.get(360));
                 infoButton.setTooltip(tt);
             } else {
                 infoButton.setTooltip(null);
             }
         });
+    }
+
+    private void fillText() {
+        nameColumn.setText(lanLoader.get(300));
+        typeColumn.setText(lanLoader.get(301));
+        origSizeColumn.setText(lanLoader.get(302));
+        testButton.setText(lanLoader.get(303));
+        threadNumberLabel.setText(lanLoader.get(304));
+        uncompressPart.setText(lanLoader.get(305));
+        uncompressAll.setText(lanLoader.get(306));
     }
 }
 

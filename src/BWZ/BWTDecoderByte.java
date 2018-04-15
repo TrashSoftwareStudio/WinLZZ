@@ -3,21 +3,16 @@ package BWZ;
 import Utility.Bytes;
 
 import java.util.Arrays;
-import java.util.LinkedList;
 
-class BWTDecoder {
+class BWTDecoderByte {
 
-    private short[] cmpText;
+    private byte[] cmpText;
 
     private int origIndex;
 
-    BWTDecoder(short[] cmpText) {
-        short[] indexBytesS = new short[3];
-        System.arraycopy(cmpText, 0, indexBytesS, 0, 3);
-        byte[] indexBytes = new byte[]{(byte) indexBytesS[0], (byte) indexBytesS[1], (byte) indexBytesS[2]};
-        origIndex = Bytes.bytesToInt24(indexBytes);
-        this.cmpText = new short[cmpText.length - 3];
-        System.arraycopy(cmpText, 3, this.cmpText, 0, this.cmpText.length);
+    BWTDecoderByte(byte[] cmpText, int origRowIndex) {
+        origIndex = origRowIndex;
+        this.cmpText = cmpText;
     }
 
     /**
@@ -31,7 +26,7 @@ class BWTDecoder {
     byte[] Decode() {
         int len = cmpText.length;
         int[] lShift = new int[len];
-        short[] sorted = new short[cmpText.length];
+        byte[] sorted = new byte[cmpText.length];
         System.arraycopy(cmpText, 0, sorted, 0, len);
         Arrays.sort(sorted);
 
@@ -46,11 +41,5 @@ class BWTDecoder {
             result[i] = (byte) (cmpText[origIndex] - 1);
         }
         return result;
-    }
-}
-
-class IntegerLinkedList extends LinkedList<Integer> {
-    IntegerLinkedList() {
-        super();
     }
 }

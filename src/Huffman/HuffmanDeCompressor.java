@@ -154,7 +154,6 @@ public class HuffmanDeCompressor {
         return Util.collectionToArray(tempResult);
     }
 
-
     public void Uncompress(String outFile, byte[] map) throws IOException {
 
         FileInputStream fis = new FileInputStream(inFile);
@@ -171,62 +170,5 @@ public class HuffmanDeCompressor {
         uncompressText(fis, outFile);
         fis.close();
 
-    }
-
-
-    /**
-     * Uncompress the huffman compression file.
-     *
-     * @param outFile the name of the output file.
-     * @throws IOException if in-file is not readable or out-file is not writable.
-     */
-    public void Uncompress(String outFile) throws IOException {
-        RandomAccessFile raf = new RandomAccessFile(inFile, "r");
-        raf.seek(new File(inFile).length() - 1);
-        lengthRemainder = raf.readByte() & 0xff;
-        raf.close();
-        FileInputStream bis = new FileInputStream(inFile);
-
-        // Read info byte
-        byte[] infoByte = new byte[1];
-        if (bis.read(infoByte) != 1) throw new IOException("Error occurs while reading");
-        String info = Bytes.byteToBitString(infoByte[0]);
-        if (info.charAt(0) == '1') {
-            // If the original file is not compressed.
-            FileOutputStream fos = new FileOutputStream(outFile);
-            File f = new File(inFile);
-            int len = (int) f.length() - 1;
-            byte[] b = new byte[len];
-            if (bis.read(b) != len) throw new IOException("Error occurs while reading");
-            fos.write(b);
-            bis.close();
-            fos.flush();
-            fos.close();
-            return;
-        }
-//        lengthRemainder = Integer.parseInt(info.substring(2, 5), 2);
-        // Read the head block
-        byte[] head = new byte[2];
-        if (bis.read(head) != 2) throw new IOException("Error occurs while reading");
-        int cmpMapLen = head[0] & 0xff;
-        if (cmpMapLen == 0) cmpMapLen = 256;
-        int mapStart = head[1] & 0xff;
-
-        // Read canonical map
-        byte[] cmpMap = new byte[cmpMapLen];
-        if (bis.read(cmpMap) != cmpMapLen) throw new IOException("Error occurs while reading");
-        byte[] map;
-        if (info.charAt(1) == '0') map = new ShortHuffmanDeCompressor(cmpMap).Uncompress();
-        else map = cmpMap;
-        byte[] fullMap = new byte[256];
-        System.arraycopy(map, 0, fullMap, mapStart, map.length);
-
-        HashMap<Byte, Integer> lengthCode = recoverLengthCode(fullMap);
-        HashMap<Byte, String> huffmanCode = HuffmanCompressor.generateCanonicalCode(lengthCode);
-        generateIdenticalMap(huffmanCode);
-
-        // Uncompress main text
-        uncompressText(bis, outFile);
-        bis.close();
     }
 }

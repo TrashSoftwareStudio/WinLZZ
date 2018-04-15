@@ -174,16 +174,6 @@ public class HuffmanCompressor {
         }
     }
 
-    private static int[] getStartAndLength(byte[] canonicalMap) {
-        int start = 0;
-        int last = 255;
-        while (start < 256 && canonicalMap[start] == (byte) 0) start += 1;
-        while (last >= 0 && canonicalMap[last] == (byte) 0) last -= 1;
-        last += 1;
-        return new int[]{start, last - start};
-    }
-
-
     public byte[] getMap(int length) throws IOException {
         generateFreqMap();
         HuffmanNode rootNode = generateHuffmanTree(freqMap);
@@ -201,64 +191,6 @@ public class HuffmanCompressor {
         compressedLength = 1;
         out.write((byte) lengthRemainder);
         compressText(huffmanCode, out);
-    }
-
-    /**
-     * Compress using huffman algorithm.
-     * <p>
-     * Construction of infoByte:
-     * [0] true iff text is not compressed.
-     * [1] true iff the map is not compressed.
-     * [2: 5] 3-bit length remainder.
-     *
-     * @param outFile the output stream.
-     * @throws IOException if in-file is not readable or out-file is not writable.
-     */
-    public void Compress(OutputStream outFile) throws IOException {
-        generateFreqMap();
-        HuffmanNode rootNode = generateHuffmanTree(freqMap);
-        HashMap<Byte, Integer> codeLengthMap = new HashMap<>();
-        generateCodeLengthMap(codeLengthMap, rootNode, 0);
-
-        heightControl(codeLengthMap);
-        HashMap<Byte, String> huffmanCode = generateCanonicalCode(codeLengthMap);
-
-        boolean[] infoByte = new boolean[8];
-        if (length < 16) {
-            // Too short, don't compress.
-            infoByte[0] = true;
-            outFile.write(Bytes.bitStringToByte(Bytes.booleanArrayToBitString(infoByte)));
-            byte[] b = new byte[length];
-            FileInputStream fis = new FileInputStream(inFile);
-            if (fis.read(b) != length) throw new IOException("Error occurs while reading");
-            outFile.write(b);
-            fis.close();
-            compressedLength = length + 1;
-            return;
-        }
-
-        byte[] canonicalMap = generateCanonicalCodeBlock(codeLengthMap);
-        int[] startAndLen = getStartAndLength(canonicalMap);
-        byte[] validMap = new byte[startAndLen[1]];
-
-        byte[] map;
-        System.arraycopy(canonicalMap, startAndLen[0], validMap, 0, startAndLen[1]);
-
-        ShortHuffmanCompressor shc = new ShortHuffmanCompressor(validMap);
-        map = shc.Compress();
-        if (map.length > validMap.length) {
-            map = validMap;
-            infoByte[1] = true;
-        }
-
-        byte[] head = new byte[]{Bytes.bitStringToByte(Bytes.booleanArrayToBitString(infoByte)), (byte) map.length,
-                (byte) startAndLen[0]};
-        outFile.write(head);
-        outFile.write(map);
-        compressedLength = head.length + map.length;
-
-        compressText(huffmanCode, outFile);
-        outFile.write((byte) lengthRemainder);
     }
 
     public int getCompressedLength() {

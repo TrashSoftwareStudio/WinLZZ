@@ -1,11 +1,9 @@
 package GUI;
 
+import ResourcesPack.Languages.LanguageLoader;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
 
 import java.net.URL;
@@ -14,29 +12,25 @@ import java.util.ResourceBundle;
 public class PasswordBox implements Initializable {
 
     @FXML
-    private PasswordField setPassword;
-
-    @FXML
-    private PasswordField confirmPassword;
+    private PasswordField setPassword, confirmPassword;
 
     @FXML
     private TextField plainPasswordField;
 
     @FXML
-    private CheckBox encryptNameBox;
+    private CheckBox encryptNameBox, showPasswordBox;
 
     @FXML
-    private CheckBox showPasswordBox;
+    private Label inputPassword, confirmLabel, promptLabel;
 
     @FXML
-    private Label confirmLabel;
-
-    @FXML
-    private Label promptLabel;
+    private Button confirmButton;
 
     private Stage stage;
 
     private CompressUI parent;
+
+    private LanguageLoader lanLoader;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -48,6 +42,11 @@ public class PasswordBox implements Initializable {
 
     public void setParent(CompressUI parent) {
         this.parent = parent;
+    }
+
+    void setLanLoader(LanguageLoader lanLoader) {
+        this.lanLoader = lanLoader;
+        fillText();
     }
 
     void setStage(Stage stage) {
@@ -68,7 +67,7 @@ public class PasswordBox implements Initializable {
             else parent.setEncryptLevel(1);
             stage.close();
         } else {
-            promptLabel.setText("两次输入不一致");
+            promptLabel.setText(lanLoader.get(404));
         }
     }
 
@@ -108,5 +107,13 @@ public class PasswordBox implements Initializable {
         setPassword.textProperty().addListener((observable, oldValue, newValue) -> {
             if (!showPasswordBox.isSelected()) plainPasswordField.setText(newValue);
         });
+    }
+
+    private void fillText() {
+        inputPassword.setText(lanLoader.get(400));
+        confirmLabel.setText(lanLoader.get(401));
+        showPasswordBox.setText(lanLoader.get(402));
+        encryptNameBox.setText(lanLoader.get(403));
+        confirmButton.setText(lanLoader.get(1));
     }
 }

@@ -95,3 +95,5 @@ class SuffixArrayDC3 {
         for (; j < tbc; p++) sa[p] = wb[j++];
     }
 }
+
+

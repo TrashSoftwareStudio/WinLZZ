@@ -32,41 +32,41 @@
             <padding>
                 <Insets bottom="5.0"/>
             </padding>
-            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0">
+            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="10.0">
                 <GridPane.margin>
                     <Insets/>
                 </GridPane.margin>
-                <Label text="原文件大小:  "/>
+                <Label fx:id="origSizeTextLabel" text="原文件大小:"/>
                 <Label fx:id="totalSizeLabel" text="Label"/>
             </HBox>
-            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="1">
-                <Label text="已用时间:  "/>
+            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1">
+                <Label fx:id="timeUsedTextLabel" text="已用时间:"/>
                 <Label fx:id="timeUsedLabel" text="Label"/>
             </HBox>
-            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" GridPane.rowIndex="1">
-                <Label fx:id="passedSizeTitleLabel" text="已解压大小:  "/>
+            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.rowIndex="1">
+                <Label fx:id="passedSizeTitleLabel" text="已解压大小:"/>
                 <Label fx:id="passedSizeLabel" text="Label"/>
             </HBox>
-            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="1"
+            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1"
                   GridPane.rowIndex="1">
-                <Label text="剩余时间:  "/>
+                <Label fx:id="timeRemainTextLabel" text="剩余时间:"/>
                 <Label fx:id="expectTimeLabel" text="Label"/>
             </HBox>
         </GridPane>
-        <HBox alignment="CENTER" prefHeight="40.0" prefWidth="200.0">
+        <HBox alignment="CENTER" prefHeight="40.0" prefWidth="200.0" spacing="5.0">
             <opaqueInsets>
                 <Insets/>
             </opaqueInsets>
-            <Label fx:id="messageLabel" text="正在解压...  "/>
-            <Label fx:id="percentageLabel" text="进度"/>
+            <Label fx:id="messageLabel" text="正在解压..."/>
+            <Label fx:id="percentageLabel"/>
             <Label text="\%"/>
         </HBox>
-        <HBox alignment="CENTER" prefHeight="40.0" prefWidth="200.0">
+        <HBox alignment="CENTER" prefHeight="40.0" prefWidth="200.0" spacing="5.0">
             <padding>
                 <Insets bottom="10.0"/>
             </padding>
-            <Label text="速率:  "/>
-            <Label fx:id="ratioLabel" text="速率"/>
+            <Label fx:id="speedTextLabel" text="速率:"/>
+            <Label fx:id="ratioLabel"/>
             <Label text=" KB/s"/>
         </HBox>
         <ProgressBar fx:id="progressBar" prefWidth="320.0" progress="0.0"/>
@@ -77,7 +77,7 @@
             <padding>
                 <Insets right="40.0"/>
             </padding>
-            <Button mnemonicParsing="false" onAction="#interruptAction" text="取消"/>
+            <Button fx:id="cancelButton" mnemonicParsing="false" onAction="#interruptAction" text="取消"/>
         </HBox>
     </VBox>
 </AnchorPane>

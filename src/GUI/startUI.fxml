@@ -13,10 +13,15 @@
             xmlns:fx="http://javafx.com/fxml/1" fx:controller="GUI.StartUI">
     <VBox prefHeight="320.0" prefWidth="240.0">
         <MenuBar prefHeight="25.0">
-            <Menu mnemonicParsing="false" text="帮助">
-                <MenuItem mnemonicParsing="false" onAction="#aboutAction" text="关于"/>
-                <MenuItem mnemonicParsing="false" onAction="#licenceAction" text="开源许可证"/>
-                <MenuItem mnemonicParsing="false" onAction="#changelogAction" text="查看更新日志"/>
+            <Menu fx:id="settingsMenu" mnemonicParsing="false" text="设置">
+                <items>
+                    <MenuItem fx:id="languageSetting" mnemonicParsing="false" text="语言" onAction="#languageSelection"/>
+                </items>
+            </Menu>
+            <Menu fx:id="helpMenu" mnemonicParsing="false" text="帮助">
+                <MenuItem fx:id="about" mnemonicParsing="false" onAction="#aboutAction" text="关于"/>
+                <MenuItem fx:id="licence" mnemonicParsing="false" onAction="#licenceAction" text="开源许可证"/>
+                <MenuItem fx:id="changelogView" mnemonicParsing="false" onAction="#changelogAction" text="查看更新日志"/>
             </Menu>
         </MenuBar>
         <VBox alignment="CENTER" prefHeight="295.0" prefWidth="240.0" spacing="30.0">
@@ -25,12 +30,12 @@
                     <Font size="36.0"/>
                 </font>
             </Label>
-            <Button mnemonicParsing="false" onAction="#compressMode" text="压缩">
+            <Button fx:id="compressButton" mnemonicParsing="false" onAction="#compressMode" text="压缩">
                 <font>
                     <Font size="18.0"/>
                 </font>
             </Button>
-            <Button mnemonicParsing="false" onAction="#uncompressMode" text="解压">
+            <Button fx:id="uncompressButton" mnemonicParsing="false" onAction="#uncompressMode" text="解压">
                 <font>
                     <Font size="18.0"/>
                 </font>

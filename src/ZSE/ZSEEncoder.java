@@ -4,6 +4,7 @@ import Utility.Util;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.zip.CRC32;
 
 public class ZSEEncoder {
 
@@ -25,13 +26,13 @@ public class ZSEEncoder {
     static int[] generatePassword(String pwd, int textLen) throws UnsupportedEncodingException {
         byte[] bytePwd = pwd.getBytes("UTF-8");
         int[] tempPwd = new int[bytePwd.length];
-
-        for (int i = 0; i < bytePwd.length; i++) {
-            if (textLen < 64) {
-                tempPwd[i] = (bytePwd[i] & 0xff) % (64 / bytePwd.length + 1);
-            } else {
-                tempPwd[i] = (bytePwd[i] & 0xff) % 64;
-            }
+        int i = 0;
+        CRC32 crc = new CRC32();
+        while (i < bytePwd.length) {
+            crc.update(bytePwd[i]);
+            if (textLen > 64) tempPwd[i++] = (int) (crc.getValue() & 0x2f);
+            else tempPwd[i++] = (int) (crc.getValue() & 0x0f);
+            crc.reset();
         }
         return tempPwd;
     }
@@ -44,7 +45,6 @@ public class ZSEEncoder {
     }
 
     private byte[] switchRC(byte[] text) {
-
         ArrayList<ArrayList<Byte>> result = new ArrayList<>();
         int i = 0;
         while (i < text.length) {
@@ -59,27 +59,14 @@ public class ZSEEncoder {
                 }
             }
             result.add(segment);
-//            System.out.println(segment);
         }
-
         byte[] toReturn = new byte[text.length];
-
         int max = Util.arrayMax(password);
-
-        ArrayList<Byte> result2 = new ArrayList<>();
+        int index = 0;
 
         for (int p = 0; p < max; p++) {
-            for (ArrayList<Byte> aResult : result) {
-                if (p < aResult.size()) {
-                    result2.add(aResult.get(p));
-                }
-            }
+            for (ArrayList<Byte> aResult : result) if (p < aResult.size()) toReturn[index++] = aResult.get(p);
         }
-
-        for (int l = 0; l < text.length; l++) {
-            toReturn[l] = result2.get(l);
-        }
-
         return toReturn;
     }
 
@@ -92,7 +79,6 @@ public class ZSEEncoder {
             int i = 0;
             byte[] result = new byte[text.length];
             while (i <= text.length - range * 2) {
-
                 byte[] front = new byte[range];
                 byte[] back = new byte[range];
                 System.arraycopy(text, i, front, 0, range);

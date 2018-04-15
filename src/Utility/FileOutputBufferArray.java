@@ -10,19 +10,11 @@ public class FileOutputBufferArray {
 
     private int bufferSize;
 
-    private byte[] array1;
+    private byte[] array1, array2;
 
-    private byte[] array2;
+    private boolean activeArray2, array1Init, array2Init = false;
 
-    private boolean activeArray2 = false;
-
-    private boolean array1Init = false;
-
-    private boolean array2Init = false;
-
-    private int index = 0;
-
-    private int front = 0;
+    private int index, front = 0;
 
     public FileOutputBufferArray(String fileName, int bufferSize) throws IOException {
         this.fos = new FileOutputStream(fileName);
@@ -96,16 +88,11 @@ public class FileOutputBufferArray {
 
     public void flush() throws IOException {
         int len = index % bufferSize;
-//        System.out.println(len);
         if (activeArray2) {
-            if (array1Init) {
-                fos.write(array1);
-            }
+            if (array1Init) fos.write(array1);
             fos.write(array2, 0, len);
         } else {
-            if (array2Init) {
-                fos.write(array2);
-            }
+            if (array2Init) fos.write(array2);
             fos.write(array1, 0, len);
         }
     }

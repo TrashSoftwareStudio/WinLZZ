@@ -1,6 +1,8 @@
 package GUI;
 
 import Packer.*;
+import ResourcesPack.Languages.LanguageLoader;
+import Utility.Bytes;
 import Utility.Util;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -20,40 +22,20 @@ public class FileInfoUI implements Initializable {
     private UnPacker unPacker;
 
     @FXML
-    private Label typeLabel;
-
-    @FXML
-    private Label algLabel;
-
-    @FXML
-    private Label versionNeededLabel;
-
-    @FXML
-    private Label fileCountLabel;
-
-    @FXML
-    private Label dirCountLabel;
-
-    @FXML
-    private Label windowSizeLabel;
-
-    @FXML
-    private Label compressRateLabel;
-
-    @FXML
-    private Label origSizeLabel;
-
-    @FXML
-    private Label compressSizeLabel;
-
-    @FXML
-    private Label timeLabel;
+    private Label typeLabel, algLabel, versionNeededLabel, fileCountLabel, dirCountLabel, windowSizeLabel,
+            compressRateLabel, origSizeLabel, compressSizeLabel, timeLabel, crcChecksumLabel;
 
     @FXML
     private ProgressBar compressRateBar;
 
+    private LanguageLoader lanLoader;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+    }
+
+    void setLanLoader(LanguageLoader lanLoader) {
+        this.lanLoader = lanLoader;
     }
 
     void setInfo(File cmpFile, UnPacker unPacker) {
@@ -63,8 +45,8 @@ public class FileInfoUI implements Initializable {
 
 
     void setItems() {
-        String prefix = unPacker.getEncryptLevel() == 0 ? "" : "加密的 ";
-        typeLabel.setText(prefix + "WinLZZ 压缩文件");
+        String prefix = unPacker.getEncryptLevel() == 0 ? "" : lanLoader.get(650) + " ";
+        typeLabel.setText(prefix + "WinLZZ " + lanLoader.get(651));
         double rate = unPacker.getTotalOrigSize() == 0 ? 0 : (double) cmpFile.length() / unPacker.getTotalOrigSize();
 
         String alg;
@@ -72,31 +54,29 @@ public class FileInfoUI implements Initializable {
             case "lzz2":
                 alg = "LZZ2";
                 break;
-            case "qlz":
-                alg = "QuickLZZ";
-                break;
             case "bwz":
                 alg = "BWZ";
                 break;
             default:
-                alg = "未知";
+                alg = lanLoader.get(652);
                 break;
         }
 
         compressRateBar.setProgress(rate);
         double roundedRate = ((double) Math.round(rate * 10000)) / 100.0;
-        Date date = new Date(cmpFile.lastModified());
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        Date date = new Date(unPacker.getCreationTime());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        algLabel.setText("压缩方法: " + alg);
-        compressRateLabel.setText("压缩率: " + String.valueOf(roundedRate) + " %");
-        versionNeededLabel.setText("解压所需WinLZZ版本: " + translateVersion(unPacker.versionNeeded()));
-        origSizeLabel.setText("原文件大小: " + Util.sizeToReadable(unPacker.getTotalOrigSize()));
-        compressSizeLabel.setText("压缩后大小: " + Util.sizeToReadable(cmpFile.length()));
-        fileCountLabel.setText("文件总数: " + splitNumber(String.valueOf(unPacker.getFileCount())));
-        dirCountLabel.setText("文件夹总数: " + splitNumber(String.valueOf(unPacker.getDirCount())));
-        windowSizeLabel.setText("字典大小: " + sizeToString3Digit(unPacker.getWindowSize()));
-        timeLabel.setText("创建时间: " + sdf.format(date));
+        algLabel.setText(lanLoader.get(601) + ": " + alg);
+        versionNeededLabel.setText(lanLoader.get(602) + ": " + translateVersion(unPacker.versionNeeded()));
+        compressRateLabel.setText(lanLoader.get(603) + ": " + String.valueOf(roundedRate) + " %");
+        windowSizeLabel.setText(lanLoader.get(604) + ": " + sizeToString3Digit(unPacker.getWindowSize()));
+        origSizeLabel.setText(lanLoader.get(605) + ": " + Util.sizeToReadable(unPacker.getTotalOrigSize()));
+        compressSizeLabel.setText(lanLoader.get(606) + ": " + Util.sizeToReadable(cmpFile.length()));
+        fileCountLabel.setText(lanLoader.get(607) + ": " + splitNumber(String.valueOf(unPacker.getFileCount())));
+        dirCountLabel.setText(lanLoader.get(608) + ": " + splitNumber(String.valueOf(unPacker.getDirCount())));
+        timeLabel.setText(lanLoader.get(609) + ": " + sdf.format(date));
+        crcChecksumLabel.setText(lanLoader.get(610) + ": " + Bytes.longToHex(unPacker.getCrc32Checksum(), false));
     }
 
 
@@ -117,12 +97,13 @@ public class FileInfoUI implements Initializable {
         else if (versionInt == 15) return "0.4.2";
         else if (versionInt == 16) return "0.4.3";
         else if (versionInt == 17) return "0.5.0 - 0.5.1";
-        else if (versionInt == 18) return "0.5.2+";
-        else return "未知";
+        else if (versionInt == 18) return "0.5.2";
+        else if (versionInt == 20) return "0.6.0";
+        else return lanLoader.get(652);
     }
 
-    private static String sizeToString3Digit(long src) {
-        if (src < 1024) return src + " 字节";
+    private String sizeToString3Digit(long src) {
+        if (src < 1024) return src + " " + lanLoader.get(250);
         else if (src < 1048576) return src / 1024 + " KB";
         else return src / 1048576 + " MB";
     }

@@ -103,7 +103,7 @@ public class CompressUI implements Initializable {
         algBox.getItems().addAll(algNames);
         bufferBox.getItems().addAll(bufferSizes);
         levelBox.getItems().addAll(compressionLevels);
-        modeBox.getItems().addAll(cmpLevels);
+        modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
     }
 
     private void setWindowSizeBox() {
@@ -134,39 +134,39 @@ public class CompressUI implements Initializable {
                 modeBox.setDisable(true);
             } else {
                 windowNameBox.setDisable(false);
+                modeBox.setDisable(false);
                 if (isLevelAble()) {
                     bufferBox.setDisable(false);
-                    modeBox.setDisable(false);
                 }
                 if (newValue.intValue() == 1) {
                     windowNameBox.getSelectionModel().select(0);
+                    bufferBox.getSelectionModel().select(1);
                     if (isLevelAble()) {
-                        bufferBox.getSelectionModel().select(1);
                         modeBox.getSelectionModel().select(0);
                     }
                 } else if (newValue.intValue() == 2) {
                     windowNameBox.getSelectionModel().select(1);
+                    modeBox.getSelectionModel().select(0);
                     if (isLevelAble()) {
                         bufferBox.getSelectionModel().select(2);
-                        modeBox.getSelectionModel().select(0);
                     }
                 } else if (newValue.intValue() == 3) {
                     windowNameBox.getSelectionModel().select(2);
+                    modeBox.getSelectionModel().select(1);
                     if (isLevelAble()) {
                         bufferBox.getSelectionModel().select(3);
-                        modeBox.getSelectionModel().select(1);
                     }
                 } else if (newValue.intValue() == 4) {
                     windowNameBox.getSelectionModel().select(3);
+                    modeBox.getSelectionModel().select(1);
                     if (isLevelAble()) {
                         bufferBox.getSelectionModel().select(3);
-                        modeBox.getSelectionModel().select(1);
                     }
                 } else if (newValue.intValue() == 5) {
                     windowNameBox.getSelectionModel().select(5);
+                    modeBox.getSelectionModel().select(1);
                     if (isLevelAble()) {
                         bufferBox.getSelectionModel().select(4);
-                        modeBox.getSelectionModel().select(1);
                     }
                 }
             }
@@ -180,13 +180,17 @@ public class CompressUI implements Initializable {
                     bufferBox.setDisable(false);
                     modeBox.setDisable(false);
                     bufferBox.getSelectionModel().select(3);
+                    modeBox.getItems().clear();
+                    modeBox.getItems().addAll(cmpLevels);
                     modeBox.getSelectionModel().select(1);
                     break;
                 case "BWZ":
                     bufferBox.getSelectionModel().clearSelection();
                     modeBox.getSelectionModel().clearSelection();
                     bufferBox.setDisable(true);
-                    modeBox.setDisable(true);
+                    modeBox.getItems().clear();
+                    modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
+                    modeBox.getSelectionModel().select(1);
                     break;
             }
             setWindowSizeBox();
@@ -239,13 +243,9 @@ public class CompressUI implements Initializable {
         } else {
             if (alg.equals("bwz")) window = windowSizes2[windowNameBox.getSelectionModel().getSelectedIndex()];
             else window = windowSizes[windowNameBox.getSelectionModel().getSelectedIndex()];
-            if (alg.equals("lzz2")) {
-                buffer = bufferBox.getSelectionModel().getSelectedItem();
-                cmpLevel = modeBox.getSelectionModel().getSelectedIndex();
-            } else {
-                buffer = 0;
-                cmpLevel = 0;
-            }
+            if (alg.equals("lzz2")) buffer = bufferBox.getSelectionModel().getSelectedItem();
+            else buffer = 0;
+            cmpLevel = modeBox.getSelectionModel().getSelectedIndex();
         }
         int threads = threadBox.getSelectionModel().getSelectedItem();
 

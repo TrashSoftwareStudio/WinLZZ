@@ -3,9 +3,7 @@ package BWZ;
 class SuffixArrayDoubling {
 
     private short[] text;
-
     private int n;
-
     private int[] sa, t, t2, c;
 
     SuffixArrayDoubling(short[] text) {
@@ -37,9 +35,7 @@ class SuffixArrayDoubling {
         for (k = 1; k <= n; k <<= 1) {
             int p = 0;
             for (i = n - k; i < n; i++) y[p++] = i;
-            for (i = 0; i < n; i++) {
-                if (sa[i] >= k) y[p++] = sa[i] - k;
-            }
+            for (i = 0; i < n; i++) if (sa[i] >= k) y[p++] = sa[i] - k;
             for (i = 0; i < m; i++) c[i] = 0;
             for (i = 0; i < n; i++) c[x[y[i]]]++;
             for (i = 1; i < m; i++) c[i] += c[i - 1];
@@ -52,12 +48,10 @@ class SuffixArrayDoubling {
 
             p = 1;
             x[sa[0]] = 0;
-            for (i = 1; i < n; i++) {
+            for (i = 1; i < n; i++)
                 x[sa[i]] = y[sa[i - 1]] == y[sa[i]] && y[sa[i - 1] + k] == y[sa[i] + k] ? p - 1 : p++;
-            }
             if (p >= n) break;
             m = p;
-
         }
     }
 
@@ -69,9 +63,7 @@ class SuffixArrayDoubling {
 class SuffixArrayDoublingByte {
 
     private byte[] text;
-
     private int n;
-
     private int[] sa, t, t2, c;
 
     SuffixArrayDoublingByte(byte[] text) {
@@ -103,9 +95,7 @@ class SuffixArrayDoublingByte {
         for (k = 1; k <= n; k <<= 1) {
             int p = 0;
             for (i = n - k; i < n; i++) y[p++] = i;
-            for (i = 0; i < n; i++) {
-                if (sa[i] >= k) y[p++] = sa[i] - k;
-            }
+            for (i = 0; i < n; i++) if (sa[i] >= k) y[p++] = sa[i] - k;
             for (i = 0; i < m; i++) c[i] = 0;
             for (i = 0; i < n; i++) c[x[y[i]]]++;
             for (i = 1; i < m; i++) c[i] += c[i - 1];
@@ -118,18 +108,15 @@ class SuffixArrayDoublingByte {
 
             p = 1;
             x[sa[0]] = 0;
-            for (i = 1; i < n; i++) {
+            for (i = 1; i < n; i++)
                 x[sa[i]] = y[sa[i - 1]] == y[sa[i]] && y[sa[i - 1] + k] == y[sa[i] + k] ? p - 1 : p++;
-            }
             if (p >= n) break;
             m = p;
-
         }
     }
 
     int[] getSa() {
         return sa;
     }
-
 }
 

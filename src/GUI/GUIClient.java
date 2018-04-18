@@ -6,14 +6,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-/**
- * Main program of WinLZZ Graphic User Interface.
- *
- * @author zbh
- * @since 2018-01-20
- */
-
-public class Main extends Application {
+public class GUIClient extends Application {
 
     public static void main(String[] args) {
         launch(args);

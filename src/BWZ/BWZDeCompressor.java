@@ -78,7 +78,7 @@ public class BWZDeCompressor implements DeCompressor {
         int huffmanBlockSize = Math.min(huffmanBlockMaxSize, windowSize);
 
         byte[] rlcMain = mdc.Uncompress((int) (261 * (fileLength / huffmanBlockSize + 1) * 8), false);
-        // 259 for each map, 1 for EOF character.
+        // 259 for each map, 1 for EOF character, 1 for flag.
         byte[] zeroRlc = new ZeroRLCDecoderByte(rlcMain).Decode();
         byte[] bwtMap = new MTFInverseByte(zeroRlc).Inverse();
         byte[] mainMap = new BWTDecoderByte(bwtMap, origRowIndex).Decode();
@@ -88,13 +88,13 @@ public class BWZDeCompressor implements DeCompressor {
         while (i < mainMap.length) {
             int flag = mainMap[i] & 0xff;
             i += 1;
-            byte[] map = new byte[259];
+            byte[] map = new byte[BWZCompressor.huffmanTableSize];
             if (flag == 0) {
-                System.arraycopy(mainMap, i, map, 0, 259);
-                i += 259;
+                System.arraycopy(mainMap, i, map, 0, BWZCompressor.huffmanTableSize);
+                i += BWZCompressor.huffmanTableSize;
             } else {
                 int x = huffmanMaps.size() - flag;
-                System.arraycopy(huffmanMaps.get(x), 0 , map, 0, 259);
+                System.arraycopy(huffmanMaps.get(x), 0 , map, 0, BWZCompressor.huffmanTableSize);
             }
             huffmanMaps.addLast(map);
         }
@@ -115,11 +115,11 @@ public class BWZDeCompressor implements DeCompressor {
         ArrayList<short[]> blockList = new ArrayList<>();
         ArrayList<short[]> huffmanBlockList = new ArrayList<>();
 
-        LongHuffmanInputStream his = new LongHuffmanInputStream(fc, 259, huffmanBlockMaxSize + 32);
+        LongHuffmanInputStream his = new LongHuffmanInputStream(fc, BWZCompressor.huffmanTableSize, huffmanBlockMaxSize + 32);
         short[] huffmanResult;
 
         while (!huffmanMaps.isEmpty()) {
-            huffmanResult = his.read(huffmanMaps.removeFirst(), (short) 258);
+            huffmanResult = his.read(huffmanMaps.removeFirst(), BWZCompressor.huffmanEndSig);
 
             huffmanBlockList.add(huffmanResult);
 

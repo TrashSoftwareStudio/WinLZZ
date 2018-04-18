@@ -10,7 +10,7 @@ import java.io.FileOutputStream;
 import java.io.SequenceInputStream;
 import java.util.Vector;
 
-public abstract class LZZ2Test {
+public class LZZ2Test {
 
     public static void main(String[] args) throws Exception {
         long start = System.currentTimeMillis();

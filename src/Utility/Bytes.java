@@ -65,6 +65,29 @@ public abstract class Bytes {
         return res;
     }
 
+    /**
+     * Convert a binary StringBuilder to a short array.
+     * <p>
+     * The last few bits will be reserved.
+     *
+     * @param builder The binary StringBuilder to be converted.
+     * @return A short array.
+     */
+    public static short[] stringBuilderToShortsFull(StringBuilder builder) {
+        if (builder.length() == 0) return new short[0];
+        int length = builder.length() / 8;
+        if (builder.length() % 8 != 0) length += 1;
+        short[] res = new short[length];
+        int i = 0;
+        int j = 0;
+        while (i < builder.length() - 8) {
+            res[j++] = bitStringToByte(builder.substring(i, i + 8));
+            i += 8;
+        }
+        res[j] = bitStringToByteNo8(builder.substring(i));
+        return res;
+    }
+
 
     /**
      * Convert a binary StringBuilder to a byte array.

@@ -28,12 +28,16 @@ public class BWZCompressor implements Compressor {
 
     private String mainTempName;
 
-    final static int maxHuffmanSize = 32768;  // Maximum size of a huffman-coding block.
+    int maxHuffmanSize = 32768;  // Maximum size of a huffman-coding block.
 
     final static int dc3DecisionSize = 1048576;  // Decision size of suffix array building algorithm.
     // DC3 algorithm is used if the window size if greater than or equal to this size in case of increasing speed.
     // Otherwise, doubling algorithm is used (since doubling algorithm takes O(n * log n) while dc3 takes O(n),
     // But doubling algorithm has a much smaller constant).
+
+    final static short huffmanTableSize = 259;
+
+    final static short huffmanEndSig = 258;
 
     private OutputStream mainOut;
 
@@ -117,7 +121,7 @@ public class BWZCompressor implements Compressor {
                     buffer = new byte[len];
                     System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
                 }
-                EncodeThread et = new EncodeThread(buffer, windowSize);
+                EncodeThread et = new EncodeThread(buffer, windowSize, this);
                 threads[i] = et;
                 es.execute(et);
             }
@@ -210,6 +214,8 @@ public class BWZCompressor implements Compressor {
 
     @Override
     public void setCompressionLevel(int level) {
+        if (level == 0) maxHuffmanSize = windowSize;
+        else maxHuffmanSize = 32768;
     }
 
     @Override
@@ -232,27 +238,25 @@ public class BWZCompressor implements Compressor {
 class EncodeThread implements Runnable {
 
     private byte[] buffer;
-
     private byte[][] results;
-
     private byte[][] maps;
-
     private byte[] flags;
-
     private int windowSize;
+    private BWZCompressor parent;
 
-    EncodeThread(byte[] partData, int windowSize) {
+    EncodeThread(byte[] partData, int windowSize, BWZCompressor parent) {
         this.buffer = partData;
         this.windowSize = windowSize;
+        this.parent = parent;
     }
 
     private void start() {
         boolean isDc3 = buffer.length >= BWZCompressor.dc3DecisionSize;
         int huffmanBlockNumber;
-        if (buffer.length <= BWZCompressor.maxHuffmanSize) {
+        if (buffer.length <= parent.maxHuffmanSize) {
             huffmanBlockNumber = 1;
         } else {
-            huffmanBlockNumber = buffer.length / BWZCompressor.maxHuffmanSize;
+            huffmanBlockNumber = buffer.length / parent.maxHuffmanSize;
             if (buffer.length < windowSize) huffmanBlockNumber += 1;
         }
 
@@ -262,6 +266,7 @@ class EncodeThread implements Runnable {
 
         BWTEncoder be = new BWTEncoder(buffer, isDc3);
         short[] bwtResult = be.Transform();
+
         MTFTransform mtf = new MTFTransform(bwtResult);
         short[] array = mtf.Transform();  // Also contains RLC Result.
 
@@ -271,8 +276,8 @@ class EncodeThread implements Runnable {
             short[] part = new short[eachLength];
             System.arraycopy(array, pos, part, 0, eachLength);
             pos += eachLength;
-            LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(part, 259, (short) 258);
-            byte[] map = hcr.getMap(259);
+            LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(part, BWZCompressor.huffmanTableSize, BWZCompressor.huffmanEndSig);
+            byte[] map = hcr.getMap(BWZCompressor.huffmanTableSize);
             int x = findAvailableOldMap(hcr, map, i);
             flags[i] = (byte) x;
             if (x > 0) {
@@ -287,8 +292,8 @@ class EncodeThread implements Runnable {
         int i = huffmanBlockNumber - 1;
         short[] lastPart = new short[array.length - pos];
         System.arraycopy(array, pos, lastPart, 0, lastPart.length);
-        LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(lastPart, 259, (short) 258);
-        byte[] map = hcr.getMap(259);
+        LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(lastPart, BWZCompressor.huffmanTableSize, BWZCompressor.huffmanEndSig);
+        byte[] map = hcr.getMap(BWZCompressor.huffmanTableSize);
         int x = findAvailableOldMap(hcr, map, i);
         flags[i] = (byte) x;
         if (x > 0) {
@@ -320,15 +325,18 @@ class EncodeThread implements Runnable {
     }
 
     private int findAvailableOldMap(LongHuffmanCompressorRam hcr, byte[] origMap, int currentIndex) {
-        long closest = 32;
+        long closest = 36;
         int distance = 0;
         for (int i = currentIndex - 1; i > currentIndex - 15; i--) {
             if (i < 0 || maps[i] == null) break;
-            if (maps[i].length > 0 && hcr.compareMap(maps[i])) {
-                long diff = hcr.calculateExpectLength(maps[i]) - hcr.calculateExpectLength(origMap);
-                if (diff < closest) {
-                    closest = diff;
-                    distance = currentIndex - i;
+            if (maps[i].length > 0) {
+                long valid = hcr.calculateExpectLength(maps[i]);
+                if (valid > 0) {
+                    long diff = hcr.calculateExpectLength(maps[i]) - hcr.calculateExpectLength(origMap);
+                    if (diff < closest) {
+                        closest = diff;
+                        distance = currentIndex - i;
+                    }
                 }
             }
         }

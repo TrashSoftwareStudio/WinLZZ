@@ -3,15 +3,10 @@ package BWZ;
 class SuffixArrayDC3 {
 
     private int[] wa;
-
     private int[] wb;
-
     private int[] ws;
-
     private int[] wv;
-
     private int[] sa;
-
     private int n;
 
     SuffixArrayDC3(short[] text, int alphabetSize) {
@@ -24,9 +19,7 @@ class SuffixArrayDC3 {
         int n = text.length;
         this.n = n;
         int[] r = new int[n * 3];
-        for (int i = 0; i < n; i++) {
-            r[i] = text[i];
-        }
+        for (int i = 0; i < n; i++) r[i] = text[i];
         sa = new int[n * 3];
         dc3(r, sa, n, alphabetSize);
     }
@@ -50,11 +43,8 @@ class SuffixArrayDC3 {
     }
 
     private boolean c12(int k, int[] r, int a, int b) {
-        if (k == 2) {
-            return r[a] < r[b] || r[a] == r[b] && c12(1, r, a + 1, b + 1);
-        } else {
-            return r[a] < r[b] || r[a] == r[b] && wv[a + 1] < wv[b + 1];
-        }
+        if (k == 2) return r[a] < r[b] || r[a] == r[b] && c12(1, r, a + 1, b + 1);
+        else return r[a] < r[b] || r[a] == r[b] && wv[a + 1] < wv[b + 1];
     }
 
     private void sort(int[] r, int[] a, int[] b, int n, int m) {
@@ -95,5 +85,3 @@ class SuffixArrayDC3 {
         for (; j < tbc; p++) sa[p] = wb[j++];
     }
 }
-
-

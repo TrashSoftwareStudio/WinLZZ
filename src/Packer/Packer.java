@@ -307,7 +307,7 @@ public class Packer {
         this.alg = alg;
     }
 
-    public int getCompressedLength() {
+    public long getCompressedLength() {
         return compressedLength;
     }
 
@@ -373,15 +373,10 @@ public class Packer {
 class IndexNode {
 
     private String name;
-
     private int start;
-
     private int end;
-
     private boolean isDir;
-
     private File file;
-
     private int[] childrenRange;
 
     /**

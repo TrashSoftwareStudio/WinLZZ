@@ -1,5 +1,6 @@
 package GUI;
 
+import Main.Main;
 import Packer.Packer;
 import ResourcesPack.Languages.LanguageLoader;
 import javafx.fxml.FXML;
@@ -18,7 +19,7 @@ public class AboutUI implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        versionLabel.setText(StartUI.version);
+        versionLabel.setText(Main.version);
         coreVersionLabel.setText(String.valueOf(Packer.version));
     }
 

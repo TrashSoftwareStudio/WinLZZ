@@ -3,9 +3,17 @@ package BWZ;
 import BWZ.Util.BWZUtil;
 import BWZ.Util.LinkedDictionary;
 
+import java.util.Arrays;
+
 class MTFTransform {
 
     private short[] origText;
+
+    public static void main(String[] args) {
+        short[] t = new short[]{1, 4, 4, 4, 4, 4, 4, 4, 4, 1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 4, 7};
+        MTFTransform mtf = new MTFTransform(t);
+        System.out.println(Arrays.toString(mtf.Transform()));
+    }
 
     MTFTransform(short[] text) {
         this.origText = text;

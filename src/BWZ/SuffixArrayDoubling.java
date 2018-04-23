@@ -8,7 +8,7 @@ class SuffixArrayDoubling {
 
     SuffixArrayDoubling(short[] text) {
         n = text.length;
-        int max_n = n * 2;
+        int max_n = n + 65536;
         this.text = text;
         sa = new int[n];
         t = new int[max_n];

@@ -98,7 +98,8 @@ public class FileInfoUI implements Initializable {
         else if (versionInt == 16) return "0.4.3";
         else if (versionInt == 17) return "0.5.0 - 0.5.1";
         else if (versionInt == 18) return "0.5.2";
-        else if (versionInt == 20) return "0.6.0";
+        else if (versionInt == 20) return "0.6.0 - 0.6.1";
+        else if (versionInt == 21) return "0.6.2+";
         else return lanLoader.get(652);
     }
 

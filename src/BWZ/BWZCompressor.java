@@ -28,7 +28,7 @@ public class BWZCompressor implements Compressor {
 
     private String mainTempName;
 
-    int maxHuffmanSize = 32768;  // Maximum size of a huffman-coding block.
+    int maxHuffmanSize = 16384;  // Default maximum size of a huffman-coding block.
 
     final static int dc3DecisionSize = 1048576;  // Decision size of suffix array building algorithm.
     // DC3 algorithm is used if the window size if greater than or equal to this size in case of increasing speed.
@@ -36,33 +36,21 @@ public class BWZCompressor implements Compressor {
     // But doubling algorithm has a much smaller constant).
 
     final static short huffmanTableSize = 259;
-
     final static short huffmanEndSig = 258;
-
     private OutputStream mainOut;
-
     private FileChannel fis;
 
     private long cmpSize;  // Total size after compression.
 
     int mainLen;
-
     private int windowSize;
-
-    private Packer parent;
-
+    Packer parent;
     private long lastUpdateProgress;
-
     private LinkedList<byte[]> huffmanMaps = new LinkedList<>();
-
     private LinkedList<Byte> huffmanFlags = new LinkedList<>();
-
     private int threadNumber = 1;
-
     boolean isRunning = true;
-
     long ratio;
-
     long pos;
 
     /**
@@ -103,11 +91,8 @@ public class BWZCompressor implements Compressor {
             }
 
             int threadsNeed;
-            if (read % windowSize == 0) {
-                threadsNeed = read / windowSize;
-            } else {
-                threadsNeed = read / windowSize + 1;
-            }
+            if (read % windowSize == 0) threadsNeed = read / windowSize;
+            else threadsNeed = read / windowSize + 1;
 
             EncodeThread[] threads = new EncodeThread[threadsNeed];
             ExecutorService es = Executors.newCachedThreadPool();
@@ -134,7 +119,6 @@ public class BWZCompressor implements Compressor {
                 byte[] flags = et.getFlags();
                 for (byte[] map : maps) huffmanMaps.addLast(map);
                 for (byte flag : flags) huffmanFlags.addLast(flag);
-                pos += et.origLen();
             }
             block.clear();
 
@@ -150,6 +134,12 @@ public class BWZCompressor implements Compressor {
         }
     }
 
+    /**
+     * Compresses to the output stream.
+     *
+     * @param out the target output stream.
+     * @throws Exception if the output stream is not writable.
+     */
     @Override
     public void Compress(OutputStream out) throws Exception {
         mainOut = new BufferedOutputStream(new FileOutputStream(mainTempName));
@@ -175,12 +165,23 @@ public class BWZCompressor implements Compressor {
             return;
         }
 
-        byte[] mainMap = new byte[Util.collectionOfArrayLength(huffmanMaps) + huffmanFlags.size()];
-        int i = 0;
-        while (!huffmanFlags.isEmpty()) {
+        byte[] mainMap = new byte[Util.collectionOfArrayLength(huffmanMaps) + huffmanTableSize];
+        // Size of all huffman maps + size of map of flags compressor.
+        int i = huffmanTableSize;
+
+        byte[] flags = Util.collectionToArray(huffmanFlags);
+        BWTEncoder flagsBwt = new BWTEncoder(flags, false);
+        short[] flagsMtf = new MTFTransform(flagsBwt.Transform()).Transform();
+        LongHuffmanCompressorRam flagsHuf = new LongHuffmanCompressorRam(flagsMtf, huffmanTableSize, huffmanEndSig);
+        System.arraycopy(flagsHuf.getMap(huffmanTableSize), 0, mainMap, 0, huffmanTableSize);
+
+        byte[] compressedFlags = flagsHuf.Compress();
+        int cmpFlagsLen = compressedFlags.length;
+        out.write(compressedFlags);
+
+        // Concatenate all canonical huffman maps into one long map.
+        while (!huffmanMaps.isEmpty()) {
             byte[] map = huffmanMaps.removeFirst();
-            byte flag = huffmanFlags.removeFirst();
-            mainMap[i++] = flag;
             System.arraycopy(map, 0, mainMap, i, map.length);
             i += map.length;
         }
@@ -193,29 +194,32 @@ public class BWZCompressor implements Compressor {
         byte[] csq = mc.Compress(false);
         out.write(csq);
 
-        mainLen = Util.fileConcatenate(out, new String[]{mainTempName}, 8192);
+        mainLen = Util.fileConcatenate(out, new String[]{mainTempName}, 8192);  // Concatenate the main out
+        // file with the file containing huffman compressed result of main text.
 
         deleteTemp();
         int csqLen = csq.length;
-        int[] sizes = new int[]{csqLen, LZZ2Util.windowSizeToByte(maxHuffmanSize), beb.getOrigRowIndex()};
+        int[] sizes = new int[]{csqLen, LZZ2Util.windowSizeToByte(maxHuffmanSize), beb.getOrigRowIndex(), cmpFlagsLen};
         byte[] sizeBlock = LZZ2Util.generateSizeBlock(sizes);
         out.write(sizeBlock);
 
-        cmpSize = mainLen + csqLen + sizeBlock.length;
+        cmpSize = mainLen + csqLen + sizeBlock.length + cmpFlagsLen;
         isRunning = false;
     }
 
     private void updateInfo(long currentTime, long lastUpdateTime) {
-        parent.progress.set(pos);
-        int newUpdated = (int) (pos - lastUpdateProgress);
-        lastUpdateProgress = parent.progress.get();
-        ratio = (long) ((double) newUpdated / (currentTime - lastUpdateTime) * 1.024);
+        if (parent != null) {
+            parent.progress.set(pos);
+            int newUpdated = (int) (pos - lastUpdateProgress);
+            lastUpdateProgress = parent.progress.get();
+            ratio = (long) ((double) newUpdated / (currentTime - lastUpdateTime) * 1.024);
+        }
     }
 
     @Override
     public void setCompressionLevel(int level) {
         if (level == 0) maxHuffmanSize = windowSize;
-        else maxHuffmanSize = 32768;
+        else maxHuffmanSize = 16384;
     }
 
     @Override
@@ -252,7 +256,7 @@ class EncodeThread implements Runnable {
 
     private void start() {
         boolean isDc3 = buffer.length >= BWZCompressor.dc3DecisionSize;
-        int huffmanBlockNumber;
+        int huffmanBlockNumber;  // The number of huffman blocks needed for this BWT trunk.
         if (buffer.length <= parent.maxHuffmanSize) {
             huffmanBlockNumber = 1;
         } else {
@@ -267,6 +271,9 @@ class EncodeThread implements Runnable {
         BWTEncoder be = new BWTEncoder(buffer, isDc3);
         short[] bwtResult = be.Transform();
 
+        parent.pos += buffer.length * 0.6;
+        if (parent.parent != null) parent.parent.progress.set(parent.pos);  // Update progress
+
         MTFTransform mtf = new MTFTransform(bwtResult);
         short[] array = mtf.Transform();  // Also contains RLC Result.
 
@@ -276,23 +283,27 @@ class EncodeThread implements Runnable {
             short[] part = new short[eachLength];
             System.arraycopy(array, pos, part, 0, eachLength);
             pos += eachLength;
-            LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(part, BWZCompressor.huffmanTableSize, BWZCompressor.huffmanEndSig);
+            LongHuffmanCompressorRam hcr =
+                    new LongHuffmanCompressorRam(part, BWZCompressor.huffmanTableSize, BWZCompressor.huffmanEndSig);
             byte[] map = hcr.getMap(BWZCompressor.huffmanTableSize);
-            int x = findAvailableOldMap(hcr, map, i);
+            int x = findAvailableOldMap(hcr, map, i);  // Look for an old map that suites the current need.
             flags[i] = (byte) x;
-            if (x > 0) {
+            if (x > 0) {  // If found.
                 maps[i] = new byte[0];
                 results[i] = hcr.Compress(maps[i - x]);
-            } else {
+            } else {  // If not found.
                 maps[i] = map;
                 results[i] = hcr.Compress();
             }
         }
 
+        // The last huffman block.
         int i = huffmanBlockNumber - 1;
-        short[] lastPart = new short[array.length - pos];
+        short[] lastPart = new short[array.length - pos];  // Since we need to put everything remaining inside
+        // the last block.
         System.arraycopy(array, pos, lastPart, 0, lastPart.length);
-        LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(lastPart, BWZCompressor.huffmanTableSize, BWZCompressor.huffmanEndSig);
+        LongHuffmanCompressorRam hcr =
+                new LongHuffmanCompressorRam(lastPart, BWZCompressor.huffmanTableSize, BWZCompressor.huffmanEndSig);
         byte[] map = hcr.getMap(BWZCompressor.huffmanTableSize);
         int x = findAvailableOldMap(hcr, map, i);
         flags[i] = (byte) x;
@@ -303,6 +314,7 @@ class EncodeThread implements Runnable {
             maps[i] = map;
             results[i] = hcr.Compress();
         }
+        parent.pos += buffer.length * 0.4;  // Update progress again
     }
 
     void writeTo(OutputStream out, BWZCompressor parent) throws IOException {
@@ -320,14 +332,10 @@ class EncodeThread implements Runnable {
         return flags;
     }
 
-    long origLen() {
-        return buffer.length;
-    }
-
     private int findAvailableOldMap(LongHuffmanCompressorRam hcr, byte[] origMap, int currentIndex) {
         long closest = 36;
         int distance = 0;
-        for (int i = currentIndex - 1; i > currentIndex - 15; i--) {
+        for (int i = currentIndex - 1; i > currentIndex - 255; i--) {
             if (i < 0 || maps[i] == null) break;
             if (maps[i].length > 0) {
                 long valid = hcr.calculateExpectLength(maps[i]);
@@ -353,9 +361,7 @@ class EncodeThread implements Runnable {
 class Timer implements Runnable {
 
     private Packer packer;
-
     private BWZCompressor compressor;
-
     private int timeUsed;
 
     Timer(Packer parent, BWZCompressor compressor) {
@@ -374,8 +380,10 @@ class Timer implements Runnable {
 
                 packer.ratio.set(String.valueOf(compressor.ratio));
 
-                long expectTime = (packer.getTotalOrigSize() - compressor.pos) / compressor.ratio / 1024;
-                packer.timeExpected.set(Util.secondToString(expectTime));
+                if (compressor.ratio != 0) {
+                    long expectTime = (packer.getTotalOrigSize() - compressor.pos) / compressor.ratio / 1024;
+                    packer.timeExpected.set(Util.secondToString(expectTime));
+                }
 
                 packer.passedLength.set(Util.sizeToReadable(compressor.pos));
                 packer.cmpLength.set(Util.sizeToReadable(compressor.mainLen));
@@ -393,6 +401,5 @@ class Timer implements Runnable {
                 ie.printStackTrace();
             }
         }
-
     }
 }

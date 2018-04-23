@@ -23,6 +23,11 @@ abstract class LongHuffmanUtil {
             hn.setValue(key);
             list.add(hn);
         }
+        if (list.size() == 1) {
+            HuffmanNode root = new HuffmanNode(0);
+            root.setLeft(list.remove(0));
+            return root;
+        }
         while (list.size() > 1) {
             Collections.sort(list);
             // Pop out two nodes with smallest frequency.
@@ -85,6 +90,17 @@ abstract class LongHuffmanUtil {
             short b = buffer[i];
             builder.append(huffmanCode.get(b));
         }
+    }
+
+    static HashMap<Short, Integer> generateLengthCode(byte[] canonicalMap) {
+        HashMap<Short, Integer> lengthCode = new HashMap<>();
+        for (int i = 0; i < canonicalMap.length; i++) {
+            int len = canonicalMap[i] & 0xff;
+            if (len != 0) {
+                lengthCode.put((short) i, len);
+            }
+        }
+        return lengthCode;
     }
 
     static void heightControl(HashMap<Short, Integer> codeLength, HashMap<Short, Integer> freqMap, int maxHeight) {

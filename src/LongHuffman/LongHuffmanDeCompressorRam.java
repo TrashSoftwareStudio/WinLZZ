@@ -2,50 +2,33 @@ package LongHuffman;
 
 import Utility.Bytes;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.HashMap;
 
-public class LongHuffmanInputStream {
-
-    private static final int bufferSize = 8192;
-
-    private FileChannel fc;
+public class LongHuffmanDeCompressorRam {
 
     private int alphabetSize;
-
     private short endSig;
-
     private int maxCodeLen = 0;
-
     private int average = 8;
-
     private HashMap<Integer, Short> shortMap = new HashMap<>();
-
     private HashMap<Integer, Short> longMap = new HashMap<>();
-
     private HashMap<Short, Integer> lengthMap = new HashMap<>();
-
-    private long compressedBitLength;
-
-    private boolean isTerminated;
-
+    private byte[] text;
     private short[] result;
-
     private int currentIndex;
-
     private StringBuilder builder = new StringBuilder();
 
     /**
-     * Creates a new instance of a LongHuffmanInputStream Object.
+     * Creates a new LongHuffmanDeCompressorRam instance,
+     * <p>
+     * This decompressor works completely in random access memory.
      *
-     * @param fc           the input stream file channel.
+     * @param text         the text to be uncompressed.
      * @param alphabetSize the alphabet size.
-     * @param maxLength    the maximum length of each part of huffman text.
+     * @param maxLength    the maximum length of original text.
      */
-    public LongHuffmanInputStream(FileChannel fc, int alphabetSize, int maxLength) {
-        this.fc = fc;
+    public LongHuffmanDeCompressorRam(byte[] text, int alphabetSize, int maxLength) {
+        this.text = text;
         this.alphabetSize = alphabetSize;
         this.result = new short[maxLength];
     }
@@ -59,9 +42,7 @@ public class LongHuffmanInputStream {
                 if (len > maxCodeLen) maxCodeLen = len;
             }
         }
-        if (average > maxCodeLen) {
-            average = maxCodeLen;
-        }
+        if (average > maxCodeLen) average = maxCodeLen;
         return lengthCode;
     }
 
@@ -95,34 +76,6 @@ public class LongHuffmanInputStream {
     }
 
     private void uncompressToArray() {
-        int i = 0;
-        while (builder.length() - i > maxCodeLen) {
-            int index = Integer.parseInt(builder.substring(i, i + average), 2);
-            short value;
-            int len;
-            if (shortMap.containsKey(index)) {
-                value = shortMap.get(index);
-                len = lengthMap.get(value);
-            } else {
-                value = longMap.get(Integer.parseInt(builder.substring(i, i + maxCodeLen), 2));
-                len = lengthMap.get(value);
-            }
-            compressedBitLength += len;
-            if (value == endSig) {
-                while (compressedBitLength % 8 != 0) compressedBitLength += 1;
-                isTerminated = true;
-                break;
-            }
-            result[currentIndex] = value;
-            currentIndex += 1;
-            i += len;
-        }
-        String rem = builder.substring(i);
-        builder.setLength(0);
-        builder.append(rem);
-    }
-
-    private void unCompressLastText() {
         builder.append(Bytes.charMultiply('0', maxCodeLen * 8));
         int i = 0;
         while (true) {
@@ -136,37 +89,16 @@ public class LongHuffmanInputStream {
                 value = longMap.get(Integer.parseInt(builder.substring(i, i + maxCodeLen), 2));
                 len = lengthMap.get(value);
             }
-            compressedBitLength += len;
             if (value == endSig) {
-                isTerminated = true;
                 break;
             }
             result[currentIndex] = value;
             currentIndex += 1;
             i += len;
         }
-    }
-
-    private void unCompress() throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
-        int read;
-        while ((read = fc.read(buffer)) > 0) {
-            buffer.flip();
-            for (int i = 0; i < read; i++) builder.append(Bytes.byteToBitString(buffer.get(i)));
-            buffer.clear();
-            uncompressToArray();
-            if (isTerminated) {
-                fc.position(getCompressedLength());
-                break;
-            }
-        }
-        if (!isTerminated) unCompressLastText();
-        if (!isTerminated) throw new IOException("Cannot find EOF character");
-    }
-
-    private long getCompressedLength() {
-        if (compressedBitLength % 8 == 0) return compressedBitLength / 8;
-        else return compressedBitLength / 8 + 1;
+        String rem = builder.substring(i);
+        builder.setLength(0);
+        builder.append(rem);
     }
 
     /**
@@ -175,14 +107,12 @@ public class LongHuffmanInputStream {
      * @param map    Canonical huffman map for this read action.
      * @param endSig The EOF character.
      * @return The uncompressed text.
-     * @throws IOException If the file is not readable.
      */
-    public short[] read(byte[] map, short endSig) throws IOException {
+    public short[] uncompress(byte[] map, short endSig) {
         this.endSig = endSig;
 
         currentIndex = 0;
         builder.setLength(0);
-        isTerminated = false;
         shortMap.clear();
         longMap.clear();
         lengthMap.clear();
@@ -190,10 +120,12 @@ public class LongHuffmanInputStream {
         HashMap<Short, Integer> lengthCode = recoverLengthCode(map);
         HashMap<Short, String> huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
         generateIdenticalMap(huffmanCode);
-        unCompress();
+        builder = Bytes.bytesToStringBuilder(text);
+        uncompressToArray();
 
         short[] rtn = new short[currentIndex];
         System.arraycopy(result, 0, rtn, 0, currentIndex);
         return rtn;
     }
 }
+

@@ -15,6 +15,11 @@ public class Console {
             "or\n" +
             "java -jar WinLZZ.jar -u inFile outFile [-t threads(1 to 4)] [-e password]\n";
 
+    /**
+     * WinLZZ console client.
+     *
+     * @param args command line arguments.
+     */
     public static void console(String[] args) {
         try {
             String mode = args[0];

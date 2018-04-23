@@ -330,10 +330,9 @@ public class UnPacker {
                 }
             }
         }
+        if (isInterrupted) return;
         long currentCRC32 = CRC32Generator.generateCRC32(tempName);
-        if (currentCRC32 != crc32Checksum) {
-            throw new Exception("CRC32 Checksum do not match");
-        }
+        if (currentCRC32 != crc32Checksum) throw new Exception("CRC32 Checksum do not match");
     }
 
     public void unCompressFrom(String targetDir, ContextNode cn) throws Exception {

@@ -62,7 +62,7 @@ public class LZZ2Compressor implements Compressor {
     public LZZ2Compressor(String inFile, int windowSize, int bufferSize) throws IOException {
         this.windowSize = windowSize;
         this.bufferMaxSize = bufferSize + minimumMatchLen + 1;
-        this.dictSize = windowSize - bufferSize;
+        this.dictSize = windowSize - bufferMaxSize - 1;
 
         this.totalLength = new File(inFile).length();
         this.sis = new FileInputStream(inFile);
@@ -212,7 +212,7 @@ public class LZZ2Compressor implements Compressor {
                         slider.addIndex(hn, i);
                     } else {
                         int j1 = 0;
-                        while (j1 + i < fba.length() - 3 && j1 < bufferMaxSize - 8 && hn.getByte(2) == fba.getByte(j1 + i + 3)) {
+                        while (j1 + i < fba.length() - 3 && j1 + i < front + newLoad && hn.getByte(2) == fba.getByte(j1 + i + 3)) {
                             slider.addVoid();
                             omitSet.add(i + j1);
                             j1 += 1;

@@ -8,11 +8,14 @@ import java.util.HashMap;
 public class MapDeCompressor {
 
     private String cclBits;
-
     private String sqBits;
-
     private int cclNum;
 
+    /**
+     * Creates a new instance of a MapDeCompressor Object.
+     *
+     * @param csq the compressed text.
+     */
     public MapDeCompressor(byte[] csq) {
         String bits = Bytes.bytesToString(csq);
         cclNum = Integer.parseInt(bits.substring(0, 4), 2) + 4;
@@ -31,7 +34,7 @@ public class MapDeCompressor {
 
     private static HashMap<Byte, Integer> recoverLengthCode(byte[] ccl) {
         HashMap<Byte, Integer> lengthCode = new HashMap<>();
-        for (int i = 0; i < 19; i ++) {
+        for (int i = 0; i < 19; i++) {
             int length = ccl[i] & 0xff;
             if (length != 0) lengthCode.put((byte) i, length);
         }
@@ -65,6 +68,13 @@ public class MapDeCompressor {
         return rtn;
     }
 
+    /**
+     * Returns the original text.
+     *
+     * @param maxMapLen the max possible length of original text.
+     * @param swap      whether the compressed text has ccl swapped.
+     * @return the original text.
+     */
     public byte[] Uncompress(int maxMapLen, boolean swap) {
         byte[] CCL = new byte[cclNum];
 

@@ -47,11 +47,11 @@ public class CompressUI implements Initializable {
 
     private String[] compressionLevels = new String[6];
 
-    private String[] windowsSizeNames = new String[]{"4KB", "16KB", "32KB", "64KB", "128KB", "256KB"};
+    private String[] windowsSizeNames = new String[]{"4KB", "16KB", "32KB", "64KB", "128KB", "256KB", "1MB"};
 
     private String[] windowsSizeNames2 = new String[]{"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
 
-    private int[] windowSizes = new int[]{4096, 16384, 32768, 65536, 131072, 262144};
+    private int[] windowSizes = new int[]{4096, 16384, 32768, 65536, 131072, 262144, 1048576};
     // Window sizes of LZZ2.
 
     private int[] windowSizes2 = new int[]{131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
@@ -140,9 +140,9 @@ public class CompressUI implements Initializable {
                 }
                 if (newValue.intValue() == 1) {
                     windowNameBox.getSelectionModel().select(0);
-                    bufferBox.getSelectionModel().select(1);
+                    modeBox.getSelectionModel().select(0);
                     if (isLevelAble()) {
-                        modeBox.getSelectionModel().select(0);
+                        bufferBox.getSelectionModel().select(1);
                     }
                 } else if (newValue.intValue() == 2) {
                     windowNameBox.getSelectionModel().select(1);

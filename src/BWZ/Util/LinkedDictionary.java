@@ -4,6 +4,11 @@ public class LinkedDictionary {
 
     private Node head;
 
+    /**
+     * Initialize a LinkedDictionary with specified size.
+     *
+     * @param size the size of dictionary.
+     */
     public void initialize(int size) {
         head = new Node((short) (size - 1));
         for (int i = size - 2; i >= 0; i--) {
@@ -13,6 +18,12 @@ public class LinkedDictionary {
         }
     }
 
+    /**
+     * Returns the index of the target value inside dictionary and then move it to the front.
+     *
+     * @param value the value to be searched.
+     * @return the index of this value in this dictionary.
+     */
     public int findAndMove(short value) {
         Node prev = head;
         Node current = head;
@@ -48,7 +59,6 @@ public class LinkedDictionary {
 class Node {
 
     private short value;
-
     private Node next;
 
     Node(short value) {

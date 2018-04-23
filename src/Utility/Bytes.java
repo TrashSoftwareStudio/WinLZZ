@@ -126,7 +126,7 @@ public abstract class Bytes {
         return charMultiply('0', length - s.length()) + s;
     }
 
-    private static StringBuilder bytesToStringBuilder(byte[] bytes) {
+    public static StringBuilder bytesToStringBuilder(byte[] bytes) {
         StringBuilder builder = new StringBuilder();
         for (byte b : bytes) builder.append(byteToBitString(b));
         return builder;

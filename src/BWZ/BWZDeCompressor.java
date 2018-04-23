@@ -3,6 +3,7 @@ package BWZ;
 import Huffman.MapCompressor.MapDeCompressor;
 import Interface.DeCompressor;
 import LZZ2.Util.LZZ2Util;
+import LongHuffman.LongHuffmanDeCompressorRam;
 import LongHuffman.LongHuffmanInputStream;
 import Packer.UnPacker;
 import Utility.Util;
@@ -20,25 +21,15 @@ import java.util.concurrent.TimeUnit;
 public class BWZDeCompressor implements DeCompressor {
 
     private final static int readBufferSize = 8192;
-
     private String cmpMainName, mainTempName;
-
-    private int csqLen, mainLen, huffmanBlockMaxSize, windowSize, origRowIndex;
-
+    private int csqLen, mainLen, cmpFlagsLen, huffmanBlockMaxSize, windowSize, origRowIndex;
     private BufferedInputStream bis;
-
     private LinkedList<byte[]> huffmanMaps = new LinkedList<>();
-
     private long fileLength;
-
-    private int threadNum = 2;  // Default thread number.
-
-    private UnPacker parent;
-
+    private int threadNum = 1;  // Default thread number.
+    UnPacker parent;
     private long lastUpdateProgress;
-
     boolean isRunning = true;
-
     long ratio, pos;
 
     public BWZDeCompressor(String inFile, int windowSize) throws IOException {
@@ -55,11 +46,12 @@ public class BWZDeCompressor implements DeCompressor {
         raf.read(sizeBlock);
         raf.close();
 
-        int[] sizes = LZZ2Util.recoverSizeBlock(sizeBlock, 3);
+        int[] sizes = LZZ2Util.recoverSizeBlock(sizeBlock, 4);
         csqLen = sizes[0];
         huffmanBlockMaxSize = (int) Math.pow(2, sizes[1]);
         origRowIndex = sizes[2];
-        mainLen = length - csqLen - sizeBlockSize - 1;
+        cmpFlagsLen = sizes[3];
+        mainLen = length - csqLen - sizeBlockSize - cmpFlagsLen - 1;
 
         bis = new BufferedInputStream(new FileInputStream(inFile));
     }
@@ -71,30 +63,45 @@ public class BWZDeCompressor implements DeCompressor {
 
     private void uncompressHead() throws IOException {
 
+        byte[] cmpFlags = new byte[cmpFlagsLen];
+        if (bis.read(cmpFlags) != cmpFlagsLen) throw new IOException("Error occurs while reading");
+
         byte[] csq = new byte[csqLen];
         if (bis.read(csq) != csqLen) throw new IOException("Error occurs while reading");
 
         MapDeCompressor mdc = new MapDeCompressor(csq);
         int huffmanBlockSize = Math.min(huffmanBlockMaxSize, windowSize);
 
-        byte[] rlcMain = mdc.Uncompress((int) (261 * (fileLength / huffmanBlockSize + 1) * 8), false);
-        // 259 for each map, 1 for EOF character, 1 for flag.
+        byte[] rlcMain = mdc.Uncompress((int) (260 * (fileLength / huffmanBlockSize + 1) * 8 + 259), false);
+        // 259 for each map, 1 for EOF character
         byte[] zeroRlc = new ZeroRLCDecoderByte(rlcMain).Decode();
         byte[] bwtMap = new MTFInverseByte(zeroRlc).Inverse();
-        byte[] mainMap = new BWTDecoderByte(bwtMap, origRowIndex).Decode();
+        byte[] fullMap = new BWTDecoderByte(bwtMap, origRowIndex).Decode();
+        byte[] flagsMap = new byte[259];
+        byte[] mainMap = new byte[fullMap.length - 259];
+        System.arraycopy(fullMap, 0, flagsMap, 0, 259);
+        System.arraycopy(fullMap, 259, mainMap, 0, mainMap.length);
         copyToTemp();
 
+        LongHuffmanDeCompressorRam flagsDec =
+                new LongHuffmanDeCompressorRam(cmpFlags, 259, cmpFlags.length * 8);
+        short[] flagsDeHuf = flagsDec.uncompress(flagsMap, (short) 258);
+        short[] flagsRld =
+                new ZeroRLCDecoder(flagsDeHuf, (int) fileLength * 32 / huffmanBlockSize + 256).Decode();
+        short[] flagsMTR = new MTFInverse(flagsRld).decode();
+        byte[] flags = new BWTDecoder(flagsMTR).Decode();
+
+        int fIndex = 0;
         int i = 0;
         while (i < mainMap.length) {
-            int flag = mainMap[i] & 0xff;
-            i += 1;
+            int flag = flags[fIndex++] & 0xff;
             byte[] map = new byte[BWZCompressor.huffmanTableSize];
             if (flag == 0) {
                 System.arraycopy(mainMap, i, map, 0, BWZCompressor.huffmanTableSize);
                 i += BWZCompressor.huffmanTableSize;
             } else {
                 int x = huffmanMaps.size() - flag;
-                System.arraycopy(huffmanMaps.get(x), 0 , map, 0, BWZCompressor.huffmanTableSize);
+                System.arraycopy(huffmanMaps.get(x), 0, map, 0, BWZCompressor.huffmanTableSize);
             }
             huffmanMaps.addLast(map);
         }
@@ -115,7 +122,8 @@ public class BWZDeCompressor implements DeCompressor {
         ArrayList<short[]> blockList = new ArrayList<>();
         ArrayList<short[]> huffmanBlockList = new ArrayList<>();
 
-        LongHuffmanInputStream his = new LongHuffmanInputStream(fc, BWZCompressor.huffmanTableSize, huffmanBlockMaxSize + 32);
+        LongHuffmanInputStream his =
+                new LongHuffmanInputStream(fc, BWZCompressor.huffmanTableSize, huffmanBlockMaxSize + 256);
         short[] huffmanResult;
 
         while (!huffmanMaps.isEmpty()) {
@@ -141,18 +149,17 @@ public class BWZDeCompressor implements DeCompressor {
                     ExecutorService es = Executors.newCachedThreadPool();
                     DecodeThread threads[] = new DecodeThread[blockList.size()];
                     for (int i = 0; i < threads.length; i++) {
-                        threads[i] = new DecodeThread(blockList.get(i), windowSize);
+                        threads[i] = new DecodeThread(blockList.get(i), windowSize, this);
                         es.execute(threads[i]);
                     }
                     blockList.clear();
 
                     es.shutdown();
-                    es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
+                    es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads terminate.
 
                     for (DecodeThread dt : threads) {
                         byte[] result = dt.getResult();
                         out.write(result);
-                        pos += result.length;
                     }
 
                     if (parent != null) {
@@ -170,6 +177,12 @@ public class BWZDeCompressor implements DeCompressor {
         fc.close();
     }
 
+    /**
+     * Uncompress to the output stream.
+     *
+     * @param out the target output stream.
+     * @throws Exception if the stream is not writable.
+     */
     @Override
     public void Uncompress(OutputStream out) throws Exception {
         if (parent != null) {
@@ -230,21 +243,24 @@ public class BWZDeCompressor implements DeCompressor {
 class DecodeThread implements Runnable {
 
     private short[] text;
-
     private byte[] result;
-
     private int windowSize;
+    private BWZDeCompressor parent;
 
-    DecodeThread(short[] text, int windowSize) {
+    DecodeThread(short[] text, int windowSize, BWZDeCompressor parent) {
         this.text = text;
         this.windowSize = windowSize;
+        this.parent = parent;
     }
 
     @Override
     public void run() {
         short[] rld = new ZeroRLCDecoder(text, windowSize + 4).Decode();
-        short[] mtf = new MTFInverse(rld).Inverse();
+        parent.pos += rld.length / 2;
+        if (parent.parent != null) parent.parent.progress.set(parent.pos);
+        short[] mtf = new MTFInverse(rld).decode();
         result = new BWTDecoder(mtf).Decode();
+        parent.pos = parent.pos - rld.length / 2 + result.length;
     }
 
     byte[] getResult() {
@@ -256,9 +272,7 @@ class DecodeThread implements Runnable {
 class DTimer implements Runnable {
 
     private UnPacker unPacker;
-
     private BWZDeCompressor dec;
-
     private int timeUsed;
 
     DTimer(UnPacker unPacker, BWZDeCompressor dec) {
@@ -278,8 +292,10 @@ class DTimer implements Runnable {
 
                 unPacker.ratio.set(String.valueOf(dec.ratio));
 
-                long expectTime = (unPacker.getTotalOrigSize() - dec.pos) / dec.ratio / 1024;
-                unPacker.timeExpected.set(Util.secondToString(expectTime));
+                if (dec.ratio != 0) {
+                    long expectTime = (unPacker.getTotalOrigSize() - dec.pos) / dec.ratio / 1024;
+                    unPacker.timeExpected.set(Util.secondToString(expectTime));
+                }
 
                 unPacker.passedLength.set(Util.sizeToReadable(dec.pos));
             }

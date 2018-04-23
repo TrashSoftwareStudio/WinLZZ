@@ -1,7 +1,5 @@
 package BWZ;
 
-import Utility.Bytes;
-
 import java.util.Arrays;
 
 class BWTDecoderByte {

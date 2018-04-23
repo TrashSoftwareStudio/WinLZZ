@@ -11,13 +11,17 @@ import java.util.HashMap;
 public class MapCompressor {
 
     private byte[] map;
-
     private int maxHeight = 7;
-
     static final int[] positions = new int[]{16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
-
     private HashMap<Byte, Integer> freqMap = new HashMap<>();
 
+    /**
+     * Creates a new instance of a MapCompressor Object.
+     * <p>
+     * A huffman-based compressor, used to compress canonical huffman maps that have code lengths at most 15.
+     *
+     * @param mapBytes the content to be compressed.
+     */
     public MapCompressor(byte[] mapBytes) {
         this.map = mapBytes;
     }
@@ -83,6 +87,12 @@ public class MapCompressor {
         return shortCCL;
     }
 
+    /**
+     * Returns the compressed map.
+     *
+     * @param swap whether to swap unusual code length to the front and back of the ccl sequence.
+     * @return the compressed map.
+     */
     public byte[] Compress(boolean swap) {
 
         HuffmanCompressor.addArrayToFreqMap(map, freqMap, map.length);

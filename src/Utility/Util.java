@@ -1,6 +1,7 @@
 package Utility;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Collection;
 
 public abstract class Util {
@@ -223,6 +224,13 @@ public abstract class Util {
             sum += b.length;
         }
         return sum;
+    }
+
+    public static void countingSort(short[] data, int buckets) {
+        int[] counts = new int[buckets];
+        for (short s : data) counts[s] += 1;
+        int index = 0;
+        for (short i = 0; i < buckets; i++) for (int j = 0; j < counts[i]; j++) data[index++] = i;
     }
 
 }

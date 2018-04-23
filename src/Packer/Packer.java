@@ -34,7 +34,7 @@ public class Packer {
     /**
      * The core version.
      */
-    public final static short version = 20;
+    public final static short version = 21;
 
     /**
      * The format check code for a WinLZZ archive (*.pz) file.

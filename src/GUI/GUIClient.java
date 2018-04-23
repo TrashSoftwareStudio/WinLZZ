@@ -8,7 +8,12 @@ import javafx.stage.Stage;
 
 public class GUIClient extends Application {
 
-    public static void main(String[] args) {
+    /**
+     * WinLZZ graphics user interface.
+     *
+     * @param args arguments.
+     */
+    public static void client(String[] args) {
         launch(args);
     }
 

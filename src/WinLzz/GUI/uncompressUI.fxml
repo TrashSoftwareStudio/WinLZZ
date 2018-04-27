@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<?import javafx.scene.control.ComboBox?>
+<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.121"
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="WinLzz.GUI.UncompressUI">
+    <VBox prefHeight="400.0" prefWidth="600.0">
+        <HBox alignment="CENTER_LEFT" prefHeight="40.0" prefWidth="600.0" spacing="10.0">
+            <VBox.margin>
+                <Insets left="10.0"/>
+            </VBox.margin>
+            <Button fx:id="goBackButton" disable="true" mnemonicParsing="false" onAction="#goBackAction"
+                    text="&lt;&lt;"/>
+            <Label fx:id="dirText"/>
+        </HBox>
+        <TableView fx:id="fileList" prefHeight="320.0" prefWidth="600.0">
+            <columns>
+                <TableColumn fx:id="nameColumn" prefWidth="250.0" text="文件名"/>
+                <TableColumn fx:id="typeColumn" prefWidth="100.0" text="类型"/>
+                <TableColumn fx:id="origSizeColumn" prefWidth="150.0" text="大小"/>
+            </columns>
+        </TableView>
+        <HBox alignment="CENTER" prefHeight="40.0" prefWidth="200.0">
+            <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="300.0" spacing="10.0">
+                <padding>
+                    <Insets left="10.0"/>
+                </padding>
+                <Button fx:id="infoButton" mnemonicParsing="false" onAction="#fileInfoAction" text="(?)"/>
+                <Button fx:id="testButton" mnemonicParsing="false" onAction="#testAction" text="测试"/>
+                <Label fx:id="threadNumberLabel" text="线程数量:"/>
+                <ComboBox fx:id="threadNumberBox" prefWidth="60.0"/>
+            </HBox>
+            <HBox alignment="CENTER_RIGHT" prefHeight="40.0" prefWidth="300.0" spacing="10.0">
+                <padding>
+                    <Insets right="10.0"/>
+                </padding>
+                <Button fx:id="uncompressPart" disable="true" mnemonicParsing="false"
+                        onAction="#uncompressPartAction" text="解压选中文件"/>
+                <Button fx:id="uncompressAll" mnemonicParsing="false" onAction="#uncompressAllAction" text="全部解压"/>
+            </HBox>
+        </HBox>
+    </VBox>
+</AnchorPane>

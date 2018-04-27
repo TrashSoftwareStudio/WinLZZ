@@ -1,7 +1,7 @@
 package Test;
 
-import Utility.FileBitInputStream;
-import Utility.Bytes;
+import WinLzz.Utility.FileBitInputStream;
+import WinLzz.Utility.Bytes;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;

@@ -1,12 +1,5 @@
 package Test;
 
-import LZZ2.Util.HashNode;
-import Utility.Bytes;
-
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.SequenceInputStream;
-import java.util.*;
 import java.util.zip.CRC32;
 
 public abstract class GeneralTest {

@@ -1,12 +1,11 @@
 package Test;
 
-import BWZ.BWZCompressor;
-import BWZ.BWZDeCompressor;
-import Utility.Util;
+import WinLzz.BWZ.BWZCompressor;
+import WinLzz.BWZ.BWZDeCompressor;
+import WinLzz.Utility.Util;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 
 public class BWZTest {
 

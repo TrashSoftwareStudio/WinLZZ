@@ -1,14 +1,11 @@
 package Test;
 
-import LZZ2.LZZ2Compressor;
-import LZZ2.LZZ2DeCompressor;
-import Utility.Util;
+import WinLzz.LZZ2.LZZ2Compressor;
+import WinLzz.LZZ2.LZZ2DeCompressor;
+import WinLzz.Utility.Util;
 
 import java.io.BufferedOutputStream;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.SequenceInputStream;
-import java.util.Vector;
 
 public class LZZ2Test {
 

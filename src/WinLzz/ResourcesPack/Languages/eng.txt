@@ -1,0 +1,204 @@
+English
+0=English
+
+#  General
+
+1=Confirm
+2=Cancel
+
+#  Main GUI FXML
+
+10=Compress
+11=Uncompress
+12=Settings
+13=Help
+14=Language
+15=Confirm
+16=About
+17=Licence
+18=View Changelog
+
+20=File Name
+21=Type
+22=Size
+23=Last Modified
+24=File
+25=Folder
+26=Local Disk
+
+30=Tools
+31=BWG Image Viewer
+32=Open in Desktop
+
+#  Main GUI Text
+
+50=WinLZZ Archive
+51=Cannot open archive
+52=Unable to read this archive file
+53=File has been damaged
+
+60=Error
+61=Cannot open selected file
+62=File is occupied by another process
+63=No access
+
+#  Compression UI FXML
+
+100=Archive Name:
+101=Set Password...
+102=Compression Algorithm:
+103=Compression Level:
+104=Dictionary Size:
+105=Word Size:
+106=Strong Mode:
+107=Thread Number:
+108=Start Compression
+
+110=Store Only
+111=Fastest
+112=Fast
+113=Standard
+114=Good
+115=Better
+116=Fast
+117=Normal
+118=Good
+119=Strong
+120=Extreme
+
+#  Compression Progress UI FXML
+
+200=Original Size:
+201=Time Used:
+202=Processed Size:
+203=Time Remaining:
+204=Aft Size:
+205=Compression Ratio:
+206=Compressing...
+207=Compression Speed:
+
+#  Compression Progress UI Text
+
+250=Byte
+251=Compression Complete
+252=Time Used:
+253=s,
+254=Compression Ratio
+255=Compression Failed
+256=Cancel Compression
+257=Do you really want to cancel the compression progress?
+
+270=Creating database...
+
+#  Uncompress UI FXML
+
+300=Name
+301=Type
+302=Size
+303=Test
+304=Thread Number:
+305=Uncompress Selected
+306=Uncompress All
+
+#  Uncompress UI Text
+
+350=Loading...
+351=Cannot read archive
+352=Unsupported archive version
+353=Current core version:
+354= ,version needed:
+355=Empty folder
+356=Input Password
+357=Please input password
+358=Password is invalid
+359=Return to parent directory
+360=File info
+
+361=Unsupported File Format
+362=This file may not be a WinLZZ archive
+
+#  Password UI
+
+400=Set password
+401=Confirm password
+402=Show password
+403=Encrypt file names
+404=Passwords do not match
+
+#  Uncompress Progress UI FXML
+
+500=Original Size:
+501=Uncompressed Size:
+502=Time Used:
+503=Time Remaining:
+504=Decompressing...
+505=Speed:
+506=Testing...
+
+#  Uncompress Progress UI Text
+
+550=Tested Size:
+551=Decompression Failed
+552=Decompression Cancellation
+553=Do you really want to cancel decompression process?
+554=Decompression finished,
+555= time used:
+556=Open the target directory?
+557=Test done, no error found
+558=Test failed, archive was damaged
+559=s
+560=Decompression Succeed
+
+#  File Info UI
+
+600=Type
+601=Compression Algorithm
+602=Version
+603=Compression Ratio
+604=Dictionary Size
+605=Original Size
+606=Size After Compression
+607=File Count
+608=Directory Count
+609=Creation Time
+610=CRC32 Checksum
+
+650=Encrypted
+651=Archive
+652=Unknown
+
+#  About UI
+
+700=Trash Software Studio
+701=Core Version
+
+#  Others
+
+800=Changelog
+
+#
+# BWG Image Viewer
+#
+
+1000=BWG Image Viewer
+1001=Loading
+1002=Unsupported format
+1003=File
+1004=Save
+1005=Help
+1006=Open
+1007=File Info
+1008=File was damaged
+
+1050=BWG Image
+1051=Bitmap Image
+1052=All Formats
+
+1100=File Name
+1101=Type
+1102=Width
+1103=Height
+1104=Bit depth
+1105=Creation Time
+1106=Last Modified
+1107=Size

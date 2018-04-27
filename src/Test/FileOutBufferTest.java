@@ -1,6 +1,6 @@
 package Test;
 
-import Utility.FileOutputBufferArray;
+import WinLzz.Utility.FileOutputBufferArray;
 
 import java.io.IOException;
 import java.util.Arrays;

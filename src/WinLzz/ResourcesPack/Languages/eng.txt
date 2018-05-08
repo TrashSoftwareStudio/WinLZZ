@@ -5,6 +5,7 @@ English
 
 1=Confirm
 2=Cancel
+3=Please Confirm
 
 #  Main GUI FXML
 
@@ -40,7 +41,15 @@ English
 60=Error
 61=Cannot open selected file
 62=File is occupied by another process
-63=No access
+63=No access to file
+
+70=Property
+71=Delete
+72=Open directory
+73=Do you really wish to delete
+74=Deletion failed
+75=Cannot remove
+76=,
 
 #  Compression UI FXML
 
@@ -162,6 +171,7 @@ English
 608=Directory Count
 609=Creation Time
 610=CRC32 Checksum
+611=Archive Version
 
 650=Encrypted
 651=Archive
@@ -175,6 +185,24 @@ English
 #  Others
 
 800=Changelog
+
+#  Property UI
+
+850=.etc
+851=
+852=Type
+853=Directory
+854=Size
+855=Size on disk
+856=Contains
+857=Creation Time
+858=Last Modified Time
+859=Last Accessed Time
+860=Folders
+861=This Computer
+862=Disks
+863=Property
+864=Files
 
 #
 # BWG Image Viewer
@@ -193,6 +221,8 @@ English
 1050=BWG Image
 1051=Bitmap Image
 1052=All Formats
+1053=JPEG Image
+1054=PNG Image
 
 1100=File Name
 1101=Type

@@ -1,5 +1,7 @@
 package WinLzz.BWZ;
 
+import WinLzz.BWZ.BWT.BWTDecoder;
+import WinLzz.BWZ.BWT.BWTDecoderByte;
 import WinLzz.Huffman.MapCompressor.MapDeCompressor;
 import WinLzz.Interface.DeCompressor;
 import WinLzz.LZZ2.Util.LZZ2Util;
@@ -22,10 +24,10 @@ public class BWZDeCompressor implements DeCompressor {
 
     private final static int readBufferSize = 8192;
     private String cmpMainName, mainTempName;
-    private int csqLen, mainLen, cmpFlagsLen, huffmanBlockMaxSize, windowSize, origRowIndex;
+    private int csqLen, cmpFlagsLen, huffmanBlockMaxSize, windowSize, origRowIndex;
+    private long fileLength, mainLen;
     private BufferedInputStream bis;
     private LinkedList<byte[]> huffmanMaps = new LinkedList<>();
-    private long fileLength;
     private int threadNum = 1;  // Default thread number.
     UnPacker parent;
     private long lastUpdateProgress;
@@ -38,30 +40,29 @@ public class BWZDeCompressor implements DeCompressor {
 
         RandomAccessFile raf = new RandomAccessFile(inFile, "r");
         fileLength = new File(inFile).length();
-        int length = (int) fileLength;
-        raf.seek(length - 1);
+        raf.seek(fileLength - 1);
         int sizeBlockSize = raf.readByte() & 0xff;
         byte[] sizeBlock = new byte[sizeBlockSize];
-        raf.seek(length - sizeBlockSize - 1);
+        raf.seek(fileLength - sizeBlockSize - 1);
         raf.read(sizeBlock);
         raf.close();
 
-        int[] sizes = LZZ2Util.recoverSizeBlock(sizeBlock, 4);
-        csqLen = sizes[0];
+        long[] sizes = LZZ2Util.recoverSizeBlock(sizeBlock, 4);
+        csqLen = (int) sizes[0];
         huffmanBlockMaxSize = (int) Math.pow(2, sizes[1]);
-        origRowIndex = sizes[2];
-        cmpFlagsLen = sizes[3];
-        mainLen = length - csqLen - sizeBlockSize - cmpFlagsLen - 1;
+        origRowIndex = (int) sizes[2];
+        cmpFlagsLen = (int) sizes[3];
+        mainLen = fileLength - csqLen - sizeBlockSize - cmpFlagsLen - 1;
 
         bis = new BufferedInputStream(new FileInputStream(inFile));
     }
 
     private void generateNames(String inName) {
-        cmpMainName = inName + ".cmp";
-        mainTempName = inName + ".temp";
+        cmpMainName = inName + ".bwz";
+        mainTempName = inName + ".bwz_temp";
     }
 
-    private void uncompressHead() throws IOException {
+    private void uncompressHead() throws Exception {
 
         byte[] cmpFlags = new byte[cmpFlagsLen];
         if (bis.read(cmpFlags) != cmpFlagsLen) throw new IOException("Error occurs while reading");
@@ -93,7 +94,7 @@ public class BWZDeCompressor implements DeCompressor {
 
         int fIndex = 0;
         int i = 0;
-        while (i < mainMap.length) {
+        while (fIndex < flags.length) {
             int flag = flags[fIndex++] & 0xff;
             byte[] map = new byte[BWZCompressor.huffmanTableSize];
             if (flag == 0) {
@@ -189,7 +190,12 @@ public class BWZDeCompressor implements DeCompressor {
             Thread timer = new Thread(new DTimer(parent, this));
             timer.start();
         }
-        uncompressHead();
+        try {
+            uncompressHead();
+        } catch (Exception e) {
+            bis.close();
+            throw e;
+        }
         bis.close();
         FileChannel fc = new FileInputStream(cmpMainName).getChannel();
         try {

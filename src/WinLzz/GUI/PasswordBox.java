@@ -27,9 +27,7 @@ public class PasswordBox implements Initializable {
     private Button confirmButton;
 
     private Stage stage;
-
     private CompressUI parent;
-
     private LanguageLoader lanLoader;
 
     @Override

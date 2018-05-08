@@ -1,14 +1,14 @@
-package WinLzz.BWZ;
+package WinLzz.BWZ.BWT;
 
 import java.util.Arrays;
 
-class BWTDecoderByte {
+public class BWTDecoderByte {
 
     private byte[] cmpText;
 
     private int origIndex;
 
-    BWTDecoderByte(byte[] cmpText, int origRowIndex) {
+    public BWTDecoderByte(byte[] cmpText, int origRowIndex) {
         origIndex = origRowIndex;
         this.cmpText = cmpText;
     }
@@ -21,7 +21,7 @@ class BWTDecoderByte {
      *
      * @return The original text.
      */
-    byte[] Decode() {
+    public byte[] Decode() {
         int len = cmpText.length;
         int[] lShift = new int[len];
         byte[] sorted = new byte[cmpText.length];

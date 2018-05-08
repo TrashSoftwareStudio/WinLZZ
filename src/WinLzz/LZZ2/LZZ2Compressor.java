@@ -409,7 +409,7 @@ public class LZZ2Compressor implements Compressor {
         deleteTemp();
 
         int csqLen = csq.length;
-        int[] sizes = new int[]{csqLen, disHeadLen, lenHeadLen, flagLen, dlbLen};
+        long[] sizes = new long[]{csqLen, disHeadLen, lenHeadLen, flagLen, dlbLen};
         byte[] sizeBlock = LZZ2Util.generateSizeBlock(sizes);
         outFile.write(sizeBlock);
         cmpSize = disHeadLen + lenHeadLen + flagLen + dlbLen + mainLen + csqLen + sizeBlock.length;

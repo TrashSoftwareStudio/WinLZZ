@@ -1,14 +1,14 @@
 package WinLzz.BWZ;
 
-public class SuffixArrayDoubling {
+public class SuffixArrayDoublingByte {
 
-    private short[] text;
+    private byte[] text;
     private int n;
     private int[] sa, t, t2, c;
 
-    public SuffixArrayDoubling(short[] text) {
+    public SuffixArrayDoublingByte(byte[] text) {
         n = text.length;
-        int max_n = n + 65536;
+        int max_n = n * 2;
         this.text = text;
         sa = new int[n];
         t = new int[max_n];
@@ -43,7 +43,6 @@ public class SuffixArrayDoubling {
 
             // swap
             int[] temp = x;
-            //noinspection SuspiciousNameCombination
             x = y;
             y = temp;
 
@@ -60,4 +59,3 @@ public class SuffixArrayDoubling {
         return sa;
     }
 }
-

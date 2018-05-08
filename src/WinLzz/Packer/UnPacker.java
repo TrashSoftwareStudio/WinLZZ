@@ -26,12 +26,12 @@ public class UnPacker {
     private String packName, mapName, cmpMapName, tempName, cmpTempName, encMapName, encMainName;
 
     private BufferedInputStream bis;
-    private short version;
+    private byte primaryVersion, secondaryVersion;
     private ArrayList<IndexNodeUnp> indexNodes = new ArrayList<>();
     private ContextNode rootNode;
-    private long origSize;
-    private int cmpMainLength, fileCount, dirCount, cmpMapLen;
+    private int fileCount, dirCount, cmpMapLen;
     private int windowSize, encryptLevel, threadNumber;
+    private long cmpMainLength, origSize;
 
     private String password;
     private boolean passwordSet;
@@ -66,20 +66,19 @@ public class UnPacker {
         File f = new File(packName);
         int totalCmpLength = (int) f.length();
 
-        cmpMainLength = totalCmpLength - cmpMapLen - 20;  // 4 for cmpMapLen, 4 for header, 2 for version,
-        // 1 for window size, 1 for info, 4 for creation time, 4 reserved.
-
         bis = new BufferedInputStream(new FileInputStream(packName));
 
-        byte[] headerByte = new byte[4];
-        if (bis.read(headerByte) != 4) throw new IOException("Error occurs while reading");
-        int headerInt = Bytes.bytesToInt32(headerByte);
+        byte[] buffer2 = new byte[2];
+        byte[] buffer4 = new byte[4];
+
+        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
+        int headerInt = Bytes.bytesToInt32(buffer4);
         if (headerInt != Packer.HEADER) throw new NotAPzFileException("Not a PZ archive");
 
-        byte[] versionByte = new byte[2];
-        if (bis.read(versionByte) != 2) throw new IOException("Error occurs while reading");
-        version = Bytes.bytesToShort(versionByte);
-        if (version != Packer.version) throw new UnsupportedVersionException("Unsupported file version");
+        if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
+        primaryVersion = buffer2[0];
+        secondaryVersion = buffer2[1];
+        if (primaryVersion != Packer.primaryVersion) throw new UnsupportedVersionException("Unsupported file version");
 
         byte[] infoByte = new byte[1];
         if (bis.read(infoByte) != 1) throw new IOException("Error occurs while reading");
@@ -93,15 +92,21 @@ public class UnPacker {
         if (bis.read(creationTimeByte) != 4) throw new IOException("Error occurs while reading");
         creationTime = (long) Bytes.bytesToInt32(creationTimeByte) * 1000 + Packer.dateOffset;
 
-        byte[] crc32Bytes = new byte[4];
-        if (bis.read(crc32Bytes) != 4) throw new IOException("Error occurs while reading");
+        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
         byte[] fullCRC32Bytes = new byte[8];
-        System.arraycopy(crc32Bytes, 0, fullCRC32Bytes, 4, 4);
+        System.arraycopy(buffer4, 0, fullCRC32Bytes, 4, 4);
         crc32Checksum = Bytes.bytesToLong(fullCRC32Bytes);
 
-        byte[] cmpHeadLengthByte = new byte[4];
-        if (bis.read(cmpHeadLengthByte) != 4) throw new IOException("Error occurs while reading");
-        cmpMapLen = Bytes.bytesToInt32(cmpHeadLengthByte);
+        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
+        cmpMapLen = Bytes.bytesToInt32(buffer4);
+
+        if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
+        int extraFieldLen = Bytes.bytesToShort(buffer2);
+
+        byte[] extraField = new byte[extraFieldLen];
+        if (bis.read(extraField) != extraFieldLen) throw new IOException("Error occurs while reading");
+
+        cmpMainLength = totalCmpLength - cmpMapLen - extraFieldLen - 22;
 
         String info = Bytes.byteToBitString(infoByte[0]);
         String enc = info.substring(0, 2);
@@ -137,6 +142,7 @@ public class UnPacker {
     public void readMap() throws Exception {
         unCompressMap(cmpMapLen);
         readContext();
+        deleteTemp();
 
         rootNode = new ContextNode(indexNodes.get(0).getName());
         buildContextTree(rootNode, indexNodes.get(0));
@@ -150,7 +156,6 @@ public class UnPacker {
             zfd.Decode(fos);
             fos.flush();
             fos.close();
-            Util.deleteFile(encMapName);
         } else {
             Util.fileTruncate(bis, cmpMapName, 8192, cmpMapLen);
         }
@@ -180,10 +185,15 @@ public class UnPacker {
             }
         }
         FileOutputStream fos = new FileOutputStream(mapName);
-        mapDec.Uncompress(fos);
+        try {
+            mapDec.Uncompress(fos);
+        } catch (Exception e) {
+            fos.close();
+            deleteTemp();
+            mapDec.deleteCache();
+            throw e;
+        }
         fos.close();
-
-        Util.deleteFile(cmpMapName);
     }
 
     private void readContext() throws IOException {
@@ -199,18 +209,18 @@ public class UnPacker {
             String name = Bytes.stringDecode(nameBytes);
             IndexNodeUnp inu = new IndexNodeUnp(name);
             if (isDir) {
-                byte[] numberBytes = new byte[4];
-                if (mapInputStream.read(numberBytes) != 4) throw new IOException("Error occurs while reading");
-                int begin = Bytes.bytesToInt32(numberBytes);
-                if (mapInputStream.read(numberBytes) != 4) throw new IOException("Error occurs while reading");
-                inu.setChildrenRange(begin, Bytes.bytesToInt32(numberBytes));
+                byte[] numberBytes = new byte[8];
+                if (mapInputStream.read(numberBytes) != 8) throw new IOException("Error occurs while reading");
+                long begin = Bytes.bytesToLong(numberBytes);
+                if (mapInputStream.read(numberBytes) != 8) throw new IOException("Error occurs while reading");
+                inu.setChildrenRange((int) begin, (int) Bytes.bytesToLong(numberBytes));
                 dirCount += 1;
             } else {
-                byte[] sizeByte = new byte[4];
-                if (mapInputStream.read(sizeByte) != 4) throw new IOException("Error occurs while reading");
-                int start = Bytes.bytesToInt32(sizeByte);
-                if (mapInputStream.read(sizeByte) != 4) throw new IOException("Error occurs while reading");
-                int end = Bytes.bytesToInt32(sizeByte);
+                byte[] sizeByte = new byte[8];
+                if (mapInputStream.read(sizeByte) != 8) throw new IOException("Error occurs while reading");
+                long start = Bytes.bytesToLong(sizeByte);
+                if (mapInputStream.read(sizeByte) != 8) throw new IOException("Error occurs while reading");
+                long end = Bytes.bytesToLong(sizeByte);
                 inu.setScale(start, end);
                 origSize = end;
                 fileCount += 1;
@@ -218,7 +228,6 @@ public class UnPacker {
             indexNodes.add(inu);
         }
         mapInputStream.close();
-        Util.deleteFile(mapName);
     }
 
     private void buildContextTree(ContextNode node, IndexNodeUnp inu) {
@@ -252,8 +261,8 @@ public class UnPacker {
         return rootNode;
     }
 
-    public short versionNeeded() {
-        return version;
+    public byte versionNeeded() {
+        return primaryVersion;
     }
 
     private void unCompressMain() throws Exception {
@@ -268,7 +277,6 @@ public class UnPacker {
                 zfd.Decode(fos);
                 fos.flush();
                 fos.close();
-                Util.deleteFile(encMainName);
             } else {
                 Util.fileTruncate(bis, cmpTempName, 8192, cmpMainLength);
             }
@@ -303,13 +311,11 @@ public class UnPacker {
         }
         if (isInterrupted) return;
         long currentCRC32 = CRC32Generator.generateCRC32(tempName);
-        if (currentCRC32 != crc32Checksum) throw new Exception("CRC32 Checksum do not match");
+        if (currentCRC32 != crc32Checksum) throw new Exception("CRC32 Checksum does not match");
     }
 
     public void unCompressAll(String targetDir) throws Exception {
-        for (ContextNode cn : rootNode.getChildren()) {
-            unCompressFrom(targetDir, cn);
-        }
+        for (ContextNode cn : rootNode.getChildren()) unCompressFrom(targetDir, cn);
     }
 
     public void unCompressFrom(String targetDir, ContextNode cn) throws Exception {
@@ -335,10 +341,17 @@ public class UnPacker {
             }
             for (ContextNode scn : cn.getChildren()) traverseUncompress(targetDir, scn, raf, dirOffset);
         } else {
-            int[] location = cn.getLocation();
+            long[] location = cn.getLocation();
             raf.seek(location[0]);
             Util.fileTruncate(raf, path, 8192, location[1] - location[0]);
         }
+    }
+
+    private void deleteTemp() {
+        Util.deleteFile(encMainName);
+        Util.deleteFile(mapName);
+        Util.deleteFile(cmpMapName);
+        Util.deleteFile(encMapName);
     }
 
 
@@ -405,7 +418,8 @@ public class UnPacker {
     /**
      * Closes the decompressor and delete temp files.
      */
-    public void close() {
+    public void close() throws IOException {
+        bis.close();
         Util.deleteFile(tempName);
     }
 
@@ -423,6 +437,14 @@ public class UnPacker {
 
     public long getCrc32Checksum() {
         return crc32Checksum;
+    }
+
+    public int getPrimaryVersionInt() {
+        return primaryVersion & 0xff;
+    }
+
+    public int getSecondaryVersionInt() {
+        return secondaryVersion & 0xff;
     }
 
     private boolean isUnCompressed() {
@@ -458,13 +480,9 @@ public class UnPacker {
 class IndexNodeUnp {
 
     private String name;
-
-    private int start;
-
-    private int end;
-
+    private long start;
+    private long end;
     private boolean isDir;
-
     private int[] childrenRange;
 
     IndexNodeUnp(String name) {
@@ -472,7 +490,7 @@ class IndexNodeUnp {
         isDir = true;
     }
 
-    void setScale(int start, int end) {
+    void setScale(long start, long end) {
         this.start = start;
         this.end = end;
         isDir = false;
@@ -490,11 +508,11 @@ class IndexNodeUnp {
         return childrenRange;
     }
 
-    public int getStart() {
+    public long getStart() {
         return start;
     }
 
-    int getEnd() {
+    long getEnd() {
         return end;
     }
 

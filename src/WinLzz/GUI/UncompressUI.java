@@ -48,6 +48,7 @@ public class UncompressUI implements Initializable {
     private ComboBox<Integer> threadNumberBox;
 
     private Stage stage;
+    private MainUI parent;
     private File packFile;
     private UnPacker unPacker;
     private ContextNode currentNode;
@@ -62,6 +63,10 @@ public class UncompressUI implements Initializable {
         fileListSelectionListener();
         backButtonHoverListener();
         infoButtonHoverListener();
+    }
+
+    void setParent(MainUI parent) {
+        this.parent = parent;
     }
 
     void setLanLoader(LanguageLoader lanLoader) {
@@ -95,7 +100,8 @@ public class UncompressUI implements Initializable {
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle(lanLoader.get(351));
             alert.setHeaderText(lanLoader.get(352));
-            alert.setContentText(lanLoader.get(353) + Packer.version + lanLoader.get(354) + unPacker.versionNeeded());
+            alert.setContentText(lanLoader.get(353) + Packer.primaryVersion + lanLoader.get(354) +
+                    unPacker.versionNeeded());
             alert.showAndWait();
             stage.close();
             return;
@@ -226,6 +232,7 @@ public class UncompressUI implements Initializable {
 
         UncompressingUI uui = loader.getController();
         uui.setStage(stage, this);
+        uui.setGrandParent(parent);
         uui.setLanLoader(lanLoader);
         uui.setParametersOpen(unPacker, openNode);
         uui.setThreadNumber(threadNumberBox.getSelectionModel().getSelectedItem());
@@ -260,6 +267,7 @@ public class UncompressUI implements Initializable {
 
             UncompressingUI uui = loader.getController();
             uui.setStage(stage, this);
+            uui.setGrandParent(parent);
             uui.setLanLoader(lanLoader);
             if (isAll) uui.setParameters(unPacker, selected);
             else uui.setParameters(unPacker, selected, cn);
@@ -282,6 +290,7 @@ public class UncompressUI implements Initializable {
         UncompressingUI uui = loader.getController();
         uui.setStage(stage, this);
         uui.setLanLoader(lanLoader);
+        uui.setGrandParent(parent);
         uui.setTest();
         uui.setParameters(unPacker);
         uui.setThreadNumber(threadNumberBox.getSelectionModel().getSelectedItem());
@@ -292,9 +301,14 @@ public class UncompressUI implements Initializable {
     }
 
     void close() {
-        unPacker.close();
+        try {
+            unPacker.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         Util.deleteDir(tempDir);
         this.stage.close();
+        parent.refreshAction();
     }
 
     private void passwordInputAction(boolean isName) {

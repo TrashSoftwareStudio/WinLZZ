@@ -11,7 +11,7 @@ import WinLzz.GUI.GUIClient;
  */
 public class Main {
 
-    public static final String version = "0.7 Beta1";
+    public static final String version = "0.7.0";
 
     public static void main(String[] args) {
         if (args.length == 0) GUIClient.client(args);

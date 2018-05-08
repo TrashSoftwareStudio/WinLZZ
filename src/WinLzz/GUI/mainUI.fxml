@@ -25,8 +25,6 @@
                           text="语言"/>
             </Menu>
             <Menu fx:id="toolMenu" mnemonicParsing="false" text="工具">
-                <MenuItem fx:id="bwgViewer" mnemonicParsing="false" onAction="#bwgViewerAction"
-                          text="BWG图片显示器"/>
                 <MenuItem fx:id="openInDesktop" mnemonicParsing="false" onAction="#desktopOpenAction"
                           text="在桌面中打开"/>
             </Menu>

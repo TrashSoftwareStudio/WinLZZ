@@ -1,12 +1,9 @@
 package WinLzz.GUI;
 
-import BWGViewer.GUI.Launcher;
-import WinLzz.GraphicUtil.FileTreeItem;
-import WinLzz.GraphicUtil.ReadableSize;
-import WinLzz.GraphicUtil.RegularFileNode;
-import WinLzz.GraphicUtil.SpecialFile;
+import WinLzz.GraphicUtil.*;
 import WinLzz.ResourcesPack.ConfigLoader.GeneralLoaders;
 import WinLzz.ResourcesPack.Languages.LanguageLoader;
+import WinLzz.Utility.Util;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -22,6 +19,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -33,8 +31,11 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.ResourceBundle;
+
 
 public class MainUI implements Initializable {
 
@@ -76,9 +77,10 @@ public class MainUI implements Initializable {
     private Label currentDirLabel;
 
     @FXML
-    private MenuItem languageSetting, about, licence, changelogView, bwgViewer, openInDesktop;
+    private MenuItem languageSetting, about, licence, changelogView, openInDesktop;
 
     private Label placeHolder = new Label();
+    private ContextMenu rightPopupMenu;
 
     private LanguageLoader lanLoader = new LanguageLoader();
     private RegularFileNode currentSelection;
@@ -106,18 +108,7 @@ public class MainUI implements Initializable {
     }
 
 
-    /**
-     * Sets up the content of the TreeView object "rootTree".
-     */
-    private void setTree() {
-        TreeItem<File> rootNode = new TreeItem<>(new File(System.getenv("COMPUTERNAME")));
-        for (File file : File.listRoots()) {
-            FileTreeItem rootItems = new FileTreeItem(new SpecialFile(file.getAbsolutePath()));
-            rootNode.getChildren().add(rootItems);
-        }
-        rootTree.setRoot(rootNode);
-    }
-
+    /* Actions and handlers */
 
     @FXML
     public void aboutAction() throws IOException {
@@ -211,6 +202,7 @@ public class MainUI implements Initializable {
             CompressUI cui = loader.getController();
             cui.setDir(selected);
             cui.setStage(stage);
+            cui.setParent(this);
             cui.load(lanLoader);
             stage.show();
         }
@@ -230,9 +222,6 @@ public class MainUI implements Initializable {
             case "pz":
                 uncompressMode(rfn.getFile());
                 break;
-            case "bwg":
-                bwgImageViewer(rfn.getFile());
-                break;
             default:
                 try {
                     Desktop.getDesktop().open(rfn.getFile());
@@ -245,11 +234,6 @@ public class MainUI implements Initializable {
                 }
                 break;
         }
-    }
-
-    @FXML
-    public void bwgViewerAction() throws IOException {
-        bwgImageViewer(null);
     }
 
     @FXML
@@ -289,6 +273,7 @@ public class MainUI implements Initializable {
             UncompressUI uui = loader.getController();
             uui.setPackFile(selected);
             uui.setStage(stage);
+            uui.setParent(this);
             uui.setLanLoader(lanLoader);
 
             stage.setOnCloseRequest(event -> uui.close());
@@ -307,6 +292,70 @@ public class MainUI implements Initializable {
         }
     }
 
+    private void showFileProperty() throws IOException {
+        ObservableList<RegularFileNode> files = table.getSelectionModel().getSelectedItems();
+
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("filePropertiesUI.fxml"));
+
+        Parent root = loader.load();
+        Stage stage = new Stage();
+        stage.setTitle(lanLoader.get(863));
+        stage.setScene(new Scene(root));
+        stage.setResizable(false);
+
+        FilePropertiesUI pui = loader.getController();
+
+        File[] fileArray = new File[files.size()];
+        for (int i = 0; i < fileArray.length; i++)
+            fileArray[i] = files.get(i).getFile();
+        InfoNode node;
+        if (fileArray.length == 1) node = new InfoNode(fileArray[0]);
+        else node = new InfoNode(fileArray);
+        pui.setFiles(node);
+        pui.setLanLoader(lanLoader);
+        pui.display();
+
+        stage.show();
+    }
+
+    private void deleteAction() {
+        Collection<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+        File[] files = new File[selections.size()];
+        for (int i = 0; i < files.length; i++)
+            files[i] = ((ObservableList<RegularFileNode>) selections).get(i).getFile();
+
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmation.setTitle("WinLZZ");
+        confirmation.setHeaderText(lanLoader.get(3));
+
+        StringBuilder builder = new StringBuilder(lanLoader.get(73));
+        builder.append(" ");
+        for (File f : files) builder.append(f.getName()).append(lanLoader.get(76)).append(" ");
+        builder.delete(builder.length() - 2, builder.length());
+        builder.append(" ?");
+        confirmation.setContentText(builder.toString());
+        confirmation.showAndWait();
+
+        if (confirmation.getResult() == ButtonType.OK) {
+            ArrayList<File> failed = new ArrayList<>();
+            for (File f : files) if (!Util.recursiveDelete(f)) failed.add(f);
+            if (!failed.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("WinLZZ");
+                alert.setHeaderText(lanLoader.get(74));
+                StringBuilder sb = new StringBuilder(lanLoader.get(75));
+                sb.append(" ");
+                for (File f : failed) sb.append(f.getName()).append(lanLoader.get(76)).append(" ");
+                sb.delete(sb.length() - 2, sb.length());
+                alert.setContentText(sb.toString());
+
+                alert.showAndWait();
+            }
+            refreshAction();
+        }
+    }
+
+    /* Listeners */
 
     /**
      * Sets up the selection listener of the TableView object "table".
@@ -339,9 +388,8 @@ public class MainUI implements Initializable {
 
                         setOnMouseClicked(click -> {
                             if (click.getClickCount() == 2) {
-                                RegularFileNode rfn = table.getSelectionModel().getSelectedItem();
-                                if (rfn != null) {
-                                    if (rfn.getFile().isDirectory()) {
+                                if (item != null) {
+                                    if (item.getFile().isDirectory()) {
                                         fillTable();
                                     } else {
                                         try {
@@ -351,6 +399,14 @@ public class MainUI implements Initializable {
                                         }
                                     }
                                 }
+                            }
+
+                            setRightPopupMenu();
+
+                            if (click.getButton() == MouseButton.SECONDARY && item != null) {
+                                rightPopupMenu.show(table, click.getScreenX(), click.getScreenY());
+                            } else {
+                                rightPopupMenu.hide();
                             }
                         });
                     }
@@ -410,11 +466,12 @@ public class MainUI implements Initializable {
         });
     }
 
-
-    private void bwgImageViewer(File pictureFile) throws IOException {
-        new Launcher().launch(pictureFile);
+    private void backButtonListener() {
+        if (currentSelection != null && !currentSelection.isRoot()) backButton.setDisable(false);
+        else backButton.setDisable(true);
     }
 
+    /* Setters / functions */
 
     /**
      * Fills the file detail table when a directory is selected.
@@ -422,16 +479,16 @@ public class MainUI implements Initializable {
     private void fillTable() {
         refreshButton.setDisable(false);
         table.getItems().clear();
+        ArrayList<RegularFileNode> nonDirectories = new ArrayList<>();
         if (currentSelection != null) {
             currentDirLabel.setText(currentSelection.getFullPath());
             File node = currentSelection.getFile();
             try {
                 for (File f : Objects.requireNonNull(node.listFiles())) {
-                    RegularFileNode fdc;
-                    if (f.isDirectory()) fdc = new RegularFileNode(f, lanLoader);
-                    else fdc = new RegularFileNode(f, lanLoader);
-                    table.getItems().add(fdc);
+                    if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, lanLoader));
+                    else nonDirectories.add(new RegularFileNode(f, lanLoader));
                 }
+                table.getItems().addAll(nonDirectories);
             } catch (NullPointerException npe) {
                 placeHolder.setText(lanLoader.get(63));
                 return;
@@ -445,9 +502,52 @@ public class MainUI implements Initializable {
         else placeHolder.setText("");
     }
 
-    private void backButtonListener() {
-        if (currentSelection != null && !currentSelection.isRoot()) backButton.setDisable(false);
-        else backButton.setDisable(true);
+    /**
+     * Sets up the content of the TreeView object "rootTree".
+     */
+    private void setTree() {
+        TreeItem<File> rootNode = new TreeItem<>(new File(System.getenv("COMPUTERNAME")));
+        for (File file : File.listRoots()) {
+            FileTreeItem rootItems = new FileTreeItem(new SpecialFile(file.getAbsolutePath()));
+            rootNode.getChildren().add(rootItems);
+        }
+        rootTree.setRoot(rootNode);
+    }
+
+    private void setRightPopupMenu() {
+        if (rightPopupMenu == null) {
+            rightPopupMenu = new ContextMenu();
+            MenuItem open = new MenuItem(lanLoader.get(11));
+            open.setOnAction(e -> {
+                try {
+                    openAction();
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            });
+            MenuItem openDir = new MenuItem(lanLoader.get(72));
+            openDir.setOnAction(e -> desktopOpenAction());
+            MenuItem compress = new MenuItem(lanLoader.get(10));
+            compress.setOnAction(e -> {
+                try {
+                    compressMode();
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            });
+            MenuItem delete = new MenuItem(lanLoader.get(71));
+            delete.setOnAction(e -> deleteAction());
+            MenuItem property = new MenuItem(lanLoader.get(70));
+            property.setOnAction(e -> {
+                try {
+                    showFileProperty();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            });
+
+            rightPopupMenu.getItems().addAll(open, openDir, compress, delete, property);
+        }
     }
 
     private void fillText() {
@@ -464,7 +564,6 @@ public class MainUI implements Initializable {
         licence.setText(lanLoader.get(17));
         changelogView.setText(lanLoader.get(18));
         toolMenu.setText(lanLoader.get(30));
-        bwgViewer.setText(lanLoader.get(31));
         openInDesktop.setText(lanLoader.get(32));
     }
 }

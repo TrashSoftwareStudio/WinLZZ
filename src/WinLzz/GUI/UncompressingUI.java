@@ -51,10 +51,16 @@ public class UncompressingUI implements Initializable {
     private ContextNode startNode;
     private int threadNumber;
     private boolean isTest, testResult, isAllUncompress, openAfterUnc;
+
+    private MainUI grandParent;
     private LanguageLoader lanLoader;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+    }
+
+    void setGrandParent(MainUI grandParent) {
+        this.grandParent = grandParent;
     }
 
     void setLanLoader(LanguageLoader lanLoader) {
@@ -143,8 +149,10 @@ public class UncompressingUI implements Initializable {
             } else {
                 showSuccessInfo();
             }
-            System.gc();
+
+            grandParent.refreshAction();
             stage.close();
+            System.gc();
         });
 
         service.setOnFailed(e -> {

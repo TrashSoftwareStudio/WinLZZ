@@ -12,11 +12,11 @@ public class BWZTest {
     public static void main(String[] args) throws Exception {
 
         String name;
-        name = "dsCtrl.txt";
+        name = "allCodes.zip";
 //        name = "p1.png";
 //        name = "t1.bmp";
 //        name = "cmpFiles.tar";
-        int ws = 65536;
+        int ws = 1048576;
         String cmpName = Util.getCompressFileName(name, "bwz");
         long start = System.currentTimeMillis();
 

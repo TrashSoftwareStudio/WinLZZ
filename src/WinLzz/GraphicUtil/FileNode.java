@@ -45,7 +45,7 @@ public class FileNode {
         if (isDir) {
             return "";
         } else {
-            int[] location = cn.getLocation();
+            long[] location = cn.getLocation();
             return Util.sizeToReadable(location[1] - location[0]);
         }
     }

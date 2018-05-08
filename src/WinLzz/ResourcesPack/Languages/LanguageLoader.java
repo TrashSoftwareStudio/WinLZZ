@@ -45,7 +45,8 @@ public class LanguageLoader {
         String line;
         while ((line = br.readLine()) != null) if (line.length() > 0 && line.charAt(0) != '#' && line.contains("=")) {
             String[] split = line.split("=");
-            texts.put(Integer.valueOf(split[0]), split[1]);
+            if (split.length > 1) texts.put(Integer.valueOf(split[0]), split[1]);
+            else texts.put(Integer.valueOf(split[0]), "");
         }
     }
 

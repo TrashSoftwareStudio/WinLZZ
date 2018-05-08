@@ -1,6 +1,6 @@
 package WinLzz.BWZ;
 
-class SuffixArrayDC3 {
+public class SuffixArrayDC3 {
 
     private int[] wa;
     private int[] wb;
@@ -9,7 +9,7 @@ class SuffixArrayDC3 {
     private int[] sa;
     private int n;
 
-    SuffixArrayDC3(short[] text, int alphabetSize) {
+    public SuffixArrayDC3(short[] text, int alphabetSize) {
         int max_n = text.length + 256;  // For safe
         wa = new int[max_n];
         wb = new int[max_n];
@@ -24,7 +24,7 @@ class SuffixArrayDC3 {
         dc3(r, sa, n, alphabetSize);
     }
 
-    int[] getSa() {
+    public int[] getSa() {
         int[] result = new int[n];
         System.arraycopy(sa, 0, result, 0, n);
         return result;

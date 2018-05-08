@@ -29,6 +29,20 @@ public abstract class Util {
         }
     }
 
+    public static boolean recursiveDelete(File file) {
+        boolean suc = true;
+        if (file.exists()) {
+            if (file.isDirectory()) {
+                File[] children = file.listFiles();
+                for (File f : Objects.requireNonNull(children)) if (!recursiveDelete(f)) suc = false;
+            }
+            if (!file.delete()) suc = false;
+        } else {
+            suc = false;
+        }
+        return suc;
+    }
+
     public static String getCompressFileName(String origName, String ext) {
         return origName + "." + ext;
     }
@@ -218,6 +232,28 @@ public abstract class Util {
         if (size < Math.pow(2, 20)) return numToReadable((int) size) + " 字节";
         else if (size < Math.pow(2, 30)) return numToReadable((int) (size / 1024 + 1)) + " KB";
         else return numToReadable((int) (size / 1048576 + 1)) + " MB";
+    }
+
+    public static String splitNumber(String src) {
+        StringBuilder sb = new StringBuilder();
+        int count = 0;
+        for (int i = src.length() - 1; i >= 0; i--) {
+            if (count % 3 == 0 && count != 0) sb.append(",");
+            sb.append(src.charAt(i));
+            count += 1;
+        }
+        return sb.reverse().toString();
+    }
+
+    public static String splitStringToLine(String src, int lineLength) {
+        StringBuilder builder = new StringBuilder();
+        int i = 0;
+        while (i < src.length() - lineLength) {
+            builder.append(src, i, i + lineLength).append('\n');
+            i += lineLength;
+        }
+        builder.append(src.substring(i));
+        return builder.toString();
     }
 
     private static String numToReadable(int num) {

@@ -37,28 +37,27 @@ public class CompressingUI implements Initializable {
             timeExpectedListener, passedLengthListener, cmpSizeListener, currentCmpRatioListener;
 
     private String name, alg;
-
     private File[] path;
-
     private int windowSize, bufferSize, cmpLevel, encryptLevel, threads;
-
     private String password;
-
     private Packer packer;
-
     private long startTime;
 
+    private MainUI grandParent;
     private Stage stage;
-
     private LanguageLoader lanLoader;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
     }
 
-    public void setLanLoader(LanguageLoader lanLoader) {
+    void setLanLoader(LanguageLoader lanLoader) {
         this.lanLoader = lanLoader;
         fillText();
+    }
+
+    void setGrandParent(MainUI grandParent) {
+        this.grandParent = grandParent;
     }
 
     void setStage(Stage stage) {
@@ -114,8 +113,10 @@ public class CompressingUI implements Initializable {
             info.setContentText(lanLoader.get(252) + seconds + lanLoader.get(253) + " " + lanLoader.get(254)
                     + ": " + rounded + "%");
             info.show();
-            System.gc();
+
+            grandParent.refreshAction();
             stage.close();
+            System.gc();
         });
 
         service.setOnFailed(e -> {

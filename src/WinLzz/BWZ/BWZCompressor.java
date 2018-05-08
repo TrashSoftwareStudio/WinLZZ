@@ -9,6 +9,8 @@
 
 package WinLzz.BWZ;
 
+import WinLzz.BWZ.BWT.BWTEncoder;
+import WinLzz.BWZ.BWT.BWTEncoderByte;
 import WinLzz.Huffman.MapCompressor.MapCompressor;
 import WinLzz.Interface.Compressor;
 import WinLzz.LZZ2.Util.LZZ2Util;
@@ -42,7 +44,7 @@ public class BWZCompressor implements Compressor {
 
     private long cmpSize;  // Total size after compression.
 
-    int mainLen;
+    long mainLen;
     private int windowSize;
     Packer parent;
     private long lastUpdateProgress;
@@ -199,7 +201,7 @@ public class BWZCompressor implements Compressor {
 
         deleteTemp();
         int csqLen = csq.length;
-        int[] sizes = new int[]{csqLen, LZZ2Util.windowSizeToByte(maxHuffmanSize), beb.getOrigRowIndex(), cmpFlagsLen};
+        long[] sizes = new long[]{csqLen, LZZ2Util.windowSizeToByte(maxHuffmanSize), beb.getOrigRowIndex(), cmpFlagsLen};
         byte[] sizeBlock = LZZ2Util.generateSizeBlock(sizes);
         out.write(sizeBlock);
 

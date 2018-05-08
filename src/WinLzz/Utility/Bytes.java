@@ -121,8 +121,8 @@ public abstract class Bytes {
      * @param length The length of th result.
      * @return The bit string of num.
      */
-    public static String numberToBitString(int num, int length) {
-        String s = Integer.toBinaryString(num);
+    public static String numberToBitString(long num, int length) {
+        String s = Long.toBinaryString(num);
         return charMultiply('0', length - s.length()) + s;
     }
 
@@ -164,6 +164,16 @@ public abstract class Bytes {
      */
     public static byte[] intToBytes32(int i) {
         return new byte[]{(byte) ((i >> 24) & 0xff), (byte) ((i >> 16) & 0xff), (byte) ((i >> 8) & 0xff), (byte) (i & 0xff)};
+    }
+
+    /**
+     * Convert an integer into a 4-byte array in little-endian.
+     *
+     * @param i the integer.
+     * @return 4-byte array.
+     */
+    public static byte[] intToBytes32Little(int i) {
+        return new byte[]{(byte) (i & 0xff), (byte) ((i >> 8) & 0xff), (byte) ((i >> 16) & 0xff), (byte) ((i >> 24) & 0xff)};
     }
 
     /**
@@ -238,6 +248,16 @@ public abstract class Bytes {
      */
     public static byte[] shortToBytes(short i) {
         return new byte[]{(byte) ((i >> 8) & 0xff), (byte) (i & 0xff)};
+    }
+
+    /**
+     * Convert a short into a 2-byte array in little-endian.
+     *
+     * @param i the short.
+     * @return 2-byte array.
+     */
+    public static byte[] shortToBytesLittle(short i) {
+        return new byte[]{(byte) (i & 0xff), (byte) ((i >> 8) & 0xff)};
     }
 
     public static byte[] stringEncode(String name) throws UnsupportedEncodingException {

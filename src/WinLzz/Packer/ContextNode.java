@@ -9,7 +9,7 @@ public class ContextNode {
     private String path;
     private ArrayList<ContextNode> children = new ArrayList<>();
     private boolean isDir = true;
-    private int[] location;
+    private long[] location;
     private ContextNode parent;
 
     ContextNode(String path) {
@@ -28,12 +28,12 @@ public class ContextNode {
         children.add(child);
     }
 
-    void setLocation(int start, int end) {
-        this.location = new int[]{start, end};
+    void setLocation(long start, long end) {
+        this.location = new long[]{start, end};
         isDir = false;
     }
 
-    public int[] getLocation() {
+    public long[] getLocation() {
         return location;
     }
 

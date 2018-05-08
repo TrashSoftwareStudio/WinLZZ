@@ -20,7 +20,7 @@ public class AboutUI implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         versionLabel.setText(Main.version);
-        coreVersionLabel.setText(String.valueOf(Packer.version));
+        coreVersionLabel.setText(String.format("%d.%d", Packer.primaryVersion & 0xff, Packer.secondaryVersion & 0xff));
     }
 
     void setLanLoader(LanguageLoader lanLoader) {

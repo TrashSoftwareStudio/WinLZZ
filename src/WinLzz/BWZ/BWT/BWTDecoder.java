@@ -1,17 +1,16 @@
-package WinLzz.BWZ;
+package WinLzz.BWZ.BWT;
 
 import WinLzz.Utility.Bytes;
 import WinLzz.Utility.Util;
 
 import java.util.ArrayDeque;
 
-class BWTDecoder {
+public class BWTDecoder {
 
     private short[] cmpText;
-
     private int origIndex;
 
-    BWTDecoder(short[] cmpText) {
+    public BWTDecoder(short[] cmpText) {
         short[] indexBytesS = new short[3];
         System.arraycopy(cmpText, 0, indexBytesS, 0, 3);
         byte[] indexBytes = new byte[]{(byte) indexBytesS[0], (byte) indexBytesS[1], (byte) indexBytesS[2]};
@@ -28,10 +27,10 @@ class BWTDecoder {
      *
      * @return The original text.
      */
-    byte[] Decode() {
+    public byte[] Decode() {
         int len = cmpText.length;
         int[] lShift = new int[len];
-        short[] sorted = new short[cmpText.length];
+        short[] sorted = new short[len];
         System.arraycopy(cmpText, 0, sorted, 0, len);
         Util.countingSort(sorted, 257);
 
@@ -41,9 +40,11 @@ class BWTDecoder {
         for (int i = 0; i < len; i++) lShift[i] = lists[sorted[i]].removeFirst();
 
         byte[] result = new byte[len - 1];
+
+        int currentRow = origIndex;
         for (int i = 0; i < len - 1; i++) {
-            origIndex = lShift[origIndex];
-            result[i] = (byte) (cmpText[origIndex] - 1);
+            currentRow = lShift[currentRow];
+            result[i] = (byte) (cmpText[currentRow] - 1);
         }
         return result;
     }

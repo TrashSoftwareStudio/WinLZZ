@@ -64,12 +64,12 @@ public class LZZ2DeCompressor implements DeCompressor {
         raf.seek(length - sizeBlockSize - 1);
         raf.read(block);
 
-        int[] sizes = LZZ2Util.recoverSizeBlock(block, 5);
-        csqLen = sizes[0];
-        disHeadLen = sizes[1];
-        lenHeadLen = sizes[2];
-        flagLen = sizes[3];
-        dlbLen = sizes[4];
+        long[] sizes = LZZ2Util.recoverSizeBlock(block, 5);
+        csqLen = (int) sizes[0];
+        disHeadLen = (int) sizes[1];
+        lenHeadLen = (int) sizes[2];
+        flagLen = (int) sizes[3];
+        dlbLen = (int) sizes[4];
         raf.close();
 
         mainLen = length - disHeadLen - lenHeadLen - flagLen - dlbLen - csqLen  - sizeBlockSize - 1;

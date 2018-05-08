@@ -1,14 +1,14 @@
-package WinLzz.BWZ;
+package WinLzz.BWZ.BWT;
 
+import WinLzz.BWZ.SuffixArrayDC3;
+import WinLzz.BWZ.SuffixArrayDoubling;
 import WinLzz.Utility.Bytes;
 
-class BWTEncoder {
+public class BWTEncoder {
 
     /* Original text for encoding. */
     private short[] text;
-
     private int origRowIndex;
-
     private boolean isDc3;
 
     /**
@@ -17,7 +17,7 @@ class BWTEncoder {
      * @param text  The text being transformed.
      * @param isDc3 Whether to use dc3 or doubling algorithm.
      */
-    BWTEncoder(byte[] text, boolean isDc3) {
+    public BWTEncoder(byte[] text, boolean isDc3) {
         this.isDc3 = isDc3;
         this.text = new short[text.length + 1];
         for (int i = 0; i < text.length; i++) this.text[i] = (short) ((text[i] & 0xff) + 1);  // Transform every byte
@@ -26,7 +26,7 @@ class BWTEncoder {
         // This is necessary for transforming suffix array into Burrows-Wheeler matrix.
     }
 
-    short[] Transform() {
+    public short[] Transform() {
         short[] result = new short[text.length + 3];
         short[] trans = transform();
         byte[] indexRep = Bytes.intToBytes24(origRowIndex);

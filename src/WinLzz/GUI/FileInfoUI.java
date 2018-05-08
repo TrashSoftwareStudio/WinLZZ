@@ -22,7 +22,7 @@ public class FileInfoUI implements Initializable {
     private UnPacker unPacker;
 
     @FXML
-    private Label typeLabel, algLabel, versionNeededLabel, fileCountLabel, dirCountLabel, windowSizeLabel,
+    private Label typeLabel, algLabel, versionLabel, versionNeededLabel, fileCountLabel, dirCountLabel, windowSizeLabel,
             compressRateLabel, origSizeLabel, compressSizeLabel, timeLabel, crcChecksumLabel;
 
     @FXML
@@ -68,20 +68,22 @@ public class FileInfoUI implements Initializable {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         algLabel.setText(lanLoader.get(601) + ": " + alg);
+        versionLabel.setText(String.format("%s: %d.%d", lanLoader.get(611), unPacker.getPrimaryVersionInt(),
+                unPacker.getSecondaryVersionInt()));
         versionNeededLabel.setText(lanLoader.get(602) + ": " + translateVersion(unPacker.versionNeeded()));
         compressRateLabel.setText(lanLoader.get(603) + ": " + String.valueOf(roundedRate) + " %");
         windowSizeLabel.setText(lanLoader.get(604) + ": " + sizeToString3Digit(unPacker.getWindowSize()));
         origSizeLabel.setText(lanLoader.get(605) + ": " + Util.sizeToReadable(unPacker.getTotalOrigSize()));
         compressSizeLabel.setText(lanLoader.get(606) + ": " + Util.sizeToReadable(cmpFile.length()));
-        fileCountLabel.setText(lanLoader.get(607) + ": " + splitNumber(String.valueOf(unPacker.getFileCount())));
-        dirCountLabel.setText(lanLoader.get(608) + ": " + splitNumber(String.valueOf(unPacker.getDirCount() - 1)));
+        fileCountLabel.setText(lanLoader.get(607) + ": " + Util.splitNumber(String.valueOf(unPacker.getFileCount())));
+        dirCountLabel.setText(lanLoader.get(608) + ": " + Util.splitNumber(String.valueOf(unPacker.getDirCount() - 1)));
         // There is one root directory created by packer.
         timeLabel.setText(lanLoader.get(609) + ": " + sdf.format(date));
         crcChecksumLabel.setText(lanLoader.get(610) + ": " + Bytes.longToHex(unPacker.getCrc32Checksum(), false));
     }
 
 
-    private String translateVersion(short versionInt) {
+    private String translateVersion(byte versionInt) {
         if (versionInt == 1) return "0.1.2";
         else if (versionInt == 2) return "0.1.3";
         else if (versionInt == 3) return "0.1.4";
@@ -102,6 +104,7 @@ public class FileInfoUI implements Initializable {
         else if (versionInt == 20) return "0.6.0 - 0.6.1";
         else if (versionInt == 21) return "0.6.2";
         else if (versionInt == 22) return "0.7+";
+        else if (versionInt == 23) return "0.7.0+";
         else return lanLoader.get(652);
     }
 
@@ -109,16 +112,5 @@ public class FileInfoUI implements Initializable {
         if (src < 1024) return src + " " + lanLoader.get(250);
         else if (src < 1048576) return src / 1024 + " KB";
         else return src / 1048576 + " MB";
-    }
-
-    private static String splitNumber(String src) {
-        StringBuilder sb = new StringBuilder();
-        int count = 0;
-        for (int i = src.length() - 1; i >= 0; i--) {
-            if (count % 3 == 0 && count != 0) sb.append(",");
-            sb.append(src.charAt(i));
-            count += 1;
-        }
-        return sb.reverse().toString();
     }
 }

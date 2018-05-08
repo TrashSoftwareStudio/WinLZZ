@@ -1,6 +1,8 @@
-package WinLzz.BWZ;
+package WinLzz.BWZ.BWT;
 
-class BWTEncoderByte {
+import WinLzz.BWZ.SuffixArrayDoublingByte;
+
+public class BWTEncoderByte {
 
     /* Original text for encoding. */
     private byte[] text;
@@ -12,7 +14,7 @@ class BWTEncoderByte {
      *
      * @param text The text being transformed.
      */
-    BWTEncoderByte(byte[] text) {
+    public BWTEncoderByte(byte[] text) {
         this.text = new byte[text.length + 1];
         for (int i = 0; i < text.length; i++) this.text[i] = (byte) ((text[i] & 0xff) + 1);  // Transform every byte
         // to unsigned and plus one to make sure nothing is smaller than or equal to the EOF character.
@@ -20,17 +22,11 @@ class BWTEncoderByte {
         // This is necessary for transforming suffix array into Burrows-Wheeler matrix.
     }
 
-    byte[] Transform() {
+    public byte[] Transform() {
         return transform();
-//        byte[] result = new byte[text.length];
-//        byte[] trans = transform();
-//        byte[] indexRep = Bytes.intToBytes24(origRowIndex);
-////        for (int i = 0; i < 3; i++) result[i] = (byte) (indexRep[i] & 0xff);
-////        System.arraycopy(trans, 0, result, 3, trans.length);
-//        return result;
     }
 
-    int getOrigRowIndex() {
+    public int getOrigRowIndex() {
         return origRowIndex;
     }
 

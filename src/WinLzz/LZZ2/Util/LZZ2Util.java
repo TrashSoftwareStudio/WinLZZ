@@ -891,21 +891,40 @@ public abstract class LZZ2Util {
         else return (int) Math.pow(2, windowRep & 0xff);
     }
 
-    public static byte[] generateSizeBlock(int[] sizes) {
+    public static byte[] generateSizeBlock(long[] sizes) {
         StringBuilder bits = new StringBuilder();
-        for (int i : sizes) {
-            if (i < 256) {
+        for (long i : sizes) {
+            long bit8 = 256;
+            long bit16 = 65_536 + bit8;
+            long bit24 = 16_777_216 + bit16;
+            long bit32 = 4_294_967_296L + bit24;
+            long bit40 = 1_099_511_627_776L + bit32;
+            long bit48 = 281_474_976_710_656L + bit40;
+            long bit56 = 72_057_594_037_927_936L + bit48;
+            if (i < bit8) {
                 bits.append("00");
                 bits.append(Bytes.numberToBitString(i, 8));
-            } else if (i < 65792) {
+            } else if (i < bit16) {
                 bits.append("01");
-                bits.append(Bytes.numberToBitString(i - 256, 16));
-            } else if (i < 16843008) {
+                bits.append(Bytes.numberToBitString(i - bit8, 16));
+            } else if (i < bit24) {
                 bits.append("10");
-                bits.append(Bytes.numberToBitString(i - 65792, 24));
+                bits.append(Bytes.numberToBitString(i - bit16, 24));
+            } else if (i < bit32) {
+                bits.append("110");
+                bits.append(Bytes.numberToBitString(i - bit24, 32));
+            } else if (i < bit40) {
+                bits.append("1110");
+                bits.append(Bytes.numberToBitString(i - bit32, 40));
+            } else if (i < bit48) {
+                bits.append("11110");
+                bits.append(Bytes.numberToBitString(i - bit40, 48));
+            } else if (i < bit56) {
+                bits.append("111110");
+                bits.append(Bytes.numberToBitString(i - bit48, 56));
             } else {
-                bits.append("11");
-                bits.append(Bytes.numberToBitString(i - 16843008, 32));
+                bits.append("111111");
+                bits.append(Bytes.numberToBitString(i - bit56, 64));
             }
         }
         byte[] block = Bytes.stringBuilderToBytesFull(bits);
@@ -915,15 +934,22 @@ public abstract class LZZ2Util {
         return result;
     }
 
-    public static int[] recoverSizeBlock(byte[] block, int number) {
+    public static long[] recoverSizeBlock(byte[] block, int number) {
         String bits = Bytes.bytesToString(block);
-        int[] result = new int[number];
+        long[] result = new long[number];
         int i = 0;
         int j = 0;
+        long bit8 = 256;
+        long bit16 = 65_536 + bit8;
+        long bit24 = 16_777_216 + bit16;
+        long bit32 = 4_294_967_296L + bit24;
+        long bit40 = 1_099_511_627_776L + bit32;
+        long bit48 = 281_474_976_710_656L + bit40;
+        long bit56 = 72_057_594_037_927_936L + bit48;
         while (j < number) {
             String flag = bits.substring(i, i + 2);
             i += 2;
-            int base;
+            long base;
             int read;
             switch (flag) {
                 case "00":
@@ -931,21 +957,49 @@ public abstract class LZZ2Util {
                     read = 8;
                     break;
                 case "01":
-                    base = 256;
+                    base = bit8;
                     read = 16;
                     break;
                 case "10":
-                    base = 65792;
+                    base = bit16;
                     read = 24;
                     break;
                 case "11":
-                    base = 16843008;
-                    read = 32;
+                    char next = bits.charAt(i);
+                    i += 1;
+                    if (next == '0') {  // 110
+                        base = bit24;
+                        read = 32;
+                    } else {
+                        next = bits.charAt(i);
+                        i += 1;
+                        if (next == '0') {  // 1110
+                            base = bit32;
+                            read = 40;
+                        } else {
+                            next = bits.charAt(i);
+                            i += 1;
+                            if (next == '0') {  // 11110
+                                base = bit40;
+                                read = 48;
+                            } else {
+                                next = bits.charAt(i);
+                                i += 1;
+                                if (next == '0') {  // 111110
+                                    base = bit48;
+                                    read = 56;
+                                } else {  // 111111
+                                    base = bit56;
+                                    read = 64;
+                                }
+                            }
+                        }
+                    }
                     break;
                 default:
                     throw new IndexOutOfBoundsException("Unknown Error");
             }
-            int num = base + Integer.parseInt(bits.substring(i, i + read), 2);
+            long num = base + Long.parseLong(bits.substring(i, i + read), 2);
             i += read;
             result[j] = num;
             j += 1;

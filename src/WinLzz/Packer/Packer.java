@@ -8,7 +8,10 @@
  * 1 byte: window size
  * 4 bytes: time of creation
  * 4 bytes: CRC32 checksum
- * 4 bytes: followed context length
+ * 4 bytes: followed context length (n)
+ * 2 bytes: extra field length (m)
+ * m bytes: extra field
+ * n bytes: context
  */
 
 package WinLzz.Packer;
@@ -32,9 +35,14 @@ import java.util.Arrays;
 public class Packer {
 
     /**
-     * The core version.
+     * The primary core version.
      */
-    public final static short version = 22;
+    public final static byte primaryVersion = 23;
+
+    /**
+     * The secondary core version.
+     */
+    public final static byte secondaryVersion = 0;
 
     /**
      * The signature for a WinLZZ archive (*.pz) file.
@@ -48,7 +56,8 @@ public class Packer {
 
     static final int defaultWindowSize = 32768;
 
-    private int totalLength, compressedLength, fileCount, cmpLevel, encryptLevel, threads;
+    private int fileCount, cmpLevel, encryptLevel, threads;
+    private long totalLength, compressedLength;
     private ArrayList<IndexNode> indexNodes = new ArrayList<>();
     private String password;
     private String alg;
@@ -92,7 +101,7 @@ public class Packer {
             for (int i = 0; i < sub.length; i++) if (!sub[i].isDirectory()) buildIndexTree(sub[i], tempList.get(i));
             for (int i = 0; i < sub.length; i++) if (sub[i].isDirectory()) buildIndexTree(sub[i], tempList.get(i));
         } else {
-            int start = totalLength;
+            long start = totalLength;
             totalLength += file.length();
             currentNode.setSize(start, totalLength);
         }
@@ -130,7 +139,8 @@ public class Packer {
         progress.set(1);
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outFile));
         bos.write(Bytes.intToBytes32(HEADER));  // Write header : 4 bytes
-        bos.write(Bytes.shortToBytes(version));  // Write version : 2 bytes
+        bos.write(primaryVersion);  // Write version : 2 bytes
+        bos.write(secondaryVersion);
 
         /*
          * Info:
@@ -157,13 +167,18 @@ public class Packer {
                 inf = (byte) (inf | 0b00100000);
                 break;
         }
-        compressedLength = 20;
+        compressedLength = 22;
 
         bos.write(inf);  // Write info: 1 byte
         bos.write(LZZ2Util.windowSizeToByte(windowSize));  // Write window size: 1 byte
         bos.write(new byte[4]);  // Reserved for creation time.
         bos.write(new byte[4]);  // Reserved for crc32 checksum
         bos.write(new byte[4]);  // Reserved for header size.
+
+        byte[] extraField = new byte[0];  // Extra field
+        compressedLength += extraField.length;
+        bos.write(Bytes.shortToBytes((short) extraField.length));  // Extra field length
+        bos.write(extraField);
 
         String tempHeadName = outFile + ".head";
         String tempMainName = outFile + ".main";
@@ -361,8 +376,8 @@ public class Packer {
 class IndexNode {
 
     private String name;
-    private int start;
-    private int end;
+    private long start;
+    private long end;
     private boolean isDir;
     private File file;
     private int[] childrenRange;
@@ -388,11 +403,11 @@ class IndexNode {
         return file;
     }
 
-    public int getSize() {
+    public long getSize() {
         return end - start;
     }
 
-    void setSize(int start, int end) {
+    void setSize(long start, long end) {
         this.start = start;
         this.end = end;
         isDir = false;
@@ -405,19 +420,19 @@ class IndexNode {
     byte[] toByteArray() throws UnsupportedEncodingException {
         byte[] nameBytes = Bytes.stringEncode(name);
         int len = nameBytes.length;
-        byte[] result = new byte[len + 10];
+        byte[] result = new byte[len + 18];
         if (isDir) {
             result[0] = 0;
             result[1] = (byte) len;
             System.arraycopy(nameBytes, 0, result, 2, nameBytes.length);
-            System.arraycopy(Bytes.intToBytes32(childrenRange[0]), 0, result, len + 2, 4);
-            System.arraycopy(Bytes.intToBytes32(childrenRange[1]), 0, result, len + 6, 4);
+            System.arraycopy(Bytes.longToBytes(childrenRange[0]), 0, result, len + 2, 8);
+            System.arraycopy(Bytes.longToBytes(childrenRange[1]), 0, result, len + 10, 8);
         } else {
             result[0] = 1;
             result[1] = (byte) len;
             System.arraycopy(nameBytes, 0, result, 2, nameBytes.length);
-            System.arraycopy(Bytes.intToBytes32(start), 0, result, len + 2, 4);
-            System.arraycopy(Bytes.intToBytes32(end), 0, result, len + 6, 4);
+            System.arraycopy(Bytes.longToBytes(start), 0, result, len + 2, 8);
+            System.arraycopy(Bytes.longToBytes(end), 0, result, len + 10, 8);
         }
         return result;
     }

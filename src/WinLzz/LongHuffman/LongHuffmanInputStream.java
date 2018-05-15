@@ -7,24 +7,58 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.HashMap;
 
+/**
+ * A Independent input stream that takes an input stream and uncompress data from stream using huffman algorithm.
+ *
+ * @author zbh
+ * @since 0.5.2
+ */
 public class LongHuffmanInputStream {
 
+    /**
+     * The IO buffer size.
+     */
     private static final int bufferSize = 8192;
 
     private FileChannel fc;
 
+    /**
+     * The size of alphabet of original text.
+     */
     private int alphabetSize;
 
+    /**
+     * The signal that makes the end of a part of the stream.
+     */
     private short endSig;
 
+    /**
+     * The maximum code length.
+     */
     private int maxCodeLen = 0;
 
+    /**
+     * The average code length
+     */
     private int average = 8;
 
+    /**
+     * The huffman code table that records all codes that are shorter than or equal to {@code average}, but all codes
+     * shorter than {@code average} is extended by all possible combination of 0's and 1's until they reaches the
+     * length {@code average}.
+     */
     private HashMap<Integer, Short> shortMap = new HashMap<>();
 
+    /**
+     * The huffman code table that records all codes that are shorter than or equal to {@code maxCodeLen}, but all
+     * codes shorter than {@code maxCodeLen} is extended by all possible combination of 0's and 1's until they
+     * reaches the length {@code maxCodeLen}.
+     */
     private HashMap<Integer, Short> longMap = new HashMap<>();
 
+    /**
+     * The table that records all huffman symbol and their corresponding code length.
+     */
     private HashMap<Short, Integer> lengthMap = new HashMap<>();
 
     private long compressedBitLength;
@@ -38,7 +72,7 @@ public class LongHuffmanInputStream {
     private StringBuilder builder = new StringBuilder();
 
     /**
-     * Creates a new instance of a LongHuffmanInputStream Object.
+     * Creates a new {@code LongHuffmanInputStream} instance.
      *
      * @param fc           the input stream file channel.
      * @param alphabetSize the alphabet size.

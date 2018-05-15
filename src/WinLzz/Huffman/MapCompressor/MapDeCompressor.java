@@ -5,6 +5,12 @@ import WinLzz.Utility.Bytes;
 
 import java.util.HashMap;
 
+/**
+ * A decompressor that uncompress the canonical huffman map compressed by a {@code MapCompressor}.
+ *
+ * @author zbh
+ * @since 0.4
+ */
 public class MapDeCompressor {
 
     private String cclBits;

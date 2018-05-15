@@ -1,5 +1,6 @@
 package WinLzz.GUI;
 
+import WinLzz.GraphicUtil.AnnotationNode;
 import WinLzz.ResourcesPack.Languages.LanguageLoader;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -33,11 +34,12 @@ public class CompressUI implements Initializable {
     private Label nameLabel, algLabel, levelLabel, windowLabel, bufferLabel, strongModeLabel, threadLabel;
 
     @FXML
-    private Button startCompressButton, passwordButton;
+    private Button startCompressButton, passwordButton, annotationButton;
 
     private File[] rootDir;
     private Stage pStage;
     private String password;
+    private AnnotationNode annotation;
 
     private int encryptLevel = 0;
     private String[] algNames = new String[]{"BWZ", "LZZ2"};
@@ -95,6 +97,14 @@ public class CompressUI implements Initializable {
 
     void setEncryptLevel(int level) {
         this.encryptLevel = level;
+    }
+
+    void setAnnotation(AnnotationNode annotation) {
+        this.annotation = annotation;
+    }
+
+    AnnotationNode getAnnotation() {
+        return annotation;
     }
 
     private void setBoxes() {
@@ -204,6 +214,24 @@ public class CompressUI implements Initializable {
     }
 
     @FXML
+    void showAnnotationWindow() throws IOException {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("annotationUI.fxml"));
+
+        Parent root = loader.load();
+        Stage stage = new Stage();
+
+        stage.setTitle(lanLoader.get(900));
+        stage.setScene(new Scene(root));
+
+        AnnotationUI au = loader.getController();
+        au.setStage(stage);
+        au.setParent(this);
+        au.setLanLoader(lanLoader);
+
+        stage.show();
+    }
+
+    @FXML
     void startCompress() throws Exception {
         String name = nameText.getText();
         if (!name.endsWith(".pz")) name += ".pz";
@@ -248,7 +276,7 @@ public class CompressUI implements Initializable {
         cui.setName(name, rootDir);
         cui.setLanLoader(lanLoader);
         cui.setGrandParent(parent);
-        cui.setPref(window, buffer, cmpLevel, alg, threads);
+        cui.setPref(window, buffer, cmpLevel, alg, threads, annotation);
         cui.setStage(stage);
         cui.setEncrypt(password, encryptLevel);
         stage.show();
@@ -267,6 +295,7 @@ public class CompressUI implements Initializable {
         strongModeLabel.setText(lanLoader.get(106));
         threadLabel.setText(lanLoader.get(107));
         startCompressButton.setText(lanLoader.get(108));
+        annotationButton.setText(lanLoader.get(109));
 
         for (int i = 0; i < 6; i++) compressionLevels[i] = lanLoader.get(110 + i);
         for (int i = 0; i < 5; i++) cmpLevels[i] = lanLoader.get(116 + i);

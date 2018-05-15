@@ -5,15 +5,32 @@ import WinLzz.Utility.Util;
 
 import java.util.ArrayList;
 
-
+/**
+ * Decoder of Zero-Run-Length-Coding.
+ * <p>
+ * This program takes a byte array as input text, and output a byte array as result.
+ *
+ * @author zbh
+ * @since 0.6
+ */
 public class ZeroRLCDecoderByte {
 
     private byte[] text;
 
+    /**
+     * Creates a new {@code ZeroRLCDecoderByte} instance.
+     *
+     * @param text the text after zero rlc coding.
+     */
     public ZeroRLCDecoderByte(byte[] text) {
         this.text = text;
     }
 
+    /**
+     * Returns the decoded text.
+     *
+     * @return the decoded text.
+     */
     public byte[] Decode() {
         ArrayList<Byte> temp = new ArrayList<>();
         ArrayList<Byte> runLengths = new ArrayList<>();

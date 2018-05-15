@@ -13,7 +13,6 @@ import WinLzz.BWZ.BWT.BWTEncoder;
 import WinLzz.BWZ.BWT.BWTEncoderByte;
 import WinLzz.Huffman.MapCompressor.MapCompressor;
 import WinLzz.Interface.Compressor;
-import WinLzz.LZZ2.Util.LZZ2Util;
 import WinLzz.LongHuffman.LongHuffmanCompressorRam;
 import WinLzz.Packer.Packer;
 import WinLzz.Utility.Util;
@@ -26,32 +25,84 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * BWZ-algorithm implementation of {@code Compressor} interface.
+ *
+ * @author zbh
+ * @see Compressor
+ * @since 0.5
+ */
 public class BWZCompressor implements Compressor {
 
     private String mainTempName;
 
-    int maxHuffmanSize = 16384;  // Default maximum size of a huffman-coding block.
+    /**
+     * Default maximum size of a huffman-coding block.
+     */
+    int maxHuffmanSize = 16384;
 
-    final static int dc3DecisionSize = 1048576;  // Decision size of suffix array building algorithm.
-    // DC3 algorithm is used if the window size if greater than or equal to this size in case of increasing speed.
-    // Otherwise, doubling algorithm is used (since doubling algorithm takes O(n * log n) while dc3 takes O(n),
-    // But doubling algorithm has a much smaller constant).
+    /**
+     * Decision size of suffix array building algorithm.
+     * DC3 algorithm is used if the window size if greater than or equal to this size in case of increasing speed.
+     * Otherwise, doubling algorithm is used (since doubling algorithm takes O(n * log n) while dc3 takes O(n),
+     * But doubling algorithm has a much smaller constant).
+     */
+    final static int dc3DecisionSize = 1048576;
 
+    /**
+     * The alphabet size of the main huffman table.
+     */
     final static short huffmanTableSize = 259;
+
+    /**
+     * The signal that marks the end of a huffman stream.
+     */
     final static short huffmanEndSig = 258;
+
     private OutputStream mainOut;
     private FileChannel fis;
 
-    private long cmpSize;  // Total size after compression.
+    /**
+     * Total size after compression.
+     */
+    private long cmpSize;
 
+    /**
+     * Length of the main part.
+     */
     long mainLen;
+
     private int windowSize;
+
+    /**
+     * The parent {@code Packer} which launched this {@code BWZCompressor}.
+     */
     Packer parent;
+
     private long lastUpdateProgress;
+
+    /**
+     * Queue of canonical huffman tables, recoded in byte-array form.
+     */
     private LinkedList<byte[]> huffmanMaps = new LinkedList<>();
+
+    /**
+     * List of one-byte huffman flags.
+     * <p>
+     * 0 represents the current huffman table is a plain huffman table, otherwise it is a pointer to the huffman table
+     * in used by this huffman position.
+     * The pointer represents the trace-back distance, for example {@code 1} means the last table in the current
+     * existing list.
+     */
     private LinkedList<Byte> huffmanFlags = new LinkedList<>();
+
     private int threadNumber = 1;
+
+    /**
+     * Whether the compression is in progress.
+     */
     boolean isRunning = true;
+
     long ratio;
     long pos;
 
@@ -201,8 +252,8 @@ public class BWZCompressor implements Compressor {
 
         deleteTemp();
         int csqLen = csq.length;
-        long[] sizes = new long[]{csqLen, LZZ2Util.windowSizeToByte(maxHuffmanSize), beb.getOrigRowIndex(), cmpFlagsLen};
-        byte[] sizeBlock = LZZ2Util.generateSizeBlock(sizes);
+        long[] sizes = new long[]{csqLen, Util.windowSizeToByte(maxHuffmanSize), beb.getOrigRowIndex(), cmpFlagsLen};
+        byte[] sizeBlock = Util.generateSizeBlock(sizes);
         out.write(sizeBlock);
 
         cmpSize = mainLen + csqLen + sizeBlock.length + cmpFlagsLen;
@@ -218,22 +269,42 @@ public class BWZCompressor implements Compressor {
         }
     }
 
+    /**
+     * Sets up the compression level.
+     *
+     * @param level the compression level.
+     */
     @Override
     public void setCompressionLevel(int level) {
         if (level == 0) maxHuffmanSize = windowSize;
         else maxHuffmanSize = 16384;
     }
 
+    /**
+     * Sets up the parent.
+     *
+     * @param parent parent {@code Packer} which launched this {@code BWZCompressor}.
+     */
     @Override
     public void setParent(Packer parent) {
         this.parent = parent;
     }
 
+    /**
+     * Returns the file length after bwz compression.
+     *
+     * @return the file length after bwz compression.
+     */
     @Override
     public long getCompressedSize() {
         return cmpSize;
     }
 
+    /**
+     * Sets up the thread number.
+     *
+     * @param threads the thread number.
+     */
     @Override
     public void setThreads(int threads) {
         this.threadNumber = threads;
@@ -241,6 +312,13 @@ public class BWZCompressor implements Compressor {
 }
 
 
+/**
+ * An implementation of {@code Runnable} that compresses a single block using bwz algorithm.
+ *
+ * @author zbh
+ * @see java.lang.Runnable
+ * @since 0.5
+ */
 class EncodeThread implements Runnable {
 
     private byte[] buffer;
@@ -250,6 +328,13 @@ class EncodeThread implements Runnable {
     private int windowSize;
     private BWZCompressor parent;
 
+    /**
+     * Creates a new {@code EncodeThread} instance.
+     *
+     * @param partData   the data to be compressed.
+     * @param windowSize the block size.
+     * @param parent     the parent {@code BWZCompressor} which has launched this {@code EncodeThread}.
+     */
     EncodeThread(byte[] partData, int windowSize, BWZCompressor parent) {
         this.buffer = partData;
         this.windowSize = windowSize;
@@ -319,6 +404,13 @@ class EncodeThread implements Runnable {
         parent.pos += buffer.length * 0.4;  // Update progress again
     }
 
+    /**
+     * Writes the compressed data into the output stream <code>out</code>.
+     *
+     * @param out    the target output stream.
+     * @param parent the parent {@code BWZCompressor}.
+     * @throws IOException if the <code>out</code> is not writable.
+     */
     void writeTo(OutputStream out, BWZCompressor parent) throws IOException {
         for (byte[] result : results) {
             parent.mainLen += result.length;
@@ -326,10 +418,21 @@ class EncodeThread implements Runnable {
         }
     }
 
+    /**
+     * Returns the array of canonical huffman maps created by this {@code EncodeThread}.
+     *
+     * @return array of canonical huffman maps.
+     */
     byte[][] getMaps() {
         return maps;
     }
 
+    /**
+     * Returns the array of huffman flag used to mark whether a record is an actual canonical huffman table or a
+     * distance pointer pointed to previous canonical huffman table.
+     *
+     * @return the array of huffman flags.
+     */
     byte[] getFlags() {
         return flags;
     }
@@ -353,6 +456,9 @@ class EncodeThread implements Runnable {
         return distance;
     }
 
+    /**
+     * Starts this {@code EncodeThread}.
+     */
     @Override
     public void run() {
         start();
@@ -360,17 +466,34 @@ class EncodeThread implements Runnable {
 }
 
 
+/**
+ * An implementation of {@code Runnable}, used to update status of a {@code BWZCompressor} instance to a
+ * {@code Packer} instance every 1 second.
+ *
+ * @author zbh
+ * @see java.lang.Runnable
+ * @since 0.5
+ */
 class Timer implements Runnable {
 
     private Packer packer;
     private BWZCompressor compressor;
     private int timeUsed;
 
+    /**
+     * Creates a new {@code Timer} instance.
+     *
+     * @param parent     the parent {@code Packer} of <code>compressor</code>
+     * @param compressor the {@code BWZCompressor} which created this {@code Timer}.
+     */
     Timer(Packer parent, BWZCompressor compressor) {
         this.packer = parent;
         this.compressor = compressor;
     }
 
+    /**
+     * Runs this {@code Timer}.
+     */
     @Override
     public void run() {
         while (compressor.isRunning) {

@@ -11,7 +11,7 @@ public class ZSEDecoder {
 
     private int[] password;
 
-    ZSEDecoder(byte[] encodedText, String password) throws UnsupportedEncodingException {
+    public ZSEDecoder(byte[] encodedText, String password) throws UnsupportedEncodingException {
         this.encodedText = encodedText;
         this.password = ZSEEncoder.generatePassword(password, encodedText.length);
     }
@@ -82,7 +82,7 @@ public class ZSEDecoder {
         return toReturn;
     }
 
-    byte[] Decode() {
+    public byte[] Decode() {
         byte[] swappedTail = swapTail(encodedText);
         byte[] swappedBack = ZSEEncoder.swap(swappedTail, password);
 

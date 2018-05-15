@@ -62,6 +62,7 @@ English
 106=Strong Mode:
 107=Thread Number:
 108=Start Compression
+109=Add Annotation...
 
 110=Store Only
 111=Fastest
@@ -172,6 +173,9 @@ English
 609=Creation Time
 610=CRC32 Checksum
 611=Archive Version
+612=Annotation
+613=Exists
+614=Does not exist
 
 650=Encrypted
 651=Archive
@@ -204,31 +208,12 @@ English
 863=Property
 864=Files
 
-#
-# BWG Image Viewer
-#
+#  Annotation UI
 
-1000=BWG Image Viewer
-1001=Loading
-1002=Unsupported format
-1003=File
-1004=Save
-1005=Help
-1006=Open
-1007=File Info
-1008=File was damaged
-
-1050=BWG Image
-1051=Bitmap Image
-1052=All Formats
-1053=JPEG Image
-1054=PNG Image
-
-1100=File Name
-1101=Type
-1102=Width
-1103=Height
-1104=Bit depth
-1105=Creation Time
-1106=Last Modified
-1107=Size
+900=Annotation
+901=Load from text file
+902=Browse
+903=Add annotation
+904=Text File
+905=Annotation too long
+906=Compress annotation

@@ -1,11 +1,23 @@
 package WinLzz.BWZ;
 
+/**
+ * A suffix array constructor that build a suffix array using doubling algorithm.
+ * <p>
+ * This class takes a short array as input text.
+ *
+ * @since 0.5
+ */
 public class SuffixArrayDoubling {
 
     private short[] text;
     private int n;
     private int[] sa, t, t2, c;
 
+    /**
+     * Creates a new instance of {@code SuffixArrayDoubling}.
+     *
+     * @param text the original text.
+     */
     public SuffixArrayDoubling(short[] text) {
         n = text.length;
         int max_n = n + 65536;
@@ -24,6 +36,7 @@ public class SuffixArrayDoubling {
      *
      * @param m initial alphabet size.
      */
+    @SuppressWarnings("all")
     public void build(int m) {
         int k, i;
         int[] x, y;
@@ -43,7 +56,6 @@ public class SuffixArrayDoubling {
 
             // swap
             int[] temp = x;
-            //noinspection SuspiciousNameCombination
             x = y;
             y = temp;
 
@@ -56,6 +68,11 @@ public class SuffixArrayDoubling {
         }
     }
 
+    /**
+     * Returns the suffix array.
+     *
+     * @return the suffix array.
+     */
     public int[] getSa() {
         return sa;
     }

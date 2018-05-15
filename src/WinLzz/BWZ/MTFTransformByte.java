@@ -3,13 +3,32 @@ package WinLzz.BWZ;
 import WinLzz.BWZ.Util.BWZUtil;
 import WinLzz.BWZ.Util.LinkedDictionary;
 
+/**
+ * A Move-To-Front transformer, a Zero-Run-Length-Coder is integrated.
+ * <p>
+ * This program takes a byte array as text.
+ *
+ * @author zbh
+ * @since 0.6
+ */
 public class MTFTransformByte {
+
     private byte[] origText;
 
+    /**
+     * Creates a new {@code MTFTransformByte} instance.
+     *
+     * @param text the text to be transformed.
+     */
     public MTFTransformByte(byte[] text) {
         this.origText = text;
     }
 
+    /**
+     * Returns the text after mtf transformation and zero run length coding.
+     *
+     * @return the text after mtf transformation and zero run length coding..
+     */
     public byte[] Transform() {
         LinkedDictionary ld = new LinkedDictionary();
         ld.initialize(18);

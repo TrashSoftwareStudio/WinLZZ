@@ -1,5 +1,10 @@
 package WinLzz.BWZ;
 
+/**
+ * A suffix array constructor that build a suffix array using bc3 algorithm.
+ *
+ * @since 0.5.2
+ */
 public class SuffixArrayDC3 {
 
     private int[] wa;
@@ -9,6 +14,14 @@ public class SuffixArrayDC3 {
     private int[] sa;
     private int n;
 
+    /**
+     * Creates a new instance of {@code SuffixArrayDC3}.
+     * <p>
+     * This constructor also builds the suffix array, using dc3 algorithm.
+     *
+     * @param text         the original text.
+     * @param alphabetSize the size of alphabet.
+     */
     public SuffixArrayDC3(short[] text, int alphabetSize) {
         int max_n = text.length + 256;  // For safe
         wa = new int[max_n];
@@ -24,6 +37,11 @@ public class SuffixArrayDC3 {
         dc3(r, sa, n, alphabetSize);
     }
 
+    /**
+     * Returns the suffix array.
+     *
+     * @return the suffix array.
+     */
     public int[] getSa() {
         int[] result = new int[n];
         System.arraycopy(sa, 0, result, 0, n);

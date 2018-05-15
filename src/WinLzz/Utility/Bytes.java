@@ -2,28 +2,55 @@ package WinLzz.Utility;
 
 import java.io.*;
 
+/**
+ * A class that consists of byte and bit level manipulations.
+ *
+ * @since 0.4
+ */
+@SuppressWarnings("unused")
 public abstract class Bytes {
 
+    /**
+     * Returns the String that consists of <code>times</code> character <code>c</code>.
+     *
+     * @param c     the {@code char} to be multiplied
+     * @param times the length of the result {@code String}
+     * @return the multiplication result
+     */
     public static String charMultiply(char c, int times) {
         char[] array = new char[times];
         for (int i = 0; i < times; i++) array[i] = c;
         return String.valueOf(array);
     }
 
-    public static byte bitStringToByte(String bits) {
+    static byte bitStringToByte(String bits) {
         return (byte) Integer.parseInt(bits, 2);
     }
 
+    /**
+     * Converts binary string into byte.
+     * <p>
+     * This method fills the binary string to length of 8 by adding 0's at the end of string.
+     *
+     * @param bits the bit string.
+     * @return the byte value of <code>bits</code>
+     */
     public static byte bitStringToByteNo8(String bits) {
         return (byte) Integer.parseInt(bits + charMultiply('0', 8 - bits.length()), 2);
     }
 
+    /**
+     * Converts byte into binary string.
+     *
+     * @param b the input byte.
+     * @return the bit string value of <code>b</code>
+     */
     public static String byteToBitString(byte b) {
         return numberToBitString((b & 0xff), 8);
     }
 
     /**
-     * Convert a binary StringBuilder to a byte array.
+     * Convert a binary {@code StringBuilder} to a byte array.
      * <p>
      * The last few digit may be ignored if the length of the StringBuilder is not a multiple of 8.
      *
@@ -43,7 +70,7 @@ public abstract class Bytes {
     }
 
     /**
-     * Convert a binary StringBuilder to a byte array.
+     * Convert a binary {@code StringBuilder} to a byte array.
      * <p>
      * The last few bits will be reserved.
      *
@@ -66,7 +93,7 @@ public abstract class Bytes {
     }
 
     /**
-     * Convert a binary StringBuilder to a short array.
+     * Convert a binary {@code StringBuilder} to a short array.
      * <p>
      * The last few bits will be reserved.
      *
@@ -90,7 +117,7 @@ public abstract class Bytes {
 
 
     /**
-     * Convert a binary StringBuilder to a byte array.
+     * Convert a binary {@code StringBuilder} to a byte array.
      * <p>
      * The last few bits will be reserved.
      *
@@ -126,12 +153,24 @@ public abstract class Bytes {
         return charMultiply('0', length - s.length()) + s;
     }
 
+    /**
+     * Converts a byte array into a binary {@code StringBuilder}.
+     *
+     * @param bytes the byte array to be converted
+     * @return the binary {@code StringBuilder} representation of <code>bytes</code>
+     */
     public static StringBuilder bytesToStringBuilder(byte[] bytes) {
         StringBuilder builder = new StringBuilder();
         for (byte b : bytes) builder.append(byteToBitString(b));
         return builder;
     }
 
+    /**
+     * Converts a byte array into a binary {@code String}.
+     *
+     * @param bytes the byte array to be converted
+     * @return the binary {@code String} representation of <code>bytes</code>
+     */
     public static String bytesToString(byte[] bytes) {
         return bytesToStringBuilder(bytes).toString();
     }
@@ -260,33 +299,36 @@ public abstract class Bytes {
         return new byte[]{(byte) (i & 0xff), (byte) ((i >> 8) & 0xff)};
     }
 
+    /**
+     * Converts the byte array representation of a {@code String} with UTF-8 encoding.
+     *
+     * @param name the {@code String} to be encoded
+     * @return the UTF-8 encoded byte array
+     * @throws UnsupportedEncodingException if any error occurs during encoding
+     */
     public static byte[] stringEncode(String name) throws UnsupportedEncodingException {
         return name.getBytes("utf-8");
     }
 
-    public static short[] byteArrayToShortArray(byte[] array) {
-        short[] result = new short[array.length / 2];
-        for (int i = 0; i < result.length; i++) result[i] = bytesToShort(new byte[]{array[i * 2], array[i * 2 + 1]});
-        return result;
-    }
-
-    public static byte[] shortArrayToByteArray(short[] array) {
-        byte[] result = new byte[array.length * 2];
-        for (int i = 0; i < array.length; i++) System.arraycopy(shortToBytes(array[i]), 0, result, i * 2, 2);
-        return result;
-    }
-
+    /**
+     * Converts the String representation of a byte array with UTF-8 encoding.
+     *
+     * @param nameBytes byte array representation
+     * @return the {@code String} encoded by <code>nameBytes</code>
+     * @throws UnsupportedEncodingException if any error occurs during encoding
+     */
     public static String stringDecode(byte[] nameBytes) throws UnsupportedEncodingException {
         return new String(nameBytes, "utf-8");
 
     }
 
-    public static short[] byteArrayToUnsignedShorts(byte[] array) {
-        short[] result = new short[array.length];
-        for (int i = 0; i < array.length; i++) result[i] = (short) (array[i] & 0xff);
-        return result;
-    }
-
+    /**
+     * Converts a {@code long} into a readable hexadecimal {@code String}.
+     *
+     * @param value   the number to be converted
+     * @param showAll whether to show zeros before the first valid digit
+     * @return the hexadecimal {@code String} of <code>value</code>
+     */
     public static String longToHex(long value, boolean showAll) {
         char[] hexArray = "0123456789ABCDEF".toCharArray();
         byte[] array = longToBytes(value);

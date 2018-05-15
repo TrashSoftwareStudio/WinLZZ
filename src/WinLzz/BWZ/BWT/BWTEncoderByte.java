@@ -2,15 +2,29 @@ package WinLzz.BWZ.BWT;
 
 import WinLzz.BWZ.SuffixArrayDoublingByte;
 
+/**
+ * A transformer of text, used to transform texts using Burrows-Wheeler Transform.
+ * <p>
+ * This transformer stores text as byte array.
+ * This transformer is implemented using doubling algorithm.
+ *
+ * @author zbh
+ * @since 0.6
+ */
 public class BWTEncoderByte {
 
-    /* Original text for encoding. */
+    /**
+     * Original text for encoding.
+     */
     private byte[] text;
 
+    /**
+     * The index of the row0 in the text after transformation, where row0 is the first row of the original text.
+     */
     private int origRowIndex;
 
     /**
-     * Creates a new instance of BWTEncoder.
+     * Creates a new {@code BWTEncoderByte} instance.
      *
      * @param text The text being transformed.
      */
@@ -22,10 +36,20 @@ public class BWTEncoderByte {
         // This is necessary for transforming suffix array into Burrows-Wheeler matrix.
     }
 
+    /**
+     * Returns the text after transformation.
+     *
+     * @return the text after transformation.
+     */
     public byte[] Transform() {
         return transform();
     }
 
+    /**
+     * Return the {@code origRowIndex}.
+     *
+     * @return the {@code origRowIndex}.
+     */
     public int getOrigRowIndex() {
         return origRowIndex;
     }

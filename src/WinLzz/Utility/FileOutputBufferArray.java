@@ -4,6 +4,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+/**
+ * An output stream that provides the random access of some last written data.
+ */
 public class FileOutputBufferArray {
 
     private OutputStream fos;
@@ -12,10 +15,30 @@ public class FileOutputBufferArray {
 
     private byte[] array1, array2;
 
-    private boolean activeArray2, array1Init, array2Init = false;
+    /**
+     * Whether the {@code array2} is the front array.
+     */
+    private boolean activeArray2;
+
+    /**
+     * Whether {@code array1} has been initialized.
+     */
+    private boolean array1Init = false;
+
+    /**
+     * Whether {@code array2} has been initialized.
+     */
+    private boolean array2Init = false;
 
     private int index, front = 0;
 
+    /**
+     * Creates a new instance of {@code FileOutputBufferArray}.
+     *
+     * @param fileName   the name or path of the file to be written
+     * @param bufferSize maximum access range of history written data
+     * @throws IOException if the file is not writable
+     */
     public FileOutputBufferArray(String fileName, int bufferSize) throws IOException {
         this.fos = new FileOutputStream(fileName);
         this.bufferSize = bufferSize;
@@ -23,6 +46,12 @@ public class FileOutputBufferArray {
         this.array2 = new byte[bufferSize];
     }
 
+    /**
+     * Creates a new instance of {@code FileOutputBufferArray}.
+     *
+     * @param fos        the input stream
+     * @param bufferSize maximum access range of history written data
+     */
     public FileOutputBufferArray(OutputStream fos, int bufferSize) {
         this.fos = fos;
         this.bufferSize = bufferSize;
@@ -30,6 +59,12 @@ public class FileOutputBufferArray {
         this.array2 = new byte[bufferSize];
     }
 
+    /**
+     * Writes a {@code byte} into the stream.
+     *
+     * @param b the {@code byte} to be written
+     * @throws IOException if the stream is not writable
+     */
     public void write(byte b) throws IOException {
         if (index % bufferSize == 0) {
             activeArray2 = !activeArray2;
@@ -50,6 +85,15 @@ public class FileOutputBufferArray {
         index += 1;
     }
 
+    /**
+     * Returns a sub-sequence of history written data.
+     * <p>
+     * This method may throw an {@code IndexOutOfBoundException} if the <code>from</code> is out of the access range.
+     *
+     * @param from the starting position of the sub-sequence
+     * @param to   the ending postition of the sub-sequence
+     * @return the sub-sequence
+     */
     public byte[] subSequence(int from, int to) {
         int len = to - from;
         byte[] rtn = new byte[len];
@@ -82,10 +126,20 @@ public class FileOutputBufferArray {
         return rtn;
     }
 
+    /**
+     * Returns the current writing position.
+     *
+     * @return the current writing position
+     */
     public int getIndex() {
         return index;
     }
 
+    /**
+     * Writes all remaining data in the buffer into the out file.
+     *
+     * @throws IOException if the {@code fos} is not writable or cannot be flushed
+     */
     public void flush() throws IOException {
         int len = index % bufferSize;
         if (activeArray2) {
@@ -95,10 +149,15 @@ public class FileOutputBufferArray {
             if (array2Init) fos.write(array2);
             fos.write(array1, 0, len);
         }
+        this.fos.flush();
     }
 
+    /**
+     * Closes this {@code FileOutputBufferArray}.
+     *
+     * @throws IOException if the {@code fos} cannot be closed
+     */
     public void close() throws IOException {
-        this.fos.flush();
-        this.fos.close();
+        fos.close();
     }
 }

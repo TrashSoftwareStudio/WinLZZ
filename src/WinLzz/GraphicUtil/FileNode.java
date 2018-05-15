@@ -30,6 +30,7 @@ public class FileNode {
         return displayName(name);
     }
 
+    @SuppressWarnings("all")
     public String getType() {
         if (isDir) {
             return languageLoader.get(25);

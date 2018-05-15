@@ -2,14 +2,34 @@ package WinLzz.BWZ;
 
 import WinLzz.BWZ.Util.SplitLinkedList;
 
+/**
+ * The inverse transformer of Move-To-Front transformation.
+ * <p>
+ * This program takes a short array as input text.
+ *
+ * @author zbh
+ * @since 0.5
+ */
 class MTFInverse {
 
     private short[] text;
 
+    /**
+     * Creates a new instance of {@code MTFInverse}.
+     *
+     * @param text the text to be inverse transformed.
+     */
     MTFInverse(short[] text) {
         this.text = text;
     }
 
+    /**
+     * Returns the text after the inverse transform.
+     * <p>
+     * This method uses an array as the dictionary, which takes O(1) to access and O(n) to move.
+     *
+     * @return the text after the inverse transform.
+     */
     @Deprecated
     short[] decode2() {
         short[] dictionary = new short[257];
@@ -25,6 +45,14 @@ class MTFInverse {
         return result;
     }
 
+    /**
+     * Returns the text after the inverse transform.
+     * <p>
+     * This method uses {@code SplitLinkedList} as the dictionary, which takes O(sqrt(n)) to access and
+     * O(sqrt(n)) to move.
+     *
+     * @return the text after the inverse transform.
+     */
     short[] decode() {
         SplitLinkedList sll = new SplitLinkedList();
         short[] result = new short[text.length];

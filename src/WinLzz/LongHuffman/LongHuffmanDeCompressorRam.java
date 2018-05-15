@@ -4,22 +4,45 @@ import WinLzz.Utility.Bytes;
 
 import java.util.HashMap;
 
+/**
+ * A decompressor of huffman coding that all operations take places in the random access memory.
+ *
+ * @author zbh
+ * @since 0.5
+ */
 public class LongHuffmanDeCompressorRam {
 
     private int alphabetSize;
     private short endSig;
     private int maxCodeLen = 0;
     private int average = 8;
+
+    /**
+     * The huffman code table that records all codes that are shorter than or equal to {@code average}, but all codes
+     * shorter than {@code average} is extended by all possible combination of 0's and 1's until they reaches the
+     * length {@code average}.
+     */
     private HashMap<Integer, Short> shortMap = new HashMap<>();
+
+    /**
+     * The huffman code table that records all codes that are shorter than or equal to {@code maxCodeLen}, but all
+     * codes shorter than {@code maxCodeLen} is extended by all possible combination of 0's and 1's until they
+     * reaches the length {@code maxCodeLen}.
+     */
     private HashMap<Integer, Short> longMap = new HashMap<>();
+
+    /**
+     * The table that records all huffman symbol and their corresponding code length.
+     */
     private HashMap<Short, Integer> lengthMap = new HashMap<>();
+
     private byte[] text;
     private short[] result;
     private int currentIndex;
     private StringBuilder builder = new StringBuilder();
 
     /**
-     * Creates a new LongHuffmanDeCompressorRam instance,
+     * Creates a new {@code LongHuffmanDeCompressorRam} instance,
      * <p>
      * This decompressor works completely in random access memory.
      *

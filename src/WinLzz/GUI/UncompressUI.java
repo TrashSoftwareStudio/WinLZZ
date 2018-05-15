@@ -36,7 +36,7 @@ public class UncompressUI implements Initializable {
     private Label dirText, threadNumberLabel;
 
     @FXML
-    private Button goBackButton, uncompressPart, uncompressAll, infoButton, testButton;
+    private Button goBackButton, uncompressPart, uncompressAll, infoButton, testButton, annotationButton;
 
     @FXML
     private TableView<FileNode> fileList;
@@ -127,6 +127,7 @@ public class UncompressUI implements Initializable {
         }
         currentNode = unPacker.getRootNode();
         showFiles();
+        if (unPacker.getAnnotation() != null) annotationButton.setDisable(false);
     }
 
     private void showFiles() {
@@ -154,6 +155,20 @@ public class UncompressUI implements Initializable {
             currentNode = currentNode.getParent();
             showFiles();
         }
+    }
+
+    @FXML
+    private void annotationAction() {
+        Stage st = new Stage();
+        ScrollPane root = new ScrollPane();
+        root.setPrefSize(400.0, 300.0);
+        Scene scene = new Scene(root);
+        st.setScene(scene);
+        st.setTitle(lanLoader.get(900));
+
+        Label label = new Label(unPacker.getAnnotation());
+        root.setContent(label);
+        st.show();
     }
 
     private void fileListSelectionListener() {
@@ -211,13 +226,14 @@ public class UncompressUI implements Initializable {
     @FXML
     public void uncompressAllAction() throws IOException {
         checkPassword();
-        uncompressHandler(null, true);
+        if (unPacker.isPasswordSet()) uncompressHandler(null, true);
     }
 
     @FXML
     public void uncompressPartAction() throws IOException {
         checkPassword();
-        uncompressHandler(fileList.getSelectionModel().getSelectedItem().getContextNode(), false);
+        if (unPacker.isPasswordSet())
+            uncompressHandler(fileList.getSelectionModel().getSelectedItem().getContextNode(), false);
     }
 
     private void uncompressAndOpen(ContextNode openNode) throws IOException {
@@ -245,7 +261,7 @@ public class UncompressUI implements Initializable {
     @FXML
     public void testAction() throws IOException {
         checkPassword();
-        testHandler();
+        if (unPacker.isPasswordSet()) testHandler();
     }
 
     private void checkPassword() {
@@ -296,7 +312,6 @@ public class UncompressUI implements Initializable {
         uui.setThreadNumber(threadNumberBox.getSelectionModel().getSelectedItem());
 
         stage.show();
-
         uui.startUncompress();
     }
 
@@ -333,9 +348,8 @@ public class UncompressUI implements Initializable {
 
         root.getChildren().addAll(box);
 
-        stage.setOnCloseRequest(e -> close());
-
         if (isName) {
+            stage.setOnCloseRequest(e -> close());
             confirm.setOnAction(event -> {
                 try {
                     unPacker.setPassword(pwdField.getText());
@@ -394,6 +408,7 @@ public class UncompressUI implements Initializable {
         threadNumberLabel.setText(lanLoader.get(304));
         uncompressPart.setText(lanLoader.get(305));
         uncompressAll.setText(lanLoader.get(306));
+        annotationButton.setText(lanLoader.get(900));
     }
 }
 

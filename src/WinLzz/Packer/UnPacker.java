@@ -5,9 +5,9 @@ import WinLzz.Interface.DeCompressor;
 import WinLzz.LZZ2.LZZ2DeCompressor;
 import WinLzz.ResourcesPack.Languages.LanguageLoader;
 import WinLzz.Utility.Bytes;
-import WinLzz.Utility.CRC32Generator;
 import WinLzz.Utility.Util;
 import WinLzz.ZSE.WrongPasswordException;
+import WinLzz.ZSE.ZSEDecoder;
 import WinLzz.ZSE.ZSEFileDecoder;
 import WinLzz.ZSE.ZSEFileEncoder;
 import javafx.beans.property.ReadOnlyLongProperty;
@@ -21,22 +21,97 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * The .pz archive unpacking program.
+ *
+ * @author zbh
+ * @since 0.4
+ */
 public class UnPacker {
 
+    /**
+     * Names of temporary files that will be created for unpacking and decompressing.
+     */
     private String packName, mapName, cmpMapName, tempName, cmpTempName, encMapName, encMainName;
 
+    /**
+     * The input stream of this archive file itself.
+     */
     private BufferedInputStream bis;
-    private byte primaryVersion, secondaryVersion;
+
+    /**
+     * Primary version of the current opening archive.
+     * <p>
+     * The archive is available if and only if the primary version of this archive matches the primary version of the
+     * decompression program.
+     */
+    private byte primaryVersion;
+
+    /**
+     * Secondary version of the current opening archive.
+     */
+    private byte secondaryVersion;
+
+    /**
+     * List of {@code IndexNodeUnp}'s.
+     * <p>
+     * This list is order-sensitive. Each node represents an actual file except the root node.
+     */
     private ArrayList<IndexNodeUnp> indexNodes = new ArrayList<>();
+
+    /**
+     * The root {@code ContextNode} of the archive.
+     * <p>
+     * This node does not represent an actual directory.
+     */
     private ContextNode rootNode;
-    private int fileCount, dirCount, cmpMapLen;
-    private int windowSize, encryptLevel, threadNumber;
-    private long cmpMainLength, origSize;
+
+    private int fileCount, dirCount;
+
+    /**
+     * The length of context map after compression.
+     */
+    private int cmpMapLen;
+
+    /**
+     * The user-defined size of sliding window/block of block-based or sliding-window-based compression algorithm.
+     * <p>
+     * This value is read from archive.
+     * This value will be 0 if there is no compression.
+     */
+    private int windowSize;
+
+    private int encryptLevel, threadNumber;
+
+    /**
+     * Length of the main part.
+     */
+    private long cmpMainLength;
+
+    /**
+     * Length of the original file (uncompressed).
+     */
+    private long origSize;
 
     private String password;
     private boolean passwordSet;
+
+    /**
+     * 16-byte array representing the md5 checksum of original password, if exists.
+     */
     private byte[] origMD5Value;
+
+    private byte[] extraField;
+
+    /**
+     * String abbreviation of compression algorithm of this archive.
+     */
     private String alg;
+
+    /**
+     * String annotation of this archive.
+     */
+    private String annotation;
 
     public final ReadOnlyLongWrapper progress = new ReadOnlyLongWrapper();
     public final ReadOnlyStringWrapper percentage = new ReadOnlyStringWrapper();
@@ -52,6 +127,11 @@ public class UnPacker {
     public boolean isInterrupted;
     private LanguageLoader languageLoader;
 
+    /**
+     * Creates a new UnPacker instance, with <code>packName</code> as the input archive name.
+     *
+     * @param packName the name/path of the input archive file.
+     */
     public UnPacker(String packName) {
         this.packName = packName;
         mapName = packName + ".map.temp";
@@ -62,7 +142,15 @@ public class UnPacker {
         encMainName = packName + ".enc";
     }
 
-    public void readInfo() throws Exception {
+    /**
+     * Reads the archive information from the archive file to this {@code UnPacker} instance.
+     *
+     * @throws IOException         if the archive file is not readable,
+     *                             or any error occurs during reading.
+     * @throws NotAPzFileException if the archive file is not a pz archive,
+     *                             or the primary version of this archive file is older than 20.
+     */
+    public void readInfo() throws IOException, NotAPzFileException {
         File f = new File(packName);
         int totalCmpLength = (int) f.length();
 
@@ -101,18 +189,21 @@ public class UnPacker {
         cmpMapLen = Bytes.bytesToInt32(buffer4);
 
         if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
-        int extraFieldLen = Bytes.bytesToShort(buffer2);
+        byte[] extraFieldLength = new byte[4];
+        System.arraycopy(buffer2, 0, extraFieldLength, 2, 2);
+        int extraFieldLen = Bytes.bytesToInt32(extraFieldLength);
 
-        byte[] extraField = new byte[extraFieldLen];
+        extraField = new byte[extraFieldLen];
         if (bis.read(extraField) != extraFieldLen) throw new IOException("Error occurs while reading");
 
         cmpMainLength = totalCmpLength - cmpMapLen - extraFieldLen - 22;
 
         String info = Bytes.byteToBitString(infoByte[0]);
-        String enc = info.substring(0, 2);
+        String enc = info.substring(0, 2);  // The encrypt level of this archive.
         switch (enc) {
             case "00":
                 encryptLevel = 0;
+                passwordSet = true;
                 break;
             case "10":
                 encryptLevel = 1;
@@ -139,6 +230,14 @@ public class UnPacker {
         }
     }
 
+    /**
+     * Reads the context map and extra field from archive file to this {@code UnPacker} instance.
+     * <p>
+     * The context map records the path structure of the file stored in archive.
+     * The context map is compressed by some algorithm.
+     *
+     * @throws Exception if any error occurs during reading.
+     */
     public void readMap() throws Exception {
         unCompressMap(cmpMapLen);
         readContext();
@@ -146,6 +245,8 @@ public class UnPacker {
 
         rootNode = new ContextNode(indexNodes.get(0).getName());
         buildContextTree(rootNode, indexNodes.get(0));
+
+        interpretExtraField();
     }
 
     private void unCompressMap(int cmpMapLen) throws Exception {
@@ -245,22 +346,106 @@ public class UnPacker {
         }
     }
 
+    private void interpretExtraField() {
+        int i = 0;
+        while (i < extraField.length) {
+            byte flag = extraField[i];
+            byte info = extraField[i + 1];
+            byte[] lengthBytes = new byte[]{extraField[i + 2], extraField[i + 3]};
+            short length = Bytes.bytesToShort(lengthBytes);
+            i += 4;
+            byte[] field = new byte[length];
+            System.arraycopy(extraField, i, field, 0, length);
+            i += length;
+
+            switch (flag) {
+                case 1:
+                    boolean compressed = info == 1;
+                    readAnnotation(field, compressed);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    private void readAnnotation(byte[] byteText, boolean compressed) {
+        try {
+            byte[] decodeText;
+            if (encryptLevel == 2) decodeText = new ZSEDecoder(byteText, password).Decode();
+            else decodeText = byteText;
+
+            byte[] uncompressedText;
+            if (compressed) {
+                String temp = "ann.temp";
+                FileOutputStream fos = new FileOutputStream(temp);
+                fos.write(decodeText);
+                fos.flush();
+                fos.close();
+
+                try {
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    BWZDeCompressor deCompressor = new BWZDeCompressor(temp, 32768);
+                    deCompressor.Uncompress(out);
+                    uncompressedText = out.toByteArray();
+                } catch (Exception e) {
+                    Util.deleteFile(temp);
+                    throw e;
+                }
+                Util.deleteFile(temp);
+            } else {
+                uncompressedText = decodeText;
+            }
+            annotation = new String(uncompressedText, "utf-8");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Returns the total directory count stored in this archive.
+     * <p>
+     * The return value is always 1 more than the actual directory count in the original file/directory, since there is
+     * a virtual {@code rootNode}.
+     *
+     * @return the total directory count stored in this archive.
+     */
     public int getDirCount() {
         return dirCount;
     }
 
+    /**
+     * Returns the total file count stored in this archive.
+     *
+     * @return the total file count stored in this archive.
+     */
     public int getFileCount() {
         return fileCount;
     }
 
+    /**
+     * Returns the window size.
+     *
+     * @return {@code windowSize} the window size.
+     */
     public int getWindowSize() {
         return windowSize;
     }
 
+    /**
+     * Returns the root node.
+     *
+     * @return {@code rootNode} the root node.
+     */
     public ContextNode getRootNode() {
         return rootNode;
     }
 
+    /**
+     * Returns the primary version needed for decompression program to uncompress this archive.
+     *
+     * @return {@code primaryVersion} the primary version.
+     */
     public byte versionNeeded() {
         return primaryVersion;
     }
@@ -310,14 +495,34 @@ public class UnPacker {
             }
         }
         if (isInterrupted) return;
-        long currentCRC32 = CRC32Generator.generateCRC32(tempName);
+        long currentCRC32 = Util.generateCRC32(tempName);
         if (currentCRC32 != crc32Checksum) throw new Exception("CRC32 Checksum does not match");
     }
 
+
+    /**
+     * Extracts and uncompress all files and directories to the path <code>targetDir</code>, recursively.
+     * <p>
+     * Original path structure will be kept.
+     *
+     * @param targetDir path to extract contents.
+     * @throws Exception if any failure happens during extraction and decompression.
+     */
     public void unCompressAll(String targetDir) throws Exception {
         for (ContextNode cn : rootNode.getChildren()) unCompressFrom(targetDir, cn);
     }
 
+
+    /**
+     * Extracts and uncompress all files and directories which are under <code>cn</code> to the path
+     * <code>targetDir</code>, recursively.
+     * <p>
+     * * Original path structure will be kept.
+     *
+     * @param targetDir path to extract contents.
+     * @param cn        the ContextNode to start extraction.
+     * @throws Exception if any failure happens during extraction and decompression.
+     */
     public void unCompressFrom(String targetDir, ContextNode cn) throws Exception {
         startTime = System.currentTimeMillis();
         if (languageLoader != null) step.set(languageLoader.get(350));
@@ -328,18 +533,18 @@ public class UnPacker {
         String dirOffset;
         if (!cn.getPath().contains(File.separator)) dirOffset = "";
         else dirOffset = cn.getPath().substring(0, cn.getPath().lastIndexOf(File.separator));
-        traverseUncompress(targetDir, cn, raf, dirOffset);
+        traversalUncompress(targetDir, cn, raf, dirOffset);
         raf.close();
     }
 
-    private void traverseUncompress(String targetDir, ContextNode cn, RandomAccessFile raf, String dirOffset) throws IOException {
+    private void traversalUncompress(String targetDir, ContextNode cn, RandomAccessFile raf, String dirOffset) throws IOException {
         String path = targetDir + File.separator + cn.getPath().substring(dirOffset.length());
         File f = new File(path);
         if (cn.isDir()) {
             if (!f.exists()) {
                 if (!f.mkdirs()) System.out.println("Failed to create directory");
             }
-            for (ContextNode scn : cn.getChildren()) traverseUncompress(targetDir, scn, raf, dirOffset);
+            for (ContextNode scn : cn.getChildren()) traversalUncompress(targetDir, scn, raf, dirOffset);
         } else {
             long[] location = cn.getLocation();
             raf.seek(location[0]);
@@ -371,7 +576,6 @@ public class UnPacker {
         }
     }
 
-
     /**
      * Sets up decompressing password.
      *
@@ -385,32 +589,69 @@ public class UnPacker {
         else passwordSet = true;
     }
 
+    /**
+     * Sets the thread number used for decompression.
+     *
+     * @param threads thread number for decompression.
+     */
     public void setThreads(int threads) {
         this.threadNumber = threads;
     }
 
+    /**
+     * Returns the abbreviation of compression algorithm of this archive.
+     *
+     * @return the abbreviation of compression algorithm of this archive.
+     */
     public String getAlg() {
         return alg;
     }
 
+    /**
+     * Returns {@code true} if the archive is encrypted and the password is properly set.
+     *
+     * @return {@code true} if the password is properly set.
+     */
     public boolean isPasswordSet() {
         return passwordSet;
     }
 
+    /**
+     * Returns the encryption level of this archive.
+     * <p>
+     * 0 for no encryption, 1 for there is encryption for content, 2 for encryption for both content and context map.
+     *
+     * @return the encryption level of this archive.
+     */
     public int getEncryptLevel() {
         return encryptLevel;
     }
 
-    @Deprecated
-    public void UncompressAll(String targetDir) throws Exception {
-        unCompressFrom(targetDir, rootNode);
+    /**
+     * Returns the annotation text of this archive.
+     *
+     * @return the annotation text of this archive.
+     */
+    public String getAnnotation() {
+        return annotation;
     }
 
+    /**
+     * Returns the total length of original files.
+     *
+     * @return {@code origSize} the total length of original files.
+     */
     public long getTotalOrigSize() {
         return origSize;
     }
 
-
+    /**
+     * Sets the {@code languageLoader} language loader.
+     * <p>
+     * language loader is used for displaying text in different languages on the GUI.
+     *
+     * @param languageLoader the language loader.
+     */
     public void setLanguageLoader(LanguageLoader languageLoader) {
         this.languageLoader = languageLoader;
     }
@@ -423,7 +664,6 @@ public class UnPacker {
         Util.deleteFile(tempName);
     }
 
-
     /**
      * Interrupts the current decompression thread.
      */
@@ -431,18 +671,38 @@ public class UnPacker {
         this.isInterrupted = true;
     }
 
+    /**
+     * Returns the creation time of this archive, in mills.
+     *
+     * @return creation time of this archive, in mills.
+     */
     public long getCreationTime() {
         return creationTime;
     }
 
+    /**
+     * Returns the crc32 checksum of original files.
+     *
+     * @return the crc32 checksum of original files.
+     */
     public long getCrc32Checksum() {
         return crc32Checksum;
     }
 
+    /**
+     * Returns the primary version of this archive in unsigned integer form.
+     *
+     * @return the unsigned integer representing primary version.
+     */
     public int getPrimaryVersionInt() {
         return primaryVersion & 0xff;
     }
 
+    /**
+     * Returns the secondary version of this archive in unsigned integer form.
+     *
+     * @return the unsigned integer representing secondary version.
+     */
     public int getSecondaryVersionInt() {
         return secondaryVersion & 0xff;
     }
@@ -477,14 +737,42 @@ public class UnPacker {
     }
 }
 
+
+/**
+ * A class used for recording information of a file in an archive in the time of extraction.
+ *
+ * @author zbh
+ * @since 0.4
+ */
 class IndexNodeUnp {
 
     private String name;
+
+    /**
+     * The start position of this file in the uncompressed main part of archive.
+     */
     private long start;
+
+    /**
+     * The end position of this file in the uncompressed main part of archive.
+     */
     private long end;
+
+    /**
+     * Whether this IndexNodeUnp represents a directory.
+     */
     private boolean isDir;
+
+    /**
+     * The start and end position of children of this IndexNodeUnp in the uncompressed context map.
+     */
     private int[] childrenRange;
 
+    /**
+     * Creates a new {@code IndexNodeUnp} instance.
+     *
+     * @param name name of file which is represented by this IndexNodeUnp.
+     */
     IndexNodeUnp(String name) {
         this.name = name;
         isDir = true;

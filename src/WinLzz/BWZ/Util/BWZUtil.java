@@ -1,9 +1,15 @@
 package WinLzz.BWZ.Util;
 
 import WinLzz.Utility.Util;
+
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * This class consists of static methods that gives utilities to mostly the BWZ package.
+ *
+ * @since 0.5
+ */
 public abstract class BWZUtil {
 
     /**
@@ -41,6 +47,12 @@ public abstract class BWZUtil {
         return result;
     }
 
+    /**
+     * Returns the original number that was encoded using base-2 bijective enumeration.
+     *
+     * @param s the base-2 bijective enumeration list.
+     * @return the original number.
+     */
     public static int runLengthInverse(List<Short> s) {
         int result = 0;
         for (int i = 0; i < s.size(); i++) result += (Math.pow(2, i) * (s.get(i) + 1));

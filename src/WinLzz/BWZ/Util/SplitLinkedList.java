@@ -2,26 +2,42 @@ package WinLzz.BWZ.Util;
 
 import java.util.LinkedList;
 
+/**
+ * A list implementation that takes O(sqrt(n)) to access an element randomly and O(sqrt(n)) to move an element.
+ *
+ * @author zbh
+ * @since 0.6.2
+ */
 public class SplitLinkedList {
 
-    private ShortLinkedList[] lists = new ShortLinkedList[8];
+    private ShortLinkedList[] lists = new ShortLinkedList[16];
 
     private short front;
 
+    /**
+     * Creates a new {@code SplitLinkedList} instance.
+     */
     public SplitLinkedList() {
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 16; i++) {
             lists[i] = new ShortLinkedList();
-            for (int j = 0; j < 32; j++) lists[i].addLast((short) (i * 32 + j + 1));
+            for (int j = 0; j < 16; j++) lists[i].addLast((short) (i * 16 + j + 1));
         }
     }
 
+    /**
+     * Returns the element at index <code>index</code> and move this element to the front of
+     * this {@code SplitLinkedList}.
+     *
+     * @param index the random access index.
+     * @return the element at <code>index</code>.
+     */
     public short getAndMove(int index) {
         if (index == 0) {
             return front;
         } else {
             int trueIndex = index - 1;
-            int range = (trueIndex) / 32;
-            int split = (trueIndex) % 32;
+            int range = (trueIndex) / 16;
+            int split = (trueIndex) % 16;
             short item = lists[range].remove(split);
             for (int i = range; i > 0; i--) lists[i].addFirst(lists[i - 1].removeLast());
             lists[0].addFirst(front);
@@ -32,8 +48,14 @@ public class SplitLinkedList {
 }
 
 
+/**
+ * An {@code LinkedList} that holds {@code Short} as elements.
+ */
 class ShortLinkedList extends LinkedList<Short> {
 
+    /**
+     * Creates a new {@code IntegerLinkedList} instance.
+     */
     ShortLinkedList() {
         super();
     }

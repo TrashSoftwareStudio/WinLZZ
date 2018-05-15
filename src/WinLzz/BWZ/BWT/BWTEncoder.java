@@ -4,15 +4,36 @@ import WinLzz.BWZ.SuffixArrayDC3;
 import WinLzz.BWZ.SuffixArrayDoubling;
 import WinLzz.Utility.Bytes;
 
+/**
+ * A transformer of text, used to transform texts using Burrows-Wheeler Transform.
+ * <p>
+ * This transformer stores text as short array.
+ * This transformer is implemented using two optional algorithms, which are doubling algorithm and dc3 algorithm.
+ *
+ * @author zbh
+ * @since 0.5
+ */
 public class BWTEncoder {
 
-    /* Original text for encoding. */
+    /**
+     * Original text for encoding.
+     */
     private short[] text;
+
+    /**
+     * The index of the row0 in the text after transformation, where row0 is the first row of the original text.
+     */
     private int origRowIndex;
+
+    /**
+     * Whether to use dc3 or doubling algorithm.
+     * <p>
+     * {@code true} for dc3 algorithm, {@code false} for doubling algorithm.
+     */
     private boolean isDc3;
 
     /**
-     * Creates a new instance of BWTEncoder.
+     * Creates a new {@code BWTEncoder} instance.
      *
      * @param text  The text being transformed.
      * @param isDc3 Whether to use dc3 or doubling algorithm.
@@ -26,6 +47,11 @@ public class BWTEncoder {
         // This is necessary for transforming suffix array into Burrows-Wheeler matrix.
     }
 
+    /**
+     * Returns the text after transformation, including the record of {@code origRowIndex}.
+     *
+     * @return the text after transformation, including the record of {@code origRowIndex}.
+     */
     public short[] Transform() {
         short[] result = new short[text.length + 3];
         short[] trans = transform();

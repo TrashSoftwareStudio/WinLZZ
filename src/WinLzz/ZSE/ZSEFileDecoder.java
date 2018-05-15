@@ -8,7 +8,7 @@ public class ZSEFileDecoder {
 
     private String password;
 
-    public ZSEFileDecoder(String inFile, String password) throws Exception {
+    public ZSEFileDecoder(String inFile, String password) throws FileNotFoundException {
         this.password = password;
         this.fis = new FileInputStream(inFile);
     }

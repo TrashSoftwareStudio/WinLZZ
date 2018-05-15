@@ -29,12 +29,11 @@ import javafx.util.Callback;
 
 import java.awt.*;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.ResourceBundle;
+import java.util.*;
+import java.util.List;
 
 
 public class MainUI implements Initializable {
@@ -87,7 +86,6 @@ public class MainUI implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
         setTree();
         setTreeListener();
         rootTree.getRoot().setExpanded(true);
@@ -103,6 +101,12 @@ public class MainUI implements Initializable {
         if (f != null) {
             currentSelection = new RegularFileNode(f, lanLoader);
             fillTable();
+            backButtonListener();
+            try {
+                expandTill(f);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
         }
         table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
     }
@@ -123,7 +127,7 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    public void licenceAction() {
+    private void licenceAction() {
         Pane root = new Pane();
         Stage dialog = new Stage();
         Scene scene = new Scene(root);
@@ -145,7 +149,7 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    public void changelogAction() throws IOException {
+    private void changelogAction() throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("changelogViewer.fxml"));
         Parent root = loader.load();
         ChangelogViewer clv = loader.getController();
@@ -158,7 +162,7 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    public void languageSelection() {
+    private void languageSelection() {
         Stage lsStage = new Stage();
         HBox pane = new HBox();
         pane.setSpacing(10.0);
@@ -179,17 +183,18 @@ public class MainUI implements Initializable {
         Scene scene = new Scene(pane);
         lsStage.setScene(scene);
         lsStage.setResizable(false);
-        lsStage.show();
+        lsStage.setAlwaysOnTop(true);
+        lsStage.showAndWait();
     }
 
 
     @FXML
-    public void compressMode() throws Exception {
+    private void compressMode() throws Exception {
         ObservableList<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
         File[] selected = new File[selections.size()];
         for (int i = 0; i < selections.size(); i++) selected[i] = selections.get(i).getFile();
         if (selected.length > 0) {
-            GeneralLoaders.writeLastDir(selected[0]);
+            GeneralLoaders.writeLastSelectionDir(selected[0]);
             FXMLLoader loader = new FXMLLoader(getClass().getResource("compressUI.fxml"));
 
             Parent root = loader.load();
@@ -209,14 +214,14 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    public void backAction() {
+    private void backAction() {
         currentSelection = new RegularFileNode(currentSelection.getFile().getParentFile(), lanLoader);
         fillTable();
         backButtonListener();
     }
 
     @FXML
-    public void openAction() throws Exception {
+    private void openAction() throws Exception {
         RegularFileNode rfn = table.getSelectionModel().getSelectedItem();
         switch (rfn.getExtension()) {
             case "pz":
@@ -236,6 +241,9 @@ public class MainUI implements Initializable {
         }
     }
 
+    /**
+     * Refreshes the file table.
+     */
     @FXML
     public void refreshAction() {
         String dir = currentDirLabel.getText();
@@ -245,7 +253,7 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    public void desktopOpenAction() {
+    private void desktopOpenAction() {
         try {
             String dir = currentDirLabel.getText();
             if (dir.length() > 0) {
@@ -260,13 +268,13 @@ public class MainUI implements Initializable {
 
     private void uncompressMode(File selected) throws Exception {
         if (selected != null) {
-            GeneralLoaders.writeLastDir(selected);
+            GeneralLoaders.writeLastSelectionDir(selected);
 
             FXMLLoader loader = new FXMLLoader(getClass().getResource("uncompressUI.fxml"));
             Parent root = loader.load();
 
             Stage stage = new Stage();
-            stage.setTitle("WinLZZ");
+            stage.setTitle(selected.getName());
             stage.setScene(new Scene(root));
             stage.setResizable(false);
 
@@ -403,11 +411,9 @@ public class MainUI implements Initializable {
 
                             setRightPopupMenu();
 
-                            if (click.getButton() == MouseButton.SECONDARY && item != null) {
+                            if (click.getButton() == MouseButton.SECONDARY && item != null)
                                 rightPopupMenu.show(table, click.getScreenX(), click.getScreenY());
-                            } else {
-                                rightPopupMenu.hide();
-                            }
+                            else rightPopupMenu.hide();
                         });
                     }
                 };
@@ -433,7 +439,7 @@ public class MainUI implements Initializable {
                             setText(item);
                             hoverProperty().addListener((ObservableValue<? extends Boolean> obs, Boolean wasHovered,
                                                          Boolean isNowHovered) -> {
-                                if (isNowHovered && !isEmpty()) {
+                                if (isNowHovered && !isEmpty() && getText().length() > 40) {
                                     Tooltip tp = new Tooltip();
                                     tp.setText(getText());
                                     table.setTooltip(tp);
@@ -489,6 +495,7 @@ public class MainUI implements Initializable {
                     else nonDirectories.add(new RegularFileNode(f, lanLoader));
                 }
                 table.getItems().addAll(nonDirectories);
+                GeneralLoaders.writeLastDir(currentSelection.getFile());
             } catch (NullPointerException npe) {
                 placeHolder.setText(lanLoader.get(63));
                 return;
@@ -497,16 +504,60 @@ public class MainUI implements Initializable {
             currentDirLabel.setText("");
             for (File d : File.listRoots())
                 table.getItems().add(new RegularFileNode(d, lanLoader));
+            GeneralLoaders.writeLastDir(null);
         }
         if (table.getItems().size() == 0) placeHolder.setText(lanLoader.get(355));
         else placeHolder.setText("");
     }
 
+    private void expandTill(File file) throws FileNotFoundException {
+        String fullPath = file.getAbsolutePath();
+        if (fullPath.contains(File.separator)) {
+            String[] parts = fullPath.split(String.format("%s%s", "\\", File.separator));
+            if (parts[0].endsWith(":")) parts[0] = parts[0] + File.separator;
+            FileTreeItem current = (FileTreeItem) rootTree.getRoot();
+            for (String part : parts) {
+                current = searchMatched(current, part);
+                current.setExpanded(true);
+            }
+        }
+    }
+
+
+    /**
+     * Perform binary search to find the child that matches the name.
+     *
+     * @param parent     the parent TreeItem.
+     * @param nameToFind name to be found.
+     * @return the matched TreeItem.
+     * @throws FileNotFoundException if the file does not exist, or some unexpected error occurs.
+     */
+    private static FileTreeItem searchMatched(FileTreeItem parent, String nameToFind) throws FileNotFoundException {
+        String name = nameToFind.toLowerCase();
+        List<TreeItem<File>> children = parent.getChildren();
+        int begin = 0;
+        int end = children.size();
+        int mid;
+        FileTreeItem fti;
+        while (begin < end) {
+            mid = (begin + end) / 2;
+            fti = (FileTreeItem) children.get(mid);
+            String fileName = fti.getValue().getName();
+            if (fileName.length() == 0) fileName = fti.getValue().getAbsolutePath();
+            int nameCompare = Util.stringCompare(name, fileName.toLowerCase());
+            if (nameCompare < 0) end = mid;
+            else if (nameCompare > 0) begin = mid;
+            else return fti;
+        }
+        throw new FileNotFoundException("No such file exists: " + name);
+    }
+
+
     /**
      * Sets up the content of the TreeView object "rootTree".
      */
     private void setTree() {
-        TreeItem<File> rootNode = new TreeItem<>(new File(System.getenv("COMPUTERNAME")));
+        FileTreeItem rootNode = new FileTreeItem(new File(System.getenv("COMPUTERNAME")));
         for (File file : File.listRoots()) {
             FileTreeItem rootItems = new FileTreeItem(new SpecialFile(file.getAbsolutePath()));
             rootNode.getChildren().add(rootItems);

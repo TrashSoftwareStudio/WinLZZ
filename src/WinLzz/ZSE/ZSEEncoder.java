@@ -12,7 +12,7 @@ public class ZSEEncoder {
 
     private int[] password;
 
-    ZSEEncoder(byte[] text, String password) throws UnsupportedEncodingException {
+    public ZSEEncoder(byte[] text, String password) throws UnsupportedEncodingException {
         this.text = text;
         this.password = generatePassword(password, text.length);
     }
@@ -109,7 +109,7 @@ public class ZSEEncoder {
     }
 
 
-    byte[] Encode() {
+    public byte[] Encode() {
 
         rollBytes(text);
         byte[] switched = switchRC(text);

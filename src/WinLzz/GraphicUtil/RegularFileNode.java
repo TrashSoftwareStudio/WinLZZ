@@ -28,6 +28,7 @@ public class RegularFileNode {
         return file;
     }
 
+    @SuppressWarnings("all")
     public String getType() {
         if (isRoot) return lanLoader.get(26);
         else if (isDir) {
@@ -45,6 +46,7 @@ public class RegularFileNode {
         else return name;
     }
 
+    @SuppressWarnings("all")
     public String getLastModified() {
         if (isRoot) return "";
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");

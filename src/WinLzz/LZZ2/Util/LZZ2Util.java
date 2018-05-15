@@ -1,18 +1,31 @@
 package WinLzz.LZZ2.Util;
 
-import WinLzz.Utility.Bytes;
 import WinLzz.Utility.FileBitInputStream;
 import WinLzz.Utility.FileBitOutputStream;
-import WinLzz.Utility.Util;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 
 import static WinLzz.Utility.Bytes.numberToBitString;
 
+/**
+ * Utility function serve for LZZ2 compression and decompression programs.
+ *
+ * @since 0.4
+ */
 public abstract class LZZ2Util {
 
-    public static void addLength(int distance, int minimum, BufferedOutputStream bos, FileBitOutputStream fbo) throws IOException {
+    /**
+     * Writes the length to two output streams in specified format.
+     *
+     * @param distance the length
+     * @param minimum  the minimum matching length
+     * @param bos      the head output stream
+     * @param fbo      the extension bits output stream
+     * @throws IOException if any of the two streams is not writable
+     */
+    public static void addLength(int distance, int minimum, BufferedOutputStream bos, FileBitOutputStream fbo)
+            throws IOException {
         // In this case, "distance" means length
         String binaryString = "";
 
@@ -127,6 +140,15 @@ public abstract class LZZ2Util {
         fbo.write(binaryString);
     }
 
+    /**
+     * Writes the distance to two output streams in specified format.
+     *
+     * @param distance the distance
+     * @param minimum  the minimum matching length
+     * @param bos      the head output stream
+     * @param fbo      the extension bits output stream
+     * @throws IOException if any of the two streams is not writable
+     */
     public static void addDistance(int distance, int minimum, BufferedOutputStream bos, FileBitOutputStream fbo) throws IOException {
         String binaryString = "";
 
@@ -333,211 +355,14 @@ public abstract class LZZ2Util {
         fbo.write(binaryString);
     }
 
-//    public static void addDistance2(int distance, int minimum, BufferedOutputStream bos) throws IOException {
-//        String binaryString = "";
-//
-//        // 0, 1, 2, 3 reserved for repeated distances.
-//        if (distance == minimum) {  // Currently unused since distance will not equal to 0.
-//            // 0 bits
-//            throw new IndexOutOfBoundsException();
-////            bos.write((byte) 4);
-//        } else if (distance == minimum + 1) {
-//            // 0 bits
-//            bos.write((byte) 5);
-//        } else if (distance == minimum + 2) {
-//            // 0 bits
-//            bos.write((byte) 6);
-//        } else if (distance == minimum + 3) {
-//            // 0 bits
-//            bos.write((byte) 7);
-//        } else if (distance < minimum + 6) {
-//            // 4 - 5
-//            // 1 bit
-//            bos.write((byte) 8);
-//            bos.write(enumerate(distance - minimum - 4));
-//        } else if (distance < minimum + 8) {
-//            // 6 - 7
-//            // 1 bit
-//            bos.write((byte) 9);
-//            bos.write(enumerate(distance - minimum - 6));
-//        } else if (distance < minimum + 12) {
-//            // 8 - 11
-//            // 2 bits
-//            bos.write((byte) 10);
-//            bos.write(enumerate(distance - minimum - 10));
-//        } else if (distance < minimum + 16) {
-//            // 2 bits
-//            bos.write((byte) 11);
-//            bos.write(enumerate(distance - minimum - 12));
-//        } else if (distance < minimum + 24) {
-//            // 3 bits
-//            bos.write((byte) 12);
-//            bos.write(enumerate(distance - minimum - 16));
-//        } else if (distance < minimum + 32) {
-//            // 3 bits
-//            bos.write((byte) 13);
-//            bos.write(enumerate(distance - minimum - 24));
-//        } else if (distance < minimum + 48) {
-//            // 4 bits
-//            bos.write((byte) 14);
-//            bos.write(enumerate(distance - minimum - 32));
-//        } else if (distance < minimum + 64) {
-//            // 4 bits
-//            bos.write((byte) 15);
-//            bos.write(enumerate(distance - minimum - 48));
-//        } else if (distance < minimum + 96) {
-//            // 5 bits
-//            bos.write((byte) 16);
-//            bos.write(enumerate(distance - minimum - 64));
-//        } else if (distance < minimum + 128) {
-//            // 5 bits
-//            bos.write((byte) 17);
-//            bos.write(enumerate(distance - minimum - 96));
-//        } else if (distance < minimum + 192) {
-//            // 6 bits
-//            bos.write((byte) 18);
-//            bos.write(enumerate(distance - minimum - 128));
-//        } else if (distance < minimum + 256) {
-//            // 6 bits
-//            bos.write((byte) 19);
-//            bos.write(enumerate(distance - minimum - 192));
-//        } else if (distance < minimum + 384) {
-//            // 7 bits
-//            bos.write((byte) 20);
-//            bos.write(enumerate(distance - minimum - 256));
-//        } else if (distance < minimum + 512) {
-//            // 7 bits
-//            bos.write((byte) 21);
-//            bos.write(enumerate(distance - minimum - 384));
-//        } else if (distance < minimum + 768) {
-//            // 8 bits
-//            bos.write((byte) 22);
-//            bos.write(enumerate(distance - minimum - 512));
-//        } else if (distance < minimum + 1024) {
-//            // 8 bits
-//            bos.write((byte) 23);
-//            bos.write(enumerate(distance - minimum - 768));
-//        } else if (distance < minimum + 1536) {
-//            // 9 bits
-//            bos.write((byte) 24);
-//            bos.write(enumerate(distance - minimum - 1024));
-//        } else if (distance < minimum + 2048) {
-//            // 9 bits
-//            bos.write((byte) 25);
-//            bos.write(enumerate(distance - minimum - 1536));
-//        } else if (distance < minimum + 3072) {
-//            // 10 bits
-//            bos.write((byte) 26);
-//            bos.write(enumerate(distance - minimum - 2048));
-//        } else if (distance < minimum + 4096) {
-//            // 10 bits
-//            bos.write((byte) 27);
-//            bos.write(enumerate(distance - minimum - 3072));
-//        } else if (distance < minimum + 6144) {
-//            // 11 bits
-//            bos.write((byte) 28);
-//            bos.write(enumerate(distance - minimum - 4096));
-//        } else if (distance < minimum + 8192) {
-//            // 11 bits
-//            bos.write((byte) 29);
-//            bos.write(enumerate(distance - minimum - 6144));
-//        } else if (distance < minimum + 12288) {
-//            // 12 bits
-//            bos.write((byte) 30);
-//            bos.write(enumerate(distance - minimum - 8192));
-//        } else if (distance < minimum + 16384) {
-//            // 12 bits
-//            bos.write((byte) 31);
-//            bos.write(enumerate(distance - minimum - 12288));
-//        } else if (distance < minimum + 24576) {
-//            // 13 bits
-//            bos.write((byte) 32);
-//            bos.write(enumerate(distance - minimum - 16384));
-//        } else if (distance < minimum + 32768) {
-//            // 13 bits
-//            bos.write((byte) 33);
-//            bos.write(enumerate(distance - minimum - 24576));
-//        } else if (distance < minimum + 49152) {
-//            // 14 bits
-//            bos.write((byte) 34);
-//            bos.write(enumerate(distance - minimum - 32768));
-//        } else if (distance < minimum + 65536) {
-//            // 14 bits
-//            // Up to 65535
-//            // The maximum of LZZ Algorithm
-//            bos.write((byte) 35);
-//            bos.write(enumerate(distance - minimum - 49152));
-//        } else if (distance < minimum + 98304) {
-//            // 15 bits
-//            bos.write((byte) 36);
-//            bos.write(enumerate(distance - minimum - 65536));
-//        } else if (distance < minimum + 131072) {
-//            // 15 bits
-//            bos.write((byte) 37);
-//            binaryString = numberToBitString(distance - minimum - 98304, 15);
-//        } else if (distance < minimum + 196608) {
-//            // 16 bits
-//            bos.write((byte) 38);
-//            binaryString = numberToBitString(distance - minimum - 131072, 16);
-//        } else if (distance < minimum + 262144) {
-//            // 16 bits
-//            bos.write((byte) 39);
-//            binaryString = numberToBitString(distance - minimum - 196608, 16);
-//        } else if (distance < minimum + 393216) {
-//            // 17 bits
-//            bos.write((byte) 40);
-//            binaryString = numberToBitString(distance - minimum - 262144, 17);
-//        } else if (distance < minimum + 524288) {
-//            // 17 bits
-//            bos.write((byte) 41);
-//            binaryString = numberToBitString(distance - minimum - 393216, 17);
-//        } else if (distance < minimum + 786432) {
-//            // 18 bits
-//            bos.write((byte) 42);
-//            binaryString = numberToBitString(distance - minimum - 524288, 18);
-//        } else if (distance < minimum + 1048576) {
-//            // 18 bits
-//            bos.write((byte) 43);
-//            binaryString = numberToBitString(distance - minimum - 786432, 18);
-//        } else if (distance < minimum + 1572864) {
-//            // 20 bits
-//            bos.write((byte) 44);
-//            binaryString = numberToBitString(distance - minimum - 1048576, 19);
-//        } else if (distance < minimum + 2097152) {
-//            // 21 bits
-//            bos.write((byte) 45);
-//            binaryString = numberToBitString(distance - minimum - 1572864, 19);
-//        } else if (distance < minimum + 3145728) {
-//            // 22 bits
-//            bos.write((byte) 46);
-//            binaryString = numberToBitString(distance - minimum - 2097152, 20);
-//        } else if (distance < minimum + 4194304) {
-//            // 22 bits
-//            bos.write((byte) 47);
-//            binaryString = numberToBitString(distance - minimum - 3145728, 20);
-//        } else if (distance < minimum + 6291456) {
-//            // 22 bits
-//            bos.write((byte) 48);
-//            binaryString = numberToBitString(distance - minimum - 4194304, 21);
-//        } else if (distance < minimum + 8388608) {
-//            // 22 bits
-//            bos.write((byte) 49);
-//            binaryString = numberToBitString(distance - minimum - 6291456, 21);
-//        } else if (distance < minimum + 12582912) {
-//            // 22 bits
-//            bos.write((byte) 50);
-//            binaryString = numberToBitString(distance - minimum - 8388608, 22);
-//        } else {
-//            // 23 bits
-//            // Up to 16777215
-//            // Maximum of LZZ2 algorithm
-//            bos.write((byte) 51);
-//            binaryString = numberToBitString(distance - minimum - 12582912, 22);
-//        }
-////        System.out.print(binaryString + " ");
-//
-//    }
-
+    /**
+     * Returns the distance recovered from the <code>disRep</code> and <code>dlbBis</code>
+     *
+     * @param disRep the distance head
+     * @param dlbBis the extension bits input stream
+     * @return the recovered distance
+     * @throws IOException if the <code>disRep</code> is not readable
+     */
     public static int recoverDistance(int disRep, FileBitInputStream dlbBis) throws IOException {
         int bitLen;
         int add;
@@ -753,6 +578,14 @@ public abstract class LZZ2Util {
         }
     }
 
+    /**
+     * Returns the length recovered from the <code>lenRep</code> and <code>dlbBis</code>
+     *
+     * @param lenRep the distance head
+     * @param dlbBis the extension bits input stream
+     * @return the recovered length
+     * @throws IOException if the <code>disRep</code> is not readable
+     */
     public static int recoverLength(int lenRep, FileBitInputStream dlbBis) throws IOException {
         int bitLen;
         int add;
@@ -880,130 +713,5 @@ public abstract class LZZ2Util {
         } else {
             return add;
         }
-    }
-
-    public static byte windowSizeToByte(int windowSize) {
-        return (byte) Util.ceiling(Util.log2(windowSize));
-    }
-
-    public static int byteToWindowSize(byte windowRep) {
-        if (windowRep == 0) return 0;
-        else return (int) Math.pow(2, windowRep & 0xff);
-    }
-
-    public static byte[] generateSizeBlock(long[] sizes) {
-        StringBuilder bits = new StringBuilder();
-        for (long i : sizes) {
-            long bit8 = 256;
-            long bit16 = 65_536 + bit8;
-            long bit24 = 16_777_216 + bit16;
-            long bit32 = 4_294_967_296L + bit24;
-            long bit40 = 1_099_511_627_776L + bit32;
-            long bit48 = 281_474_976_710_656L + bit40;
-            long bit56 = 72_057_594_037_927_936L + bit48;
-            if (i < bit8) {
-                bits.append("00");
-                bits.append(Bytes.numberToBitString(i, 8));
-            } else if (i < bit16) {
-                bits.append("01");
-                bits.append(Bytes.numberToBitString(i - bit8, 16));
-            } else if (i < bit24) {
-                bits.append("10");
-                bits.append(Bytes.numberToBitString(i - bit16, 24));
-            } else if (i < bit32) {
-                bits.append("110");
-                bits.append(Bytes.numberToBitString(i - bit24, 32));
-            } else if (i < bit40) {
-                bits.append("1110");
-                bits.append(Bytes.numberToBitString(i - bit32, 40));
-            } else if (i < bit48) {
-                bits.append("11110");
-                bits.append(Bytes.numberToBitString(i - bit40, 48));
-            } else if (i < bit56) {
-                bits.append("111110");
-                bits.append(Bytes.numberToBitString(i - bit48, 56));
-            } else {
-                bits.append("111111");
-                bits.append(Bytes.numberToBitString(i - bit56, 64));
-            }
-        }
-        byte[] block = Bytes.stringBuilderToBytesFull(bits);
-        byte[] result = new byte[block.length + 1];
-        System.arraycopy(block, 0, result, 0, block.length);
-        result[result.length - 1] = (byte) block.length;
-        return result;
-    }
-
-    public static long[] recoverSizeBlock(byte[] block, int number) {
-        String bits = Bytes.bytesToString(block);
-        long[] result = new long[number];
-        int i = 0;
-        int j = 0;
-        long bit8 = 256;
-        long bit16 = 65_536 + bit8;
-        long bit24 = 16_777_216 + bit16;
-        long bit32 = 4_294_967_296L + bit24;
-        long bit40 = 1_099_511_627_776L + bit32;
-        long bit48 = 281_474_976_710_656L + bit40;
-        long bit56 = 72_057_594_037_927_936L + bit48;
-        while (j < number) {
-            String flag = bits.substring(i, i + 2);
-            i += 2;
-            long base;
-            int read;
-            switch (flag) {
-                case "00":
-                    base = 0;
-                    read = 8;
-                    break;
-                case "01":
-                    base = bit8;
-                    read = 16;
-                    break;
-                case "10":
-                    base = bit16;
-                    read = 24;
-                    break;
-                case "11":
-                    char next = bits.charAt(i);
-                    i += 1;
-                    if (next == '0') {  // 110
-                        base = bit24;
-                        read = 32;
-                    } else {
-                        next = bits.charAt(i);
-                        i += 1;
-                        if (next == '0') {  // 1110
-                            base = bit32;
-                            read = 40;
-                        } else {
-                            next = bits.charAt(i);
-                            i += 1;
-                            if (next == '0') {  // 11110
-                                base = bit40;
-                                read = 48;
-                            } else {
-                                next = bits.charAt(i);
-                                i += 1;
-                                if (next == '0') {  // 111110
-                                    base = bit48;
-                                    read = 56;
-                                } else {  // 111111
-                                    base = bit56;
-                                    read = 64;
-                                }
-                            }
-                        }
-                    }
-                    break;
-                default:
-                    throw new IndexOutOfBoundsException("Unknown Error");
-            }
-            long num = base + Long.parseLong(bits.substring(i, i + read), 2);
-            i += read;
-            result[j] = num;
-            j += 1;
-        }
-        return result;
     }
 }

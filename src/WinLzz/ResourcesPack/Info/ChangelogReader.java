@@ -4,6 +4,12 @@ import java.io.*;
 
 public class ChangelogReader {
 
+    /**
+     * Reads and returns the changelog text.
+     *
+     * @return the changelog text
+     * @throws IOException if the changelog file is not readable
+     */
     public String readChangelog() throws IOException {
         InputStream is = getClass().getResourceAsStream("Changelog.txt");
         BufferedReader br = new BufferedReader(new InputStreamReader(is, "utf-8"));

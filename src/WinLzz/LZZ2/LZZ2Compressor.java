@@ -1,9 +1,3 @@
-/*
- * LZZ2 (Lempel-Ziv-ZBH 2) compressor.
- *
- * An improved version of LZ77 algorithm, implemented by Bohan Zhang.
- */
-
 package WinLzz.LZZ2;
 
 import WinLzz.BWZ.MTFTransformByte;
@@ -19,6 +13,15 @@ import WinLzz.Utility.Util;
 import java.io.*;
 import java.util.*;
 
+/**
+ * LZZ2 (Lempel-Ziv-ZBH 2) compressor, implements {@code Compressor} interface.
+ * <p>
+ * An improved version of LZ77 algorithm, implemented by Bohan Zhang.
+ *
+ * @author zbh
+ * @see WinLzz.Interface.Compressor
+ * @since 0.4
+ */
 public class LZZ2Compressor implements Compressor {
 
     private InputStream sis;
@@ -35,15 +38,15 @@ public class LZZ2Compressor implements Compressor {
 
     private String mainTempName, lenHeadTempName, disHeadTempName, flagTempName, dlBodyTempName;
 
-    private int cmpSize = 0;
+    private long cmpSize;
 
-    private int itemCount = 0;
+    private int itemCount;
 
     private Packer parent;
 
-    private int timeAccumulator = 0;
+    private int timeAccumulator;
 
-    private long lastUpdateProgress = 0;
+    private long lastUpdateProgress;
 
     private long startTime;
 
@@ -401,7 +404,7 @@ public class LZZ2Compressor implements Compressor {
         fc.SepCompress(outFile);
         int flagLen = fc.getCompressedLength();
 
-        int dlbLen = Util.fileConcatenate(outFile, new String[]{dlBodyTempName}, 8192);
+        long dlbLen = Util.fileConcatenate(outFile, new String[]{dlBodyTempName}, 8192);
 
         mtc.SepCompress(outFile);
         int mainLen = mtc.getCompressedLength();
@@ -410,7 +413,7 @@ public class LZZ2Compressor implements Compressor {
 
         int csqLen = csq.length;
         long[] sizes = new long[]{csqLen, disHeadLen, lenHeadLen, flagLen, dlbLen};
-        byte[] sizeBlock = LZZ2Util.generateSizeBlock(sizes);
+        byte[] sizeBlock = Util.generateSizeBlock(sizes);
         outFile.write(sizeBlock);
         cmpSize = disHeadLen + lenHeadLen + flagLen + dlbLen + mainLen + csqLen + sizeBlock.length;
     }

@@ -23,7 +23,7 @@ public class FileInfoUI implements Initializable {
 
     @FXML
     private Label typeLabel, algLabel, versionLabel, versionNeededLabel, fileCountLabel, dirCountLabel, windowSizeLabel,
-            compressRateLabel, origSizeLabel, compressSizeLabel, timeLabel, crcChecksumLabel;
+            compressRateLabel, origSizeLabel, compressSizeLabel, annotationLabel, timeLabel, crcChecksumLabel;
 
     @FXML
     private ProgressBar compressRateBar;
@@ -77,6 +77,10 @@ public class FileInfoUI implements Initializable {
         compressSizeLabel.setText(lanLoader.get(606) + ": " + Util.sizeToReadable(cmpFile.length()));
         fileCountLabel.setText(lanLoader.get(607) + ": " + Util.splitNumber(String.valueOf(unPacker.getFileCount())));
         dirCountLabel.setText(lanLoader.get(608) + ": " + Util.splitNumber(String.valueOf(unPacker.getDirCount() - 1)));
+        String ann = lanLoader.get(612) + ": ";
+        if (unPacker.getAnnotation() != null) ann += lanLoader.get(613);
+        else ann += lanLoader.get(614);
+        annotationLabel.setText(ann);
         // There is one root directory created by packer.
         timeLabel.setText(lanLoader.get(609) + ": " + sdf.format(date));
         crcChecksumLabel.setText(lanLoader.get(610) + ": " + Bytes.longToHex(unPacker.getCrc32Checksum(), false));

@@ -5,11 +5,24 @@ import WinLzz.Utility.Util;
 
 import java.util.ArrayDeque;
 
+/**
+ * A inverse transformer of Burrows-Wheeler Transform.
+ * <p>
+ * This program takes a short array as input text.
+ *
+ * @author zbh
+ * @since 0.5
+ */
 public class BWTDecoder {
 
     private short[] cmpText;
     private int origIndex;
 
+    /**
+     * Creates a new {@code BWTDecoder} instance.
+     *
+     * @param cmpText the text after bwt transformation.
+     */
     public BWTDecoder(short[] cmpText) {
         short[] indexBytesS = new short[3];
         System.arraycopy(cmpText, 0, indexBytesS, 0, 3);
@@ -50,7 +63,15 @@ public class BWTDecoder {
     }
 }
 
+
+/**
+ * An {@code ArrayDeque} that holds {@code Integer} as elements.
+ */
 class IntegerLinkedList extends ArrayDeque<Integer> {
+
+    /**
+     * Creates a new {@code IntegerLinkedList} instance.
+     */
     IntegerLinkedList() {
         super();
     }

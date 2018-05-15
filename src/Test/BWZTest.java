@@ -12,7 +12,8 @@ public class BWZTest {
     public static void main(String[] args) throws Exception {
 
         String name;
-        name = "allCodes.zip";
+        name = "dsCtrl.txt";
+//        name = "allCodes.zip";
 //        name = "p1.png";
 //        name = "t1.bmp";
 //        name = "cmpFiles.tar";

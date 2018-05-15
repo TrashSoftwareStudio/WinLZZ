@@ -5,17 +5,35 @@ import WinLzz.Utility.Util;
 
 import java.util.ArrayList;
 
+/**
+ * Decoder of Zero-Run-Length-Coding.
+ * <p>
+ * This program takes a short array as input text, and output a short array as result.
+ *
+ * @author zbh
+ * @since 0.5
+ */
 class ZeroRLCDecoder {
 
     private short[] text;
-
     private int maxBlockLength;
 
+    /**
+     * Creates a new {@code ZeroRLCDecoder} instance.
+     *
+     * @param text           the text after zero rlc coding.
+     * @param maxBlockLength the maximum possible length after decode.
+     */
     ZeroRLCDecoder(short[] text, int maxBlockLength) {
         this.text = text;
         this.maxBlockLength = maxBlockLength;
     }
 
+    /**
+     * Returns the decoded text.
+     *
+     * @return the decoded text.
+     */
     short[] Decode() {
         short[] temp = new short[maxBlockLength];
         int index = 0;

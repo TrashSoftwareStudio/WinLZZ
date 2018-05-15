@@ -3,22 +3,32 @@ package WinLzz.BWZ;
 import WinLzz.BWZ.Util.BWZUtil;
 import WinLzz.BWZ.Util.LinkedDictionary;
 
-import java.util.Arrays;
-
+/**
+ * A Move-To-Front transformer, a Zero-Run-Length-Coder is integrated.
+ * <p>
+ * This program takes a short array as text.
+ *
+ * @author zbh
+ * @since 0.5
+ */
 class MTFTransform {
 
     private short[] origText;
 
-    public static void main(String[] args) {
-        short[] t = new short[]{1, 4, 4, 4, 4, 4, 4, 4, 4, 1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 4, 7};
-        MTFTransform mtf = new MTFTransform(t);
-        System.out.println(Arrays.toString(mtf.Transform()));
-    }
-
+    /**
+     * Creates a new {@code MTFTransform} instance.
+     *
+     * @param text the text to be transformed.
+     */
     MTFTransform(short[] text) {
         this.origText = text;
     }
 
+    /**
+     * Returns the text after mtf transformation and zero run length coding.
+     *
+     * @return the text after mtf transformation and zero run length coding..
+     */
     short[] Transform() {
         LinkedDictionary ld = new LinkedDictionary();
         ld.initialize(257);

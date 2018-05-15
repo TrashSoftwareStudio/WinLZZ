@@ -4,17 +4,33 @@ import WinLzz.Utility.Bytes;
 
 import java.util.HashMap;
 
+/**
+ * A huffman compression program that all operations take places in the random access memory.
+ * <p>
+ * This compressor takes an alphabet that has size at most 32768.
+ *
+ * @author zbh
+ * @since 0.5
+ */
 public class LongHuffmanCompressorRam {
 
     private short[] text;
     private int alphabetSize;
     private HashMap<Short, Integer> freqMap = new HashMap<>();
     private HashMap<Short, String> huffmanCode = new HashMap<>();
-    private final static int maxHeight = 15;
+
+    /**
+     * The maximum height (depth) of the huffman tree.
+     */
+    private int maxHeight = 15;
+
+    /**
+     * The signal that marks the
+     */
     private short endSig;
 
     /**
-     * Creates a new LongHuffmanCompressorRam instance.
+     * Creates a new {@code LongHuffmanCompressorRam} instance.
      * <p>
      * LongHuffmanCompressor deals text from range 0 to 32767.
      * This compressor works completely in random access memory.
@@ -42,6 +58,16 @@ public class LongHuffmanCompressorRam {
     }
 
     /**
+     * Sets up the {@code maxHeight} value which limits the max depth of the huffman tree.
+     *
+     * @param height the tree-height limit.
+     */
+    @Deprecated
+    public void setMaxHeight(int height) {
+        this.maxHeight = height;
+    }
+
+    /**
      * Returns the canonical huffman code in given length.
      *
      * @param length the length of the returning canonical map.
@@ -61,7 +87,7 @@ public class LongHuffmanCompressorRam {
     }
 
     /**
-     * Returns the compressed text using the native huffman code of this compressor.
+     * Returns the compressed text using the native huffman code of this {@code LongHuffmanCompressorRam}.
      *
      * @return the compressed text.
      */
@@ -70,7 +96,7 @@ public class LongHuffmanCompressorRam {
     }
 
     /**
-     * Returns the compressed text using the given huffman code of this compressor.
+     * Returns the compressed text using the given huffman code of this {@code LongHuffmanCompressorRam}.
      *
      * @param anotherMap the canonical huffman code uses for creating another huffman map for compressing.
      * @return the compressed text.

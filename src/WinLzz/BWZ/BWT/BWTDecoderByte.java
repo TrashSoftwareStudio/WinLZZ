@@ -2,12 +2,26 @@ package WinLzz.BWZ.BWT;
 
 import java.util.Arrays;
 
+/**
+ * A inverse transformer of Burrows-Wheeler Transform.
+ * <p>
+ * This program takes a byte array as input text.
+ *
+ * @author zbh
+ * @since 0.6
+ */
 public class BWTDecoderByte {
 
     private byte[] cmpText;
-
     private int origIndex;
 
+    /**
+     * Creates a new {@code BWTDecoderByte} instance.
+     *
+     * @param cmpText      the text after bwt transformation.
+     * @param origRowIndex the index of the row0 in the text after transformation,
+     *                     where row0 is the first row of the original text.
+     */
     public BWTDecoderByte(byte[] cmpText, int origRowIndex) {
         origIndex = origRowIndex;
         this.cmpText = cmpText;

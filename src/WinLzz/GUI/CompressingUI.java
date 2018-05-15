@@ -1,5 +1,6 @@
 package WinLzz.GUI;
 
+import WinLzz.GraphicUtil.AnnotationNode;
 import WinLzz.Packer.Packer;
 import WinLzz.ResourcesPack.Languages.LanguageLoader;
 import WinLzz.Utility.Util;
@@ -41,6 +42,7 @@ public class CompressingUI implements Initializable {
     private int windowSize, bufferSize, cmpLevel, encryptLevel, threads;
     private String password;
     private Packer packer;
+    private AnnotationNode annotation;
     private long startTime;
 
     private MainUI grandParent;
@@ -69,13 +71,15 @@ public class CompressingUI implements Initializable {
         this.path = path;
     }
 
-    void setPref(int windowSize, int bufferSize, int compressionLevel, String algorithm, int threads) {
+    void setPref(int windowSize, int bufferSize, int compressionLevel, String algorithm, int threads,
+                 AnnotationNode annotation) {
         this.windowSize = windowSize;
         this.bufferSize = bufferSize;
         this.cmpLevel = compressionLevel;
         this.alg = algorithm;
         this.threads = threads;
-        if (!algorithm.equals("bwz")) {
+        this.annotation = annotation;
+        if (algorithm.equals("lzz2")) {
             compressedSizeLabel.setDisable(true);
             compressedSizeLabel.setVisible(false);
             cmpSizeTextLabel.setDisable(true);
@@ -190,6 +194,7 @@ public class CompressingUI implements Initializable {
                     packer.setAlgorithm(alg);
                     packer.setThreads(threads);
                     packer.setLanLoader(lanLoader);
+                    if (annotation != null) packer.setAnnotation(annotation);
 
                     long totalLength = packer.getTotalOrigSize();
 

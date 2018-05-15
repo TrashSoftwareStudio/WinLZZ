@@ -27,7 +27,7 @@ public class HuffmanCompressor {
 
 
     /**
-     * Constructor of a new HuffmanCompressor Object.
+     * Constructor of a new {@code HuffmanCompressor} instance.
      * <p>
      * Creates a new HuffmanCompressor which takes the "inFile" as the file to compress.
      *
@@ -36,7 +36,6 @@ public class HuffmanCompressor {
     public HuffmanCompressor(String inFile) {
         this.inFile = inFile;
     }
-
 
     /**
      * Generates the frequency map.

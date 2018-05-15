@@ -14,6 +14,13 @@ import WinLzz.Utility.Util;
 import java.io.*;
 import java.util.LinkedList;
 
+/**
+ * LZZ2-algorithm decompressor, implements {@code DeCompressor} interface.
+ *
+ * @author zbh
+ * @see WinLzz.Interface.DeCompressor
+ * @since 0.4
+ */
 public class LZZ2DeCompressor implements DeCompressor {
 
     private String inFile;
@@ -64,7 +71,7 @@ public class LZZ2DeCompressor implements DeCompressor {
         raf.seek(length - sizeBlockSize - 1);
         raf.read(block);
 
-        long[] sizes = LZZ2Util.recoverSizeBlock(block, 5);
+        long[] sizes = Util.recoverSizeBlock(block, 5);
         csqLen = (int) sizes[0];
         disHeadLen = (int) sizes[1];
         lenHeadLen = (int) sizes[2];

@@ -2,23 +2,29 @@ package WinLzz.GraphicUtil;
 
 import java.io.File;
 
+/**
+ * An extension of {@code File} object, which has a slightly different {@code toString} method.
+ *
+ * @author zbh
+ * @see java.io.File
+ * @since 0.7
+ */
 public class SpecialFile extends File {
 
-
     /**
-     * Creates a new instance of a SpecialFile object.
+     * Creates a new {@code SpecialFile} instance.
      *
-     * @param path the absolute path of this SpecialFile object.
+     * @param path the absolute path of this {@code SpecialFile}
      */
     public SpecialFile(String path) {
         super(path);
     }
 
-
     /**
-     * Returns a readable String object.
+     * Returns a readable {@code String} object.
      * <p>
-     * This method overrides the "toString" method of the File class. It returns only the native name of this file.
+     * This method overrides the {@code toString} method of the File class.
+     * It returns only the native name of this file.
      *
      * @return the native name of this file.
      */

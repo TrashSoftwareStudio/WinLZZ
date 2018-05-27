@@ -1,33 +1,77 @@
 package WinLzz.ZSE;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import WinLzz.Utility.MultipleInputStream;
+
+import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * A ZSE-based encoder that encodes a file.
+ *
+ * @author zbh
+ * @see ZSEEncoder
+ * @since 0.4
+ */
 public class ZSEFileEncoder {
 
     static final int blockSize = 8192;
 
-    private FileInputStream fis;
+    private InputStream fis;
 
     private String password;
 
     private long encodeLength;
 
+    /**
+     * Creates a new {ZSEFileEncoder} instance.
+     * <p>
+     * This constructor takes a file as input.
+     *
+     * @param inFile   the name of the file to be encoded
+     * @param password the password
+     * @throws IOException if the file is not readable
+     */
     public ZSEFileEncoder(String inFile, String password) throws IOException {
         fis = new FileInputStream(inFile);
         this.password = password;
     }
 
-    public static byte[] md5PlainCode(String password) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        return md.digest(password.getBytes("utf-8"));
+    /**
+     * Creates a new {ZSEFileEncoder} instance.
+     * <p>
+     * This constructor takes a {MultipleInputStream} as input.
+     *
+     * @param in       the input stream to be encoded
+     * @param password the password
+     */
+    public ZSEFileEncoder(MultipleInputStream in, String password) {
+        fis = in;
+        this.password = password;
     }
 
-    public void Encode(OutputStream out) throws Exception {
+    /**
+     * Returns the MD5 checksum of the <code>password</code>.
+     *
+     * @param password the password to be calculated
+     * @return the MD5 checksum
+     */
+    public static byte[] md5PlainCode(String password) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            return md.digest(password.getBytes("utf-8"));
+        } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+            throw new RuntimeException("This cannot happen");
+        }
+    }
+
+    /**
+     * Outputs the encoded data into <code>out</code>.
+     *
+     * @param out the output stream to write data
+     * @throws IOException if the output stream is not writable
+     */
+    public void Encode(OutputStream out) throws IOException {
         int read;
         byte[] block = new byte[blockSize];
         while ((read = fis.read(block)) != -1) {
@@ -45,6 +89,11 @@ public class ZSEFileEncoder {
         fis.close();
     }
 
+    /**
+     * Returns the length of the data after encoding.
+     *
+     * @return the length of the data after encoding
+     */
     public long getEncodeLength() {
         return encodeLength;
     }

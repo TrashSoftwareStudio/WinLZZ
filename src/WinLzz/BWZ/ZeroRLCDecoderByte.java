@@ -37,7 +37,7 @@ public class ZeroRLCDecoderByte {
         int i = 0;
         while (i < text.length) {
             byte b = text[i];
-            if (b < (byte) 2) {
+            if (b == 0 || b == 1) {
                 runLengths.add(b);
             } else {
                 if (!runLengths.isEmpty()) {

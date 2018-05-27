@@ -223,21 +223,30 @@ public class MainUI implements Initializable {
     @FXML
     private void openAction() throws Exception {
         RegularFileNode rfn = table.getSelectionModel().getSelectedItem();
-        switch (rfn.getExtension()) {
-            case "pz":
-                uncompressMode(rfn.getFile());
-                break;
-            default:
-                try {
-                    Desktop.getDesktop().open(rfn.getFile());
-                } catch (IOException ioe) {
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setTitle(lanLoader.get(60));
-                    alert.setHeaderText(lanLoader.get(61));
-                    alert.setContentText(lanLoader.get(62));
-                    alert.showAndWait();
-                }
-                break;
+        if (rfn.getFile().exists()) {
+            switch (rfn.getExtension()) {
+                case "pz":
+                    uncompressMode(rfn.getFile());
+                    break;
+                default:
+                    try {
+                        Desktop.getDesktop().open(rfn.getFile());
+                    } catch (IOException ioe) {
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setTitle(lanLoader.get(60));
+                        alert.setHeaderText(lanLoader.get(61));
+                        alert.setContentText(lanLoader.get(62));
+                        alert.showAndWait();
+                    }
+                    break;
+            }
+        } else {
+            Alert alert2 = new Alert(Alert.AlertType.WARNING);
+            alert2.setTitle(lanLoader.get(60));
+            alert2.setHeaderText(lanLoader.get(61));
+            alert2.setContentText(lanLoader.get(64));
+            alert2.showAndWait();
+            refreshAction();
         }
     }
 

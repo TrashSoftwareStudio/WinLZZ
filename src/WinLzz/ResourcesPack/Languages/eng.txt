@@ -42,6 +42,7 @@ English
 61=Cannot open selected file
 62=File is occupied by another process
 63=No access to file
+64=File does not exist
 
 70=Property
 71=Delete
@@ -86,6 +87,7 @@ English
 205=Compression Ratio:
 206=Compressing...
 207=Compression Speed:
+208=Searching...
 
 #  Compression Progress UI Text
 
@@ -144,6 +146,7 @@ English
 504=Decompressing...
 505=Speed:
 506=Testing...
+507=Extracting...
 
 #  Uncompress Progress UI Text
 

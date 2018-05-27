@@ -26,14 +26,15 @@ public class MTFInverseByte {
     /**
      * Returns the text after the inverse transform.
      *
+     * @param alphabetSize the size of alphabet in <code>text</code>
      * @return the text after the inverse transform.
      */
-    public byte[] Inverse() {
+    public byte[] Inverse(int alphabetSize) {
         LinkedList<Byte> ll = new LinkedList<>();
-        for (byte i = 0; i < 18; i++) ll.addLast(i);
+        for (int i = 0; i < alphabetSize; i++) ll.addLast((byte) i);
         byte[] result = new byte[text.length];
         int index = 0;
-        for (short b : text) {
+        for (byte b : text) {
             int i = b & 0xff;
             Byte s;
             if (i == 0) s = ll.getFirst();

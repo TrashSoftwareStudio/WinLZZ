@@ -25,7 +25,7 @@ public class CompressingUI implements Initializable {
     @FXML
     private Label messageLabel, percentageLabel, ratioLabel, timeUsedLabel, expectTimeLabel, totalSizeLabel,
             passedSizeLabel, cmpSizeTextLabel, currentCmpRatioTextLabel, compressedSizeLabel, currentCmpRatioLabel,
-            origSizeTextLabel, timeUsedTextLabel, passedSizeTextLabel, timeRemainTextLabel, speedTextLabel;
+            origSizeTextLabel, timeUsedTextLabel, passedSizeTextLabel, timeRemainTextLabel, speedTextLabel, fileLabel;
 
     @FXML
     private Button cancelButton;
@@ -34,7 +34,7 @@ public class CompressingUI implements Initializable {
 
     private ChangeListener<Number> progressListener;
 
-    private ChangeListener<String> percentageListener, stepListener ,speedRatioListener, timeUsedListener,
+    private ChangeListener<String> percentageListener, stepListener, fileListener, speedRatioListener, timeUsedListener,
             timeExpectedListener, passedLengthListener, cmpSizeListener, currentCmpRatioListener;
 
     private String name, alg;
@@ -139,7 +139,7 @@ public class CompressingUI implements Initializable {
         });
 
         service.setOnCancelled(e -> {
-            packer.interrupt();
+            if (packer != null) packer.interrupt();
             unbindListeners();
             progressBar.setProgress(0.0);
             System.gc();
@@ -156,6 +156,7 @@ public class CompressingUI implements Initializable {
     private void unbindListeners() {
         packer.progressProperty().removeListener(progressListener);
         packer.stepProperty().removeListener(stepListener);
+        packer.fileProperty().removeListener(fileListener);
         packer.ratioProperty().removeListener(speedRatioListener);
         packer.percentageProperty().removeListener(percentageListener);
         packer.timeUsedProperty().removeListener(timeUsedListener);
@@ -189,6 +190,7 @@ public class CompressingUI implements Initializable {
                 protected Void call() throws Exception {
                     startTime = System.currentTimeMillis();
                     packer = new Packer(path);
+                    if (isCancelled()) return null;
                     packer.setCmpLevel(cmpLevel);
                     packer.setEncrypt(password, encryptLevel);
                     packer.setAlgorithm(alg);
@@ -196,12 +198,8 @@ public class CompressingUI implements Initializable {
                     packer.setLanLoader(lanLoader);
                     if (annotation != null) packer.setAnnotation(annotation);
 
-                    long totalLength = packer.getTotalOrigSize();
-
-                    Platform.runLater(() -> totalSizeLabel.setText(Util.sizeToReadable(totalLength)));
-
-                    progressListener = (observable, oldValue, newValue) -> updateProgress(newValue.longValue(), totalLength);
                     stepListener = (observable, oldValue, newValue) -> updateTitle(newValue);
+                    fileListener = (observable, oldValue, newValue) -> Platform.runLater(() -> fileLabel.setText(newValue));
                     speedRatioListener = (observable, oldValue, newValue) -> updateMessage(newValue);
                     percentageListener = (observable, oldValue, newValue) -> Platform.runLater(() -> percentageLabel.setText(newValue));
                     timeUsedListener = (observable, oldValue, newValue) -> Platform.runLater(() -> timeUsedLabel.setText(newValue));
@@ -213,7 +211,7 @@ public class CompressingUI implements Initializable {
                     currentCmpRatioListener = (observable, oldValue, newValue) -> Platform.runLater(() -> currentCmpRatioLabel.setText(newValue));
 
                     packer.stepProperty().addListener(stepListener);
-                    packer.progressProperty().addListener(progressListener);
+                    packer.fileProperty().addListener(fileListener);
                     packer.ratioProperty().addListener(speedRatioListener);
                     packer.percentageProperty().addListener(percentageListener);
                     packer.timeUsedProperty().addListener(timeUsedListener);
@@ -222,6 +220,16 @@ public class CompressingUI implements Initializable {
 
                     packer.compressedSizeProperty().addListener(cmpSizeListener);
                     packer.currentCmpRatioProperty().addListener(currentCmpRatioListener);
+
+                    updateTitle(lanLoader.get(208));
+                    Platform.runLater(() -> percentageLabel.setText("0.0"));
+                    packer.build();
+
+                    // Add progress bar
+                    long totalLength = packer.getTotalOrigSize();
+                    Platform.runLater(() -> totalSizeLabel.setText(Util.sizeToReadable(totalLength)));
+                    progressListener = (observable, oldValue, newValue) -> updateProgress(newValue.longValue(), totalLength);
+                    packer.progressProperty().addListener(progressListener);
 
                     packer.Pack(path[0].getParent() + File.separator + name, windowSize, bufferSize);
                     updateProgress(totalLength, totalLength);
@@ -236,7 +244,7 @@ public class CompressingUI implements Initializable {
         timeUsedLabel.setText("--:--");
         expectTimeLabel.setText("--:--");
         passedSizeLabel.setText("0 " + lanLoader.get(250));
-        compressedSizeLabel.setText("0 "  + lanLoader.get(250));
+        compressedSizeLabel.setText("0 " + lanLoader.get(250));
         currentCmpRatioLabel.setText("0.0%");
 
         origSizeTextLabel.setText(lanLoader.get(200));

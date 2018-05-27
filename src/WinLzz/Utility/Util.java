@@ -230,8 +230,35 @@ public abstract class Util {
             bos.write(buffer, 0, read);
             lengthRem -= read;
         }
-        bos.flush();
-        bos.close();
+    }
+
+    /**
+     * Writes the input stream <code>bis</code> into the output stream <code>bos</code>, with <code>length</code>
+     * number of bytes copied.
+     *
+     * @param bis        the input stream
+     * @param bos        the {@code OutputStream} to be written
+     * @param bufferSize the size of the IO buffer,
+     *                   which is the number of bytes store in random access memory during process
+     * @param length     the total length to be written
+     * @throws IOException if any IO error occurs
+     */
+    public static void fileTruncate(MultipleInputStream bis, OutputStream bos, int bufferSize, long length) throws IOException {
+        long lengthRem = length;
+        byte[] buffer = new byte[bufferSize];
+        int read;
+
+        while (lengthRem > 0) {
+            if (lengthRem >= bufferSize) {
+                read = bis.read(buffer);
+                bos.write(buffer);
+            } else {
+                byte[] shortBuffer = new byte[(int) lengthRem];
+                read = bis.read(shortBuffer);
+                bos.write(shortBuffer);
+            }
+            lengthRem -= read;
+        }
     }
 
     /**
@@ -610,4 +637,5 @@ public abstract class Util {
         fc.close();
         return crc.getValue();
     }
+
 }

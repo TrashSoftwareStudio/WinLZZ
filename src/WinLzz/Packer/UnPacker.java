@@ -89,6 +89,11 @@ public class UnPacker {
     private long cmpMainLength;
 
     /**
+     * Length of this archive file.
+     */
+    private long archiveLength;
+
+    /**
      * Length of the original file (uncompressed).
      */
     private long origSize;
@@ -120,6 +125,7 @@ public class UnPacker {
     public final ReadOnlyStringWrapper timeUsed = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper timeExpected = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper passedLength = new ReadOnlyStringWrapper();
+    private final ReadOnlyStringWrapper currentFile = new ReadOnlyStringWrapper();
 
     public long startTime;
     private long creationTime, crc32Checksum;
@@ -152,7 +158,7 @@ public class UnPacker {
      */
     public void readInfo() throws IOException, NotAPzFileException {
         File f = new File(packName);
-        int totalCmpLength = (int) f.length();
+        archiveLength = f.length();
 
         bis = new BufferedInputStream(new FileInputStream(packName));
 
@@ -196,7 +202,7 @@ public class UnPacker {
         extraField = new byte[extraFieldLen];
         if (bis.read(extraField) != extraFieldLen) throw new IOException("Error occurs while reading");
 
-        cmpMainLength = totalCmpLength - cmpMapLen - extraFieldLen - 22;
+        cmpMainLength = archiveLength - cmpMapLen - extraFieldLen - 22;
 
         String info = Bytes.byteToBitString(infoByte[0]);
         String enc = info.substring(0, 2);  // The encrypt level of this archive.
@@ -268,7 +274,7 @@ public class UnPacker {
                     mapDec = new LZZ2DeCompressor(cmpMapName, Packer.defaultWindowSize);
                     break;
                 case "bwz":
-                    mapDec = new BWZDeCompressor(cmpMapName, Packer.defaultWindowSize);
+                    mapDec = new BWZDeCompressor(cmpMapName, Packer.defaultWindowSize, 0);
                     break;
                 default:
                     throw new NoSuchAlgorithmException("No such algorithm");
@@ -279,7 +285,7 @@ public class UnPacker {
                     mapDec = new LZZ2DeCompressor(cmpMapName, windowSize);
                     break;
                 case "bwz":
-                    mapDec = new BWZDeCompressor(cmpMapName, windowSize);
+                    mapDec = new BWZDeCompressor(cmpMapName, windowSize, 0);
                     break;
                 default:
                     throw new NoSuchAlgorithmException("No such algorithm");
@@ -385,7 +391,7 @@ public class UnPacker {
 
                 try {
                     ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    BWZDeCompressor deCompressor = new BWZDeCompressor(temp, 32768);
+                    BWZDeCompressor deCompressor = new BWZDeCompressor(temp, 32768, 0);
                     deCompressor.Uncompress(out);
                     uncompressedText = out.toByteArray();
                 } catch (Exception e) {
@@ -450,21 +456,45 @@ public class UnPacker {
         return primaryVersion;
     }
 
+    private void unCompressMainPureBWZ() throws Exception {
+        BWZDeCompressor mainDec = new BWZDeCompressor(packName, windowSize, archiveLength - cmpMainLength);
+        mainDec.setParent(this);
+        mainDec.setThreads(threadNumber);
+        FileOutputStream mainFos = new FileOutputStream(tempName);
+        try {
+            mainDec.Uncompress(mainFos);
+            mainFos.close();
+        } catch (Exception e) {
+            mainDec.deleteCache();
+            throw e;
+        } finally {
+            bis.close();
+        }
+
+        if (isInterrupted) return;
+        long currentCRC32 = Util.generateCRC32(tempName);
+        if (currentCRC32 != crc32Checksum) throw new Exception("CRC32 Checksum does not match");
+
+    }
+
     private void unCompressMain() throws Exception {
         if (origSize == 0) {
             File f = new File(tempName);
             if (!f.createNewFile()) System.out.println("Creation failed");
         } else if (!isUnCompressed()) {
             if (encryptLevel != 0) {
-                Util.fileTruncate(bis, encMainName, 8192, cmpMainLength);
                 FileOutputStream fos = new FileOutputStream(cmpTempName);
-                ZSEFileDecoder zfd = new ZSEFileDecoder(encMainName, password);
+                ZSEFileDecoder zfd = new ZSEFileDecoder(bis, password, cmpMainLength);
                 zfd.Decode(fos);
                 fos.flush();
                 fos.close();
+            } else if (windowSize != 0 && alg.equals("bwz")) {
+                unCompressMainPureBWZ();
+                return;
             } else {
                 Util.fileTruncate(bis, cmpTempName, 8192, cmpMainLength);
             }
+
             if (windowSize == 0) {
                 tempName = cmpTempName;
             } else {
@@ -474,7 +504,7 @@ public class UnPacker {
                         mainDec = new LZZ2DeCompressor(cmpTempName, windowSize);
                         break;
                     case "bwz":
-                        mainDec = new BWZDeCompressor(cmpTempName, windowSize);
+                        mainDec = new BWZDeCompressor(cmpTempName, windowSize, 0);
                         break;
                     default:
                         throw new NoSuchAlgorithmException("No such algorithm");
@@ -525,7 +555,7 @@ public class UnPacker {
      */
     public void unCompressFrom(String targetDir, ContextNode cn) throws Exception {
         startTime = System.currentTimeMillis();
-        if (languageLoader != null) step.set(languageLoader.get(350));
+        if (languageLoader != null) step.set(languageLoader.get(504));
         progress.set(1);
         unCompressMain();
         if (isInterrupted) return;
@@ -533,19 +563,21 @@ public class UnPacker {
         String dirOffset;
         if (!cn.getPath().contains(File.separator)) dirOffset = "";
         else dirOffset = cn.getPath().substring(0, cn.getPath().lastIndexOf(File.separator));
-        traversalUncompress(targetDir, cn, raf, dirOffset);
+        step.setValue(languageLoader.get(507));
+        traversalExtract(targetDir, cn, raf, dirOffset);
         raf.close();
     }
 
-    private void traversalUncompress(String targetDir, ContextNode cn, RandomAccessFile raf, String dirOffset) throws IOException {
+    private void traversalExtract(String targetDir, ContextNode cn, RandomAccessFile raf, String dirOffset) throws IOException {
         String path = targetDir + File.separator + cn.getPath().substring(dirOffset.length());
         File f = new File(path);
         if (cn.isDir()) {
             if (!f.exists()) {
                 if (!f.mkdirs()) System.out.println("Failed to create directory");
             }
-            for (ContextNode scn : cn.getChildren()) traversalUncompress(targetDir, scn, raf, dirOffset);
+            for (ContextNode scn : cn.getChildren()) traversalExtract(targetDir, scn, raf, dirOffset);
         } else {
+            currentFile.setValue(cn.getPath().substring(1));
             long[] location = cn.getLocation();
             raf.seek(location[0]);
             Util.fileTruncate(raf, path, 8192, location[1] - location[0]);
@@ -566,7 +598,7 @@ public class UnPacker {
      * @return true if the file can be uncompress successfully and the total length is equal to the original length.
      */
     public boolean TestPack() {
-        if (languageLoader != null) step.set(languageLoader.get(350));
+        if (languageLoader != null) step.set(languageLoader.get(506));
         try {
             unCompressMain();
             return true;
@@ -734,6 +766,14 @@ public class UnPacker {
 
     public ReadOnlyStringProperty passedLengthProperty() {
         return passedLength;
+    }
+
+    public ReadOnlyStringProperty stepProperty() {
+        return step;
+    }
+
+    public ReadOnlyStringProperty fileProperty() {
+        return currentFile;
     }
 }
 

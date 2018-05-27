@@ -22,6 +22,7 @@ import WinLzz.Interface.Compressor;
 import WinLzz.LZZ2.LZZ2Compressor;
 import WinLzz.ResourcesPack.Languages.LanguageLoader;
 import WinLzz.Utility.Bytes;
+import WinLzz.Utility.MultipleInputStream;
 import WinLzz.Utility.Util;
 import WinLzz.ZSE.ZSEEncoder;
 import WinLzz.ZSE.ZSEFileEncoder;
@@ -29,8 +30,7 @@ import javafx.beans.property.*;
 
 import java.io.*;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 
 /**
  * The .pz archive packing program.
@@ -46,12 +46,12 @@ public class Packer {
      * <p>
      * Any change of this value will result the incompatibility between the program and older archive file.
      */
-    public final static byte primaryVersion = 23;
+    public final static byte primaryVersion = 24;
 
     /**
      * The secondary core version.
      */
-    public final static byte secondaryVersion = 1;
+    public final static byte secondaryVersion = 0;
 
     /**
      * The signature for a WinLZZ archive (*.pz) file.
@@ -103,6 +103,8 @@ public class Packer {
      */
     private ArrayList<IndexNode> indexNodes = new ArrayList<>();
 
+    private File[] inFiles;
+
     private String password;
     private String alg;
 
@@ -126,6 +128,7 @@ public class Packer {
     public final ReadOnlyStringWrapper percentage = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper ratio = new ReadOnlyStringWrapper();
     private final ReadOnlyStringWrapper step = new ReadOnlyStringWrapper();
+    public final ReadOnlyStringWrapper file = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper timeUsed = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper timeExpected = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper passedLength = new ReadOnlyStringWrapper();
@@ -144,6 +147,13 @@ public class Packer {
      * @param inFiles the input root files.
      */
     public Packer(File[] inFiles) {
+        this.inFiles = inFiles;
+    }
+
+    /**
+     * Builds the file structure.
+     */
+    public void build() {
         RootFile rf = new RootFile(inFiles);
         IndexNode rootNode = new IndexNode(rf);
         fileCount = 1;
@@ -152,7 +162,9 @@ public class Packer {
     }
 
     private void buildIndexTree(File file, IndexNode currentNode) {
+        if (isInterrupted) return;
         if (file.isDirectory()) {
+            this.file.setValue(file.getAbsolutePath() + "\\");
             File[] sub = file.listFiles();
 
             int currentCount = fileCount;
@@ -174,16 +186,10 @@ public class Packer {
         }
     }
 
-    private void writeMapToStream(OutputStream headBos, OutputStream mainBos) throws IOException {
+    private void writeMapToStream(OutputStream headBos, LinkedList<File> mainList) throws IOException {
         for (IndexNode in : indexNodes) {
             headBos.write(in.toByteArray());
-            if (!in.isDir()) {
-                FileInputStream bis = new FileInputStream(in.getFile());
-                byte[] mid = new byte[8192];
-                int read;
-                while ((read = bis.read(mid)) != -1) mainBos.write(mid, 0, read);
-                bis.close();
-            }
+            if (!in.isDir()) mainList.addLast(in.getFile());
         }
     }
 
@@ -207,7 +213,6 @@ public class Packer {
     public void Pack(String outFile, int windowSize, int bufferSize) throws Exception {
         if (lanLoader != null) step.setValue(lanLoader.get(270));
         percentage.set("0.0");
-        progress.set(1);
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outFile));
         bos.write(Bytes.intToBytes32(HEADER));  // Write header : 4 bytes
         bos.write(primaryVersion);  // Write version : 2 bytes
@@ -260,21 +265,14 @@ public class Packer {
         bos.write(extraField);
 
         String tempHeadName = outFile + ".head";
-        String tempMainName = outFile + ".main";
         BufferedOutputStream headBos = new BufferedOutputStream(new FileOutputStream(tempHeadName));
-        FileOutputStream mainBos = new FileOutputStream(tempMainName);
 
-        writeMapToStream(headBos, mainBos);
+        LinkedList<File> inputStreams = new LinkedList<>();
+
+        writeMapToStream(headBos, inputStreams);  // Traverses the whole directory
 
         headBos.flush();
         headBos.close();
-        mainBos.flush();
-        mainBos.close();
-
-        long crc32 = Util.generateCRC32(tempMainName);
-        byte[] fullBytes = Bytes.longToBytes(crc32);
-        byte[] crc32Checksum = new byte[4];
-        System.arraycopy(fullBytes, 4, crc32Checksum, 0, 4);
 
         if (encryptLevel != 0) {
             bos.write(ZSEFileEncoder.md5PlainCode(password));
@@ -326,11 +324,13 @@ public class Packer {
 
         String encMainName = outFile + ".enc";
 
+        MultipleInputStream mis = new MultipleInputStream(inputStreams, this);
         if (windowSize == 0) {
             if (encryptLevel == 0) {
-                compressedLength += Util.fileConcatenate(bos, new String[]{tempMainName}, 8192);
+                Util.fileTruncate(mis, bos, 8192, totalLength);
+                compressedLength += totalLength;
             } else {
-                ZSEFileEncoder zfe = new ZSEFileEncoder(tempMainName, password);
+                ZSEFileEncoder zfe = new ZSEFileEncoder(mis, password);
                 zfe.Encode(bos);
                 compressedLength += zfe.getEncodeLength();
             }
@@ -338,10 +338,10 @@ public class Packer {
             Compressor mainCompressor;
             switch (alg) {
                 case "lzz2":
-                    mainCompressor = new LZZ2Compressor(tempMainName, windowSize, bufferSize);
+                    mainCompressor = new LZZ2Compressor(mis, windowSize, bufferSize, totalLength);
                     break;
                 case "bwz":
-                    mainCompressor = new BWZCompressor(tempMainName, windowSize);
+                    mainCompressor = new BWZCompressor(mis, windowSize);
                     break;
                 default:
                     throw new NoSuchAlgorithmException("No such algorithm");
@@ -361,17 +361,19 @@ public class Packer {
             }
             compressedLength += mainCompressor.getCompressedSize();
         }
-        Util.deleteFile(encMainName);
-        if (isInterrupted) {
-            bos.flush();
-            bos.close();
-            Util.deleteFile(outFile);
-            Util.deleteFile(tempMainName);
-            return;
-        }
+        long crc32 = mis.getCrc32Checksum();
+        byte[] fullBytes = Bytes.longToBytes(crc32);
+        byte[] crc32Checksum = new byte[4];
+        System.arraycopy(fullBytes, 4, crc32Checksum, 0, 4);
 
+        Util.deleteFile(encMainName);
         bos.flush();
         bos.close();
+        mis.close();
+        if (isInterrupted) {
+            Util.deleteFile(outFile);
+            return;
+        }
 
         RandomAccessFile raf = new RandomAccessFile(outFile, "rw");
         raf.seek(8);
@@ -381,8 +383,6 @@ public class Packer {
         raf.write(crc32Checksum);
         raf.writeInt((int) headCompressor.getCompressedSize());
         raf.close();
-
-        Util.deleteFile(tempMainName);
     }
 
     /**
@@ -445,25 +445,21 @@ public class Packer {
      * @param annotation the node contains annotation text and info.
      */
     public void setAnnotation(AnnotationNode annotation) {
-        try {
-            byte[] encAnnotation;
-            if (encryptLevel == 2) {
-                ZSEEncoder encoder = new ZSEEncoder(annotation.getAnnotation(), password);
-                encAnnotation = encoder.Encode();
-            } else {
-                encAnnotation = annotation.getAnnotation();
-            }
-            short length = (short) encAnnotation.length;
-            byte[] result = new byte[length + 4];
-            result[0] = 1;
-            if (annotation.isCompressed()) result[1] = 1;
-            byte[] lengthBytes = Bytes.shortToBytes(length);
-            System.arraycopy(lengthBytes, 0, result, 2, 2);
-            System.arraycopy(encAnnotation, 0, result, 4, encAnnotation.length);
-            extraFields.add(result);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+        byte[] encAnnotation;
+        if (encryptLevel == 2) {
+            ZSEEncoder encoder = new ZSEEncoder(annotation.getAnnotation(), password);
+            encAnnotation = encoder.Encode();
+        } else {
+            encAnnotation = annotation.getAnnotation();
         }
+        short length = (short) encAnnotation.length;
+        byte[] result = new byte[length + 4];
+        result[0] = 1;
+        if (annotation.isCompressed()) result[1] = 1;
+        byte[] lengthBytes = Bytes.shortToBytes(length);
+        System.arraycopy(lengthBytes, 0, result, 2, 2);
+        System.arraycopy(encAnnotation, 0, result, 4, encAnnotation.length);
+        extraFields.add(result);
     }
 
     /**
@@ -483,6 +479,10 @@ public class Packer {
 
     public ReadOnlyStringProperty stepProperty() {
         return step;
+    }
+
+    public ReadOnlyStringProperty fileProperty() {
+        return file;
     }
 
     public ReadOnlyStringProperty percentageProperty() {

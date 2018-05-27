@@ -17,8 +17,9 @@ public class BWZTest {
 //        name = "p1.png";
 //        name = "t1.bmp";
 //        name = "cmpFiles.tar";
-        int ws = 1048576;
+        int ws = 65536;
         String cmpName = Util.getCompressFileName(name, "bwz");
+        long crc32 = Util.generateCRC32(name);
         long start = System.currentTimeMillis();
 
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(cmpName));
@@ -32,12 +33,13 @@ public class BWZTest {
         System.out.println("Compression time: " + (mid - start) + " ms");
 
         String cpyName = Util.getOriginalCopyName(cmpName);
-        BWZDeCompressor d = new BWZDeCompressor(cmpName, ws);
+        BWZDeCompressor d = new BWZDeCompressor(cmpName, ws, 0);
         FileOutputStream bos2 = new FileOutputStream(cpyName);
         d.Uncompress(bos2);
         bos.close();
 
         System.out.println("Uncompress Time: " + (System.currentTimeMillis() - mid) + " ms");
+        System.out.format("Matches: %b", Util.generateCRC32(cpyName) == crc32);
 
     }
 }

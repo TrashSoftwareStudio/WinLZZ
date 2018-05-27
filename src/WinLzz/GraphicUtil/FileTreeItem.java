@@ -6,15 +6,22 @@ import javafx.scene.control.TreeItem;
 
 import java.io.File;
 
+/**
+ * A {@code TreeItem<File>} that is used for showing a directory on the WinLZZ GUI.
+ *
+ * @author zbh
+ * @author 21paradox @jb51.net
+ * @see javafx.scene.control.TreeItem
+ * @since 0.7
+ */
 public class FileTreeItem extends TreeItem<File> {
 
     private boolean isLeaf;
     private boolean isFirstTimeChildren = true;
     private boolean isFirstTimeLeaf = true;
 
-
     /**
-     * The constructor of a new FileTreeItem object.
+     * The constructor of a new {@code FileTreeItem} instance.
      *
      * @param file the content of the FileTreeItem object.
      */
@@ -24,7 +31,7 @@ public class FileTreeItem extends TreeItem<File> {
 
 
     /**
-     * Returns the children of this FileTreeItem object.
+     * Returns the children of this {@code FileTreeItem} object.
      * <p>
      * Overrides the "getChildren" method of the TreeItem<> class.
      *
@@ -41,7 +48,7 @@ public class FileTreeItem extends TreeItem<File> {
 
 
     /**
-     * Returns whether this FileTreeItem object does not contain children..
+     * Returns whether this {@code FileTreeItem} object does not contain children..
      *
      * @return true if this is a leaf.
      */
@@ -57,7 +64,7 @@ public class FileTreeItem extends TreeItem<File> {
 
 
     /**
-     * Builds up children nodes when the given FileTreeItem object is expanded.
+     * Builds up children nodes when the given {@code FileTreeItem} object is expanded.
      * <p>
      * This method returns an ObservableList object containing FileTreeItem objects of all children that the
      * representing directory of the "TreeItem" has.

@@ -78,8 +78,9 @@ public class LongHuffmanInputStream {
      * @param alphabetSize the alphabet size.
      * @param maxLength    the maximum length of each part of huffman text.
      */
-    public LongHuffmanInputStream(FileChannel fc, int alphabetSize, int maxLength) {
+    public LongHuffmanInputStream(FileChannel fc, int alphabetSize, int maxLength) throws IOException {
         this.fc = fc;
+        this.compressedBitLength = fc.position() * 8;
         this.alphabetSize = alphabetSize;
         this.result = new short[maxLength];
     }
@@ -204,7 +205,30 @@ public class LongHuffmanInputStream {
     }
 
     /**
-     * Read and uncompress the huffman compression file until reaches the next endSig.
+     * Sets up the current bit position.
+     *
+     * @param compressedBitLength the current bit position.
+     */
+    public void pushCompressedBitLength(long compressedBitLength) {
+        this.compressedBitLength += compressedBitLength;
+    }
+
+    /**
+     * Reads and returns bytes directly from the input stream.
+     *
+     * @param length the length of read
+     * @return the byte content, null if stream ends
+     * @throws IOException if the input stream is not readable
+     */
+    public byte[] read(int length) throws IOException {
+        compressedBitLength += length * 8;
+        ByteBuffer buffer = ByteBuffer.allocate(length);
+        if (fc.read(buffer) != length) return null;
+        return buffer.array();
+    }
+
+    /**
+     * Reads and uncompress the huffman compression file until reaches the next endSig.
      *
      * @param map    Canonical huffman map for this read action.
      * @param endSig The EOF character.

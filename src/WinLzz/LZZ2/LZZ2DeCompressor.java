@@ -111,7 +111,7 @@ public class LZZ2DeCompressor implements DeCompressor {
         byte[] rlcMain = mdc.Uncompress(1024, false);
 
         byte[] rlc = new ZeroRLCDecoderByte(rlcMain).Decode();
-        byte[] totalMap = new MTFInverseByte(rlc).Inverse();
+        byte[] totalMap = new MTFInverseByte(rlc).Inverse(18);
 
         byte[] dhdMap = new byte[64];
         byte[] lhdMap = new byte[32];

@@ -15,12 +15,12 @@ import WinLzz.Huffman.MapCompressor.MapCompressor;
 import WinLzz.Interface.Compressor;
 import WinLzz.LongHuffman.LongHuffmanCompressorRam;
 import WinLzz.Packer.Packer;
+import WinLzz.Utility.Bytes;
 import WinLzz.Utility.Util;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -34,10 +34,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class BWZCompressor implements Compressor {
 
-    private String mainTempName;
-
     /**
      * Default maximum size of a huffman-coding block.
+     * <p>
+     * This value often changed by {@code setCompressionLevel()}.
      */
     int maxHuffmanSize = 16384;
 
@@ -59,8 +59,9 @@ public class BWZCompressor implements Compressor {
      */
     final static short huffmanEndSig = 258;
 
-    private OutputStream mainOut;
+    private OutputStream out;
     private FileChannel fis;
+    private InputStream sis;
 
     /**
      * Total size after compression.
@@ -81,21 +82,6 @@ public class BWZCompressor implements Compressor {
 
     private long lastUpdateProgress;
 
-    /**
-     * Queue of canonical huffman tables, recoded in byte-array form.
-     */
-    private LinkedList<byte[]> huffmanMaps = new LinkedList<>();
-
-    /**
-     * List of one-byte huffman flags.
-     * <p>
-     * 0 represents the current huffman table is a plain huffman table, otherwise it is a pointer to the huffman table
-     * in used by this huffman position.
-     * The pointer represents the trace-back distance, for example {@code 1} means the last table in the current
-     * existing list.
-     */
-    private LinkedList<Byte> huffmanFlags = new LinkedList<>();
-
     private int threadNumber = 1;
 
     /**
@@ -107,7 +93,9 @@ public class BWZCompressor implements Compressor {
     long pos;
 
     /**
-     * Creates a new instance of BWZCompressor.
+     * Creates a new instance of {@code BWZCompressor}.
+     * <p>
+     * This constructor takes a file as input.
      *
      * @param inFile     name/path of file to compress.
      * @param windowSize the block size.
@@ -116,18 +104,77 @@ public class BWZCompressor implements Compressor {
     public BWZCompressor(String inFile, int windowSize) throws IOException {
         this.windowSize = windowSize;
         this.fis = new FileInputStream(inFile).getChannel();
-        generateTempNames(inFile);
     }
 
-    private void generateTempNames(String inFile) {
-        mainTempName = inFile + ".temp";
-    }
-
-    private void deleteTemp() {
-        Util.deleteFile(mainTempName);
+    /**
+     * Creates a new {@code BWZCompressor} instance.
+     * <p>
+     * This constructor takes a {@code InputStream} as input.
+     *
+     * @param in         the input stream
+     * @param windowSize the block size
+     */
+    public BWZCompressor(InputStream in, int windowSize) {
+        this.windowSize = windowSize;
+        this.sis = in;
     }
 
     private void compress() throws Exception {
+        long lastCheckTime = System.currentTimeMillis();
+        long currentTime;
+
+        int read;
+        byte[] block = new byte[windowSize * threadNumber];
+        while ((read = sis.read(block)) > 0) {
+            byte[] validBlock;
+            if (read == windowSize * threadNumber) {
+                validBlock = block;
+            } else {
+                validBlock = new byte[read];
+                System.arraycopy(block, 0, validBlock, 0, read);
+            }
+
+            int threadsNeed;
+            if (read % windowSize == 0) threadsNeed = read / windowSize;
+            else threadsNeed = read / windowSize + 1;
+
+            EncodeThread[] threads = new EncodeThread[threadsNeed];
+            ExecutorService es = Executors.newCachedThreadPool();
+            for (int i = 0; i < threads.length; i++) {
+                byte[] buffer;
+                if ((i + 1) * windowSize <= validBlock.length) {
+                    buffer = new byte[windowSize];
+                    System.arraycopy(validBlock, i * windowSize, buffer, 0, windowSize);
+                } else {
+                    int len = validBlock.length % windowSize;
+                    buffer = new byte[len];
+                    System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
+                }
+                EncodeThread et = new EncodeThread(buffer, windowSize, this);
+                threads[i] = et;
+                es.execute(et);
+            }
+            es.shutdown();
+            es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
+
+            for (EncodeThread et : threads) {
+                et.writeCompressedMap(out);
+                et.writeTo(out);
+            }
+
+            if (parent != null) {
+                if (parent.isInterrupted) {
+                    break;
+                } else {
+                    currentTime = System.currentTimeMillis();
+                    updateInfo(currentTime, lastCheckTime);
+                    lastCheckTime = currentTime;
+                }
+            }
+        }
+    }
+
+    private void compress2() throws Exception {
         long lastCheckTime = System.currentTimeMillis();
         long currentTime;
 
@@ -167,11 +214,8 @@ public class BWZCompressor implements Compressor {
             es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
 
             for (EncodeThread et : threads) {
-                et.writeTo(mainOut, this);
-                byte[][] maps = et.getMaps();
-                byte[] flags = et.getFlags();
-                for (byte[] map : maps) huffmanMaps.addLast(map);
-                for (byte flag : flags) huffmanFlags.addLast(flag);
+                et.writeCompressedMap(out);
+                et.writeTo(out);
             }
             block.clear();
 
@@ -195,7 +239,8 @@ public class BWZCompressor implements Compressor {
      */
     @Override
     public void Compress(OutputStream out) throws Exception {
-        mainOut = new BufferedOutputStream(new FileOutputStream(mainTempName));
+        this.out = out;
+        this.out.write(Util.windowSizeToByte(maxHuffmanSize));
 
         Thread timer;
         if (parent != null) {
@@ -203,60 +248,20 @@ public class BWZCompressor implements Compressor {
             timer.start();
         }
         try {
-            compress();
+            if (sis == null) compress2();
+            else compress();
         } catch (InterruptedException e) {
             // The process is interrupted by user.
         }
-        fis.close();
-
-        mainOut.flush();
-        mainOut.close();
+        if (sis == null) fis.close();
+        else sis.close();
 
         if (parent != null && parent.isInterrupted) {
             isRunning = false;
-            deleteTemp();
             return;
         }
 
-        byte[] mainMap = new byte[Util.collectionOfArrayLength(huffmanMaps) + huffmanTableSize];
-        // Size of all huffman maps + size of map of flags compressor.
-        int i = huffmanTableSize;
-
-        byte[] flags = Util.collectionToArray(huffmanFlags);
-        BWTEncoder flagsBwt = new BWTEncoder(flags, false);
-        short[] flagsMtf = new MTFTransform(flagsBwt.Transform()).Transform();
-        LongHuffmanCompressorRam flagsHuf = new LongHuffmanCompressorRam(flagsMtf, huffmanTableSize, huffmanEndSig);
-        System.arraycopy(flagsHuf.getMap(huffmanTableSize), 0, mainMap, 0, huffmanTableSize);
-
-        byte[] compressedFlags = flagsHuf.Compress();
-        int cmpFlagsLen = compressedFlags.length;
-        out.write(compressedFlags);
-
-        // Concatenate all canonical huffman maps into one long map.
-        while (!huffmanMaps.isEmpty()) {
-            byte[] map = huffmanMaps.removeFirst();
-            System.arraycopy(map, 0, mainMap, i, map.length);
-            i += map.length;
-        }
-
-        BWTEncoderByte beb = new BWTEncoderByte(mainMap);
-        byte[] bwtMap = beb.Transform();
-        byte[] mtfMap = new MTFTransformByte(bwtMap).Transform();
-
-        MapCompressor mc = new MapCompressor(mtfMap);
-        byte[] csq = mc.Compress(false);
-        out.write(csq);
-
-        mainLen = Util.fileConcatenate(out, new String[]{mainTempName}, 8192);  // Concatenate the main out
-        // file with the file containing huffman compressed result of main text.
-
-        deleteTemp();
-        int csqLen = csq.length;
-        long[] sizes = new long[]{csqLen, Util.windowSizeToByte(maxHuffmanSize), beb.getOrigRowIndex(), cmpFlagsLen};
-        byte[] sizeBlock = Util.generateSizeBlock(sizes);
-        out.write(sizeBlock);
-
-        cmpSize = mainLen + csqLen + sizeBlock.length + cmpFlagsLen;
+        cmpSize = mainLen + 1;
         isRunning = false;
     }
 
@@ -407,11 +412,10 @@ class EncodeThread implements Runnable {
     /**
      * Writes the compressed data into the output stream <code>out</code>.
      *
-     * @param out    the target output stream.
-     * @param parent the parent {@code BWZCompressor}.
+     * @param out the target output stream
      * @throws IOException if the <code>out</code> is not writable.
      */
-    void writeTo(OutputStream out, BWZCompressor parent) throws IOException {
+    void writeTo(OutputStream out) throws IOException {
         for (byte[] result : results) {
             parent.mainLen += result.length;
             out.write(result);
@@ -419,29 +423,52 @@ class EncodeThread implements Runnable {
     }
 
     /**
-     * Returns the array of canonical huffman maps created by this {@code EncodeThread}.
+     * Writes the compressed huffman head into the output stream <code>out</code>.
      *
-     * @return array of canonical huffman maps.
+     * @param out the target output stream
+     * @throws IOException if the <code>out</code> is not writable.
      */
-    byte[][] getMaps() {
-        return maps;
-    }
+    void writeCompressedMap(OutputStream out) throws IOException {
+        int mapLength = 0;
+        for (byte[] map : maps) mapLength += map.length;
+        byte[] totalMap = new byte[mapLength];
+        int i = 0, j = 0;
+        while (i < maps.length) {
+            System.arraycopy(maps[i], 0, totalMap, j, maps[i].length);
+            j += maps[i].length;
+            i += 1;
+        }
 
-    /**
-     * Returns the array of huffman flag used to mark whether a record is an actual canonical huffman table or a
-     * distance pointer pointed to previous canonical huffman table.
-     *
-     * @return the array of huffman flags.
-     */
-    byte[] getFlags() {
-        return flags;
+        byte[] flagsMtf = new MTFTransformByte(flags).Transform(256);
+
+        BWTEncoderByte beb = new BWTEncoderByte(totalMap);
+        byte[] bebMap = beb.Transform();
+        byte[] mapMtf = new MTFTransformByte(bebMap).Transform(18);
+        byte[] cmpMap = new MapCompressor(mapMtf).Compress(false);
+
+        /*
+         * Block structure:
+         * 0 - 1: length of compressed flags
+         * 2 - 5 : length of compressed map
+         * 5 - 8 : index of original row of bwt
+         */
+        byte[] numbers = new byte[8];
+        System.arraycopy(Bytes.shortToBytes((short) flagsMtf.length), 0, numbers, 0, 2);
+        System.arraycopy(Bytes.intToBytes24(cmpMap.length), 0, numbers, 2, 3);
+        System.arraycopy(Bytes.intToBytes24(beb.getOrigRowIndex()), 0, numbers, 5, 3);
+
+        out.write(numbers);
+        out.write(flagsMtf);
+        out.write(cmpMap);
+
+        parent.mainLen += (flagsMtf.length + cmpMap.length + 8);
     }
 
     private int findAvailableOldMap(LongHuffmanCompressorRam hcr, byte[] origMap, int currentIndex) {
         long closest = 36;
         int distance = 0;
-        for (int i = currentIndex - 1; i > currentIndex - 255; i--) {
-            if (i < 0 || maps[i] == null) break;
+        for (int i = currentIndex - 1; i > currentIndex - 253; i--) {
+            if (i < 0) break;
             if (maps[i].length > 0) {
                 long valid = hcr.calculateExpectLength(maps[i]);
                 if (valid > 0) {

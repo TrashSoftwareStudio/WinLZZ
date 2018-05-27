@@ -31,7 +31,7 @@ public class UncompressingUI implements Initializable {
     @FXML
     private Label messageLabel, percentageLabel, ratioLabel, timeUsedLabel, expectTimeLabel, totalSizeLabel,
             passedSizeLabel, passedSizeTitleLabel, origSizeTextLabel, timeUsedTextLabel, timeRemainTextLabel,
-            speedTextLabel;
+            speedTextLabel, fileLabel;
 
     @FXML
     private Button cancelButton;
@@ -41,7 +41,7 @@ public class UncompressingUI implements Initializable {
     private ChangeListener<Number> progressListener;
 
     private ChangeListener<String> percentageListener, speedRatioListener, timeUsedListener,
-            timeExpectedListener, passedLengthListener;
+            timeExpectedListener, passedLengthListener, messageListener, fileListener;
 
     private long startTime;
     private Stage stage;
@@ -141,6 +141,7 @@ public class UncompressingUI implements Initializable {
 
         service.setOnSucceeded(e -> {
             unbindListeners();
+            percentageLabel.setText("100.0");
             if (isTest) {
                 if (testResult) showTestPassInfo();
                 else showTestFailInfo();
@@ -194,6 +195,8 @@ public class UncompressingUI implements Initializable {
         unPacker.timeUsedProperty().removeListener(timeUsedListener);
         unPacker.timeExpectedProperty().removeListener(timeExpectedListener);
         unPacker.passedLengthProperty().removeListener(passedLengthListener);
+        unPacker.stepProperty().removeListener(messageListener);
+        unPacker.fileProperty().removeListener(fileListener);
 
         progressBar.progressProperty().unbind();
         ratioLabel.textProperty().unbind();
@@ -281,6 +284,8 @@ public class UncompressingUI implements Initializable {
                     timeUsedListener = (observable, oldValue, newValue) -> Platform.runLater(() -> timeUsedLabel.setText(newValue));
                     timeExpectedListener = (observable, oldValue, newValue) -> Platform.runLater(() -> expectTimeLabel.setText(newValue));
                     passedLengthListener = (observable, oldValue, newValue) -> Platform.runLater(() -> passedSizeLabel.setText(newValue));
+                    messageListener = (observable, oldValue, newValue) -> Platform.runLater(() -> messageLabel.setText(newValue));
+                    fileListener = (observable, oldValue, newValue) -> Platform.runLater(() -> fileLabel.setText(newValue));
 
                     unPacker.progressProperty().addListener(progressListener);
                     unPacker.ratioProperty().addListener(speedRatioListener);
@@ -288,6 +293,8 @@ public class UncompressingUI implements Initializable {
                     unPacker.timeUsedProperty().addListener(timeUsedListener);
                     unPacker.timeExpectedProperty().addListener(timeExpectedListener);
                     unPacker.passedLengthProperty().addListener(passedLengthListener);
+                    unPacker.stepProperty().addListener(messageListener);
+                    unPacker.fileProperty().addListener(fileListener);
 
                     if (isTest) testResult = unPacker.TestPack();
                     else if (isAllUncompress) unPacker.unCompressAll(targetDir.getAbsolutePath());

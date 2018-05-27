@@ -52,7 +52,7 @@ public class FileInputBufferArray {
             activeArray2 = !activeArray2;
             if (activeArray2) {
                 try {
-                    int read = bis.read(array2, 0, bufferSize);
+                    int read = bis.read(array2);
                     if (read > 0) {
                         this.index += read;
                         remainSize = read;
@@ -64,7 +64,7 @@ public class FileInputBufferArray {
                 }
             } else {
                 try {
-                    int read = bis.read(array1, 0, bufferSize);
+                    int read = bis.read(array1);
                     if (read > 0) {
                         this.index += read;
                         remainSize = read;

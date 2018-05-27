@@ -77,27 +77,16 @@ public class AnnotationUI implements Initializable {
         byte[] byteAnnotation = textArea.getText().getBytes("utf-8");
         AnnotationNode node;
         if (compressAnnBox.isSelected()) {
-            String temp = "ann.temp";
-            FileOutputStream fos = new FileOutputStream(temp);
-            fos.write(byteAnnotation);
-            fos.flush();
-            fos.close();
+            ByteArrayInputStream ais = new ByteArrayInputStream(byteAnnotation);
 
-            BWZCompressor compressor = new BWZCompressor(temp, 32768);
+            BWZCompressor compressor = new BWZCompressor(ais, 32768);
             compressor.setCompressionLevel(1);
 
-            try {
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                compressor.Compress(out);
-                node = new AnnotationNode(out.toByteArray(), true);
-                out.flush();
-                out.close();
-            } catch (Exception e) {
-                Util.deleteFile(temp);
-                throw e;
-            }
-            Util.deleteFile(temp);
-
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            compressor.Compress(out);
+            node = new AnnotationNode(out.toByteArray(), true);
+            out.flush();
+            out.close();
         } else {
             node = new AnnotationNode(byteAnnotation, false);
         }

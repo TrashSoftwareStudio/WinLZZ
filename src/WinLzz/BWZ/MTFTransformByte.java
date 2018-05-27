@@ -27,17 +27,18 @@ public class MTFTransformByte {
     /**
      * Returns the text after mtf transformation and zero run length coding.
      *
+     * @param alphabetSize the size of alphabet in <code>text</code>
      * @return the text after mtf transformation and zero run length coding..
      */
-    public byte[] Transform() {
+    public byte[] Transform(int alphabetSize) {
         LinkedDictionary ld = new LinkedDictionary();
-        ld.initialize(18);
+        ld.initialize(alphabetSize);
         byte[] result = new byte[origText.length];
         int index = 0;
         int i = 0;
         int count = 0;
         while (i < origText.length) {
-            byte s = (byte) ld.findAndMove(origText[i]);
+            byte s = (byte) ld.findAndMove((short) (origText[i++] & 0xff));
             if (s == 0) {
                 count += 1;  // If the MTF result is 0, add one to the run-length.
             } else {
@@ -49,7 +50,6 @@ public class MTFTransformByte {
                 }
                 result[index++] = (byte) (s + 1);
             }
-            i += 1;
         }
         if (count != 0) {  // Add last few 0's
             byte[] runLength = BWZUtil.runLengthByte(count);

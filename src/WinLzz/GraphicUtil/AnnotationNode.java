@@ -1,5 +1,11 @@
 package WinLzz.GraphicUtil;
 
+/**
+ * A node that records information of an entry of annotation.
+ *
+ * @author zbh
+ * @since 0.7.1
+ */
 public class AnnotationNode {
 
     /**
@@ -23,10 +29,20 @@ public class AnnotationNode {
         this.compressed = compress;
     }
 
+    /**
+     * Returns the byte array representation of the annotation text.
+     *
+     * @return the annotation byte text
+     */
     public byte[] getAnnotation() {
         return annotation;
     }
 
+    /**
+     * Returns whether the annotation is compressed.
+     *
+     * @return {@code true} if the annotation is compressed, {@code false} otherwise
+     */
     public boolean isCompressed() {
         return compressed;
     }

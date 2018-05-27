@@ -8,6 +8,7 @@ import WinLzz.Huffman.MapCompressor.MapCompressor;
 import WinLzz.Packer.Packer;
 import WinLzz.Utility.FileBitOutputStream;
 import WinLzz.Utility.FileInputBufferArray;
+import WinLzz.Utility.MultipleInputStream;
 import WinLzz.Utility.Util;
 
 import java.io.*;
@@ -55,7 +56,7 @@ public class LZZ2Compressor implements Compressor {
     private int compressionLevel;
 
     /**
-     * Constructor of a new LZZ2Compressor Object.
+     * Constructor of a new {@code LZZ2Compressor} instance.
      *
      * @param inFile     name of file to compress.
      * @param windowSize total sliding window size.
@@ -70,6 +71,23 @@ public class LZZ2Compressor implements Compressor {
         this.totalLength = new File(inFile).length();
         this.sis = new FileInputStream(inFile);
         setTempNames(inFile);
+    }
+
+    /**
+     * Constructor of a new {@code LZZ2Compressor} instance.
+     *
+     * @param mis         the input stream
+     * @param windowSize  total sliding window size.
+     * @param bufferSize  size of look ahead buffer.
+     * @param totalLength the total length of the files to be compressed
+     */
+    public LZZ2Compressor(MultipleInputStream mis, int windowSize, int bufferSize, long totalLength) {
+        this.windowSize = windowSize;
+        this.bufferMaxSize = bufferSize + minimumMatchLen + 1;
+        this.dictSize = windowSize - bufferMaxSize - 1;
+        this.totalLength = totalLength;
+        this.sis = mis;
+        setTempNames("lzz2");
     }
 
     private void setTempNames(String inFile) {
@@ -390,7 +408,7 @@ public class LZZ2Compressor implements Compressor {
         System.arraycopy(fcMap, 0, totalMap, 96, 256);
         System.arraycopy(mtcMap, 0, totalMap, 352, 256);
 
-        byte[] rlcMain = new MTFTransformByte(totalMap).Transform();
+        byte[] rlcMain = new MTFTransformByte(totalMap).Transform(18);
 
         MapCompressor mc = new MapCompressor(rlcMain);
         byte[] csq = mc.Compress(false);

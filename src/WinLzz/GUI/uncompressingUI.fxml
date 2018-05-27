@@ -32,50 +32,71 @@
             <padding>
                 <Insets bottom="5.0"/>
             </padding>
-            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="10.0">
+            <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0">
                 <GridPane.margin>
                     <Insets/>
                 </GridPane.margin>
                 <Label fx:id="origSizeTextLabel" text="原文件大小:"/>
                 <Label fx:id="totalSizeLabel" text="Label"/>
+                <padding>
+                    <Insets left="25.0"/>
+                </padding>
             </HBox>
-            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1">
+            <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1">
                 <Label fx:id="timeUsedTextLabel" text="已用时间:"/>
                 <Label fx:id="timeUsedLabel" text="Label"/>
+                <padding>
+                    <Insets left="25.0"/>
+                </padding>
             </HBox>
-            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.rowIndex="1">
+            <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.rowIndex="1">
                 <Label fx:id="passedSizeTitleLabel" text="已解压大小:"/>
                 <Label fx:id="passedSizeLabel" text="Label"/>
+                <padding>
+                    <Insets left="25.0"/>
+                </padding>
             </HBox>
-            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1"
+            <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1"
                   GridPane.rowIndex="1">
                 <Label fx:id="timeRemainTextLabel" text="剩余时间:"/>
                 <Label fx:id="expectTimeLabel" text="Label"/>
+                <padding>
+                    <Insets left="25.0"/>
+                </padding>
             </HBox>
         </GridPane>
-        <HBox alignment="CENTER" prefHeight="40.0" prefWidth="200.0" spacing="5.0">
+        <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="200.0" spacing="5.0">
             <opaqueInsets>
                 <Insets/>
             </opaqueInsets>
             <Label fx:id="messageLabel" text="正在解压..."/>
-            <Label fx:id="percentageLabel"/>
+            <Label fx:id="percentageLabel" text="0.0"/>
             <Label text="\%"/>
-        </HBox>
-        <HBox alignment="CENTER" prefHeight="40.0" prefWidth="200.0" spacing="5.0">
             <padding>
-                <Insets bottom="10.0"/>
+                <Insets left="25.0"/>
+            </padding>
+        </HBox>
+        <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="200.0">
+            <padding>
+                <Insets left="25.0"/>
+            </padding>
+            <Label fx:id="fileLabel"/>
+        </HBox>
+        <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="200.0" spacing="5.0">
+            <padding>
+                <Insets bottom="10.0" left="25.0"/>
             </padding>
             <Label fx:id="speedTextLabel" text="速率:"/>
             <Label fx:id="ratioLabel"/>
             <Label text=" KB/s"/>
         </HBox>
-        <ProgressBar fx:id="progressBar" prefWidth="320.0" progress="0.0"/>
+        <ProgressBar fx:id="progressBar" prefWidth="360.0" progress="0.0"/>
         <HBox alignment="BOTTOM_RIGHT" prefHeight="30.0" prefWidth="200.0" spacing="20.0">
             <opaqueInsets>
                 <Insets top="5.0"/>
             </opaqueInsets>
             <padding>
-                <Insets right="40.0"/>
+                <Insets right="20.0"/>
             </padding>
             <Button fx:id="cancelButton" mnemonicParsing="false" onAction="#interruptAction" text="取消"/>
         </HBox>

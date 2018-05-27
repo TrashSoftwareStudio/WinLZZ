@@ -4,12 +4,13 @@ import WinLzz.BWZ.BWT.BWTDecoder;
 import WinLzz.BWZ.BWT.BWTDecoderByte;
 import WinLzz.Huffman.MapCompressor.MapDeCompressor;
 import WinLzz.Interface.DeCompressor;
-import WinLzz.LongHuffman.LongHuffmanDeCompressorRam;
 import WinLzz.LongHuffman.LongHuffmanInputStream;
 import WinLzz.Packer.UnPacker;
+import WinLzz.Utility.Bytes;
 import WinLzz.Utility.Util;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
@@ -28,11 +29,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class BWZDeCompressor implements DeCompressor {
 
-    private final static int readBufferSize = 8192;
-    private String cmpMainName, mainTempName;
-    private int csqLen, cmpFlagsLen, huffmanBlockMaxSize, windowSize, origRowIndex;
-    private long fileLength, mainLen;
-    private BufferedInputStream bis;
+    private int huffmanBlockMaxSize, windowSize;
+
+    private FileChannel fc;
     private LinkedList<byte[]> huffmanMaps = new LinkedList<>();
     private int threadNum = 1;  // Default thread number.
     UnPacker parent;
@@ -47,63 +46,32 @@ public class BWZDeCompressor implements DeCompressor {
      * @param windowSize the size of each block
      * @throws IOException if the file is not readable
      */
-    public BWZDeCompressor(String inFile, int windowSize) throws IOException {
-        generateNames(inFile);
+    public BWZDeCompressor(String inFile, int windowSize, long startPos) throws IOException {
         this.windowSize = windowSize;
 
-        RandomAccessFile raf = new RandomAccessFile(inFile, "r");
-        fileLength = new File(inFile).length();
-        raf.seek(fileLength - 1);
-        int sizeBlockSize = raf.readByte() & 0xff;
-        byte[] sizeBlock = new byte[sizeBlockSize];
-        raf.seek(fileLength - sizeBlockSize - 1);
-        raf.read(sizeBlock);
-        raf.close();
+        fc = new FileInputStream(inFile).getChannel();
+        fc.position(startPos);
+        ByteBuffer buffer = ByteBuffer.allocate(1);
 
-        long[] sizes = Util.recoverSizeBlock(sizeBlock, 4);
-        csqLen = (int) sizes[0];
-        huffmanBlockMaxSize = (int) Math.pow(2, sizes[1]);
-        origRowIndex = (int) sizes[2];
-        cmpFlagsLen = (int) sizes[3];
-        mainLen = fileLength - csqLen - sizeBlockSize - cmpFlagsLen - 1;
-
-        bis = new BufferedInputStream(new FileInputStream(inFile));
+        int r = fc.read(buffer);
+        if (r != 1) throw new IOException("Error occurs during reading");
+        huffmanBlockMaxSize = (int) Math.pow(2, buffer.array()[0]);
     }
 
-    private void generateNames(String inName) {
-        cmpMainName = inName + ".bwz";
-        mainTempName = inName + ".bwz_temp";
-    }
+    private void fillMaps(byte[] block, int flagLen, int mapLen, int origRow) {
+        byte[] cmpFlags = new byte[flagLen];
+        byte[] cmpMap = new byte[mapLen];
+        System.arraycopy(block, 0, cmpFlags, 0, flagLen);
+        System.arraycopy(block, flagLen, cmpMap, 0, mapLen);
 
-    private void uncompressHead() throws Exception {
+        ZeroRLCDecoderByte rld = new ZeroRLCDecoderByte(cmpFlags);
+        byte[] rldFlags = rld.Decode();
+        byte[] flags = new MTFInverseByte(rldFlags).Inverse(256);
 
-        byte[] cmpFlags = new byte[cmpFlagsLen];
-        if (bis.read(cmpFlags) != cmpFlagsLen) throw new IOException("Error occurs while reading");
-
-        byte[] csq = new byte[csqLen];
-        if (bis.read(csq) != csqLen) throw new IOException("Error occurs while reading");
-
-        MapDeCompressor mdc = new MapDeCompressor(csq);
-        int huffmanBlockSize = Math.min(huffmanBlockMaxSize, windowSize);
-
-        byte[] rlcMain = mdc.Uncompress((int) (260 * (fileLength / huffmanBlockSize + 1) * 8 + 259), false);
-        // 259 for each map, 1 for EOF character
-        byte[] zeroRlc = new ZeroRLCDecoderByte(rlcMain).Decode();
-        byte[] bwtMap = new MTFInverseByte(zeroRlc).Inverse();
-        byte[] fullMap = new BWTDecoderByte(bwtMap, origRowIndex).Decode();
-        byte[] flagsMap = new byte[259];
-        byte[] mainMap = new byte[fullMap.length - 259];
-        System.arraycopy(fullMap, 0, flagsMap, 0, 259);
-        System.arraycopy(fullMap, 259, mainMap, 0, mainMap.length);
-        copyToTemp();
-
-        LongHuffmanDeCompressorRam flagsDec =
-                new LongHuffmanDeCompressorRam(cmpFlags, 259, cmpFlags.length * 8);
-        short[] flagsDeHuf = flagsDec.uncompress(flagsMap, (short) 258);
-        short[] flagsRld =
-                new ZeroRLCDecoder(flagsDeHuf, (int) fileLength * 32 / huffmanBlockSize + 256).Decode();
-        short[] flagsMTR = new MTFInverse(flagsRld).decode();
-        byte[] flags = new BWTDecoder(flagsMTR).Decode();
+        byte[] uncMap = new MapDeCompressor(cmpMap).Uncompress((windowSize / huffmanBlockMaxSize + 1) * 259, false);
+        byte[] rldMap = new ZeroRLCDecoderByte(uncMap).Decode();
+        byte[] mtfMap = new MTFInverseByte(rldMap).Inverse(18);
+        byte[] maps = new BWTDecoderByte(mtfMap, origRow).Decode();
 
         int fIndex = 0;
         int i = 0;
@@ -111,7 +79,7 @@ public class BWZDeCompressor implements DeCompressor {
             int flag = flags[fIndex++] & 0xff;
             byte[] map = new byte[BWZCompressor.huffmanTableSize];
             if (flag == 0) {
-                System.arraycopy(mainMap, i, map, 0, BWZCompressor.huffmanTableSize);
+                System.arraycopy(maps, i, map, 0, BWZCompressor.huffmanTableSize);
                 i += BWZCompressor.huffmanTableSize;
             } else {
                 int x = huffmanMaps.size() - flag;
@@ -119,10 +87,6 @@ public class BWZDeCompressor implements DeCompressor {
             }
             huffmanMaps.addLast(map);
         }
-    }
-
-    private void copyToTemp() throws IOException {
-        Util.fileTruncate(bis, cmpMainName, readBufferSize, mainLen);
     }
 
     private void decode(OutputStream out, FileChannel fc) throws Exception {
@@ -138,9 +102,28 @@ public class BWZDeCompressor implements DeCompressor {
 
         LongHuffmanInputStream his =
                 new LongHuffmanInputStream(fc, BWZCompressor.huffmanTableSize, huffmanBlockMaxSize + 256);
+//        his.pushCompressedBitLength(8);  // Skip the first byte
         short[] huffmanResult;
+        byte[] headBytes;
+        byte[] blockBytes;
+        byte[] flagLenBytes = new byte[2];
+        byte[] mapLenBytes = new byte[3];
+        byte[] origRowBytes = new byte[3];
 
-        while (!huffmanMaps.isEmpty()) {
+        while (true) {
+            if (huffmanMaps.isEmpty()) {
+                headBytes = his.read(8);
+                if (headBytes == null) break;  // Reach the end of the stream.
+
+                System.arraycopy(headBytes, 0, flagLenBytes, 0, 2);
+                System.arraycopy(headBytes, 2, mapLenBytes, 0, 3);
+                System.arraycopy(headBytes, 5, origRowBytes, 0, 3);
+                int flagLen = Bytes.bytesToShort(flagLenBytes);
+                int mapLen = Bytes.bytesToInt24(mapLenBytes);
+                int origRow = Bytes.bytesToInt24(origRowBytes);
+                blockBytes = his.read(mapLen + flagLen);
+                fillMaps(blockBytes, flagLen, mapLen, origRow);
+            }
             huffmanResult = his.read(huffmanMaps.removeFirst(), BWZCompressor.huffmanEndSig);
 
             huffmanBlockList.add(huffmanResult);
@@ -203,14 +186,7 @@ public class BWZDeCompressor implements DeCompressor {
             Thread timer = new Thread(new DTimer(parent, this));
             timer.start();
         }
-        try {
-            uncompressHead();
-        } catch (Exception e) {
-            bis.close();
-            throw e;
-        }
-        bis.close();
-        FileChannel fc = new FileInputStream(cmpMainName).getChannel();
+
         try {
             decode(out, fc);
         } catch (InterruptedException | ClosedByInterruptException e) {
@@ -220,7 +196,6 @@ public class BWZDeCompressor implements DeCompressor {
             throw e;
         }
         fc.close();
-        deleteTemp();
         isRunning = false;
     }
 
@@ -252,7 +227,6 @@ public class BWZDeCompressor implements DeCompressor {
      */
     @Override
     public void deleteCache() {
-        deleteTemp();
     }
 
     /**
@@ -263,11 +237,6 @@ public class BWZDeCompressor implements DeCompressor {
     @Override
     public void setThreads(int threadNum) {
         this.threadNum = threadNum;
-    }
-
-    private void deleteTemp() {
-        Util.deleteFile(cmpMainName);
-        Util.deleteFile(mainTempName);
     }
 }
 

@@ -6,25 +6,45 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.zip.CRC32;
 
+/**
+ * A symmetric encryption algorithm.
+ * <p>
+ * "ZSE" stands for Zbh Symmetric Encryption.
+ *
+ * @author zbh
+ * @since 0.4
+ */
 public class ZSEEncoder {
 
     private byte[] text;
 
     private int[] password;
 
-    public ZSEEncoder(byte[] text, String password) throws UnsupportedEncodingException {
+    /**
+     * Creates a new {@code ZSEEncoder} instance.
+     *
+     * @param text     the byte text to be encoded
+     * @param password the password
+     */
+    public ZSEEncoder(byte[] text, String password) {
         this.text = text;
         this.password = generatePassword(password, text.length);
     }
 
-    @Deprecated
-    public ZSEEncoder(byte[] text, int[] DirectPassword) {
-        this.text = text;
-        this.password = DirectPassword;
-    }
-
-    static int[] generatePassword(String pwd, int textLen) throws UnsupportedEncodingException {
-        byte[] bytePwd = pwd.getBytes("UTF-8");
+    /**
+     * Generates the integer array representation of the encoded password.
+     *
+     * @param pwd     the password {@code String}
+     * @param textLen the length of the text to be encoded
+     * @return the encoded password
+     */
+    static int[] generatePassword(String pwd, int textLen) {
+        byte[] bytePwd = new byte[0];
+        try {
+            bytePwd = pwd.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         int[] tempPwd = new int[bytePwd.length];
         int i = 0;
         CRC32 crc = new CRC32();
@@ -70,7 +90,6 @@ public class ZSEEncoder {
         return toReturn;
     }
 
-
     static byte[] swap(byte[] text, int[] password) {
         int range = Util.arrayAverageInt(password);
         if (range > text.length) {
@@ -93,7 +112,6 @@ public class ZSEEncoder {
         }
     }
 
-
     private byte[] swapHead(byte[] text) {
         int range = Util.arraySum(password);
         if (range > text.length) {
@@ -108,13 +126,15 @@ public class ZSEEncoder {
         }
     }
 
-
+    /**
+     * Returns the encoded text.
+     *
+     * @return the encoded text
+     */
     public byte[] Encode() {
-
         rollBytes(text);
         byte[] switched = switchRC(text);
         byte[] swapped = swap(switched, password);
-
         return swapHead(swapped);
     }
 }

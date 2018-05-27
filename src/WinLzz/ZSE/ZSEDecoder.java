@@ -2,24 +2,30 @@ package WinLzz.ZSE;
 
 import WinLzz.Utility.Util;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 
+/**
+ * The ZSE decoder
+ *
+ * @author zbh
+ * @see ZSEEncoder
+ * @since 0.4
+ */
 public class ZSEDecoder {
 
     private byte[] encodedText;
 
     private int[] password;
 
-    public ZSEDecoder(byte[] encodedText, String password) throws UnsupportedEncodingException {
+    /**
+     * Creates a new {@code ZSEDecoder} instance.
+     *
+     * @param encodedText the encoded text
+     * @param password    the password
+     */
+    public ZSEDecoder(byte[] encodedText, String password) {
         this.encodedText = encodedText;
         this.password = ZSEEncoder.generatePassword(password, encodedText.length);
-    }
-
-    @Deprecated
-    public ZSEDecoder(byte[] encodedText, int[] directPassword) {
-        this.encodedText = encodedText;
-        this.password = directPassword;
     }
 
     private void rollBytes(byte[] text) {
@@ -82,6 +88,11 @@ public class ZSEDecoder {
         return toReturn;
     }
 
+    /**
+     * Returns the decoded text.
+     *
+     * @return the decoded text
+     */
     public byte[] Decode() {
         byte[] swappedTail = swapTail(encodedText);
         byte[] swappedBack = ZSEEncoder.swap(swappedTail, password);

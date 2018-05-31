@@ -6,6 +6,13 @@ import WinLzz.Utility.Util;
 
 import java.io.File;
 
+/**
+ * A node {@code Object} that represents a file stored in a pz archive, used to show the information of a file on
+ * the GUI.
+ *
+ * @author zbh
+ * @since 0.4
+ */
 public class FileNode {
 
     private ContextNode cn;
@@ -13,6 +20,12 @@ public class FileNode {
     private boolean isDir;
     private LanguageLoader languageLoader;
 
+    /**
+     * Creates a new {@code FileNode} instance.
+     *
+     * @param cn             the {@code ContextNode} represents this file inside the archive
+     * @param languageLoader the text displaying object
+     */
     public FileNode(ContextNode cn, LanguageLoader languageLoader) {
         this.cn = cn;
         this.languageLoader = languageLoader;
@@ -22,26 +35,37 @@ public class FileNode {
         this.isDir = cn.isDir();
     }
 
-    private static String displayName(String name) {
+    /**
+     * Returns the name of the file.
+     *
+     * @return the name of the file
+     */
+    public String getName() {
         return name;
     }
 
-    public String getName() {
-        return displayName(name);
-    }
-
+    /**
+     * Returns the type of the file.
+     *
+     * @return the type of the file
+     */
     @SuppressWarnings("all")
     public String getType() {
         if (isDir) {
             return languageLoader.get(25);
         } else {
             String t = "";
-            String oName = displayName(name);
+            String oName = name;
             if (oName.contains(".")) t = oName.substring(oName.lastIndexOf(".") + 1) + " ";
             return t + languageLoader.get(24);
         }
     }
 
+    /**
+     * Returns the size of the file, in a human-friendly form.
+     *
+     * @return the size of the file, in a human-friendly form
+     */
     public String getSize() {
         if (isDir) {
             return "";
@@ -51,6 +75,11 @@ public class FileNode {
         }
     }
 
+    /**
+     * Returns the {@code ContextNode} represents the file of this {@code FileNode}.
+     *
+     * @return the {@code ContextNode} represents the file of this {@code FileNode}
+     */
     public ContextNode getContextNode() {
         return cn;
     }

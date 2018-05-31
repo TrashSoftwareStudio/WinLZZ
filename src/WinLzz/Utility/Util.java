@@ -21,8 +21,17 @@ public abstract class Util {
      */
     public static void deleteFile(String fileName) {
         File file = new File(fileName);
+        deleteFile(file);
+    }
+
+    /**
+     * Deletes the {@code File} if such a file exists.
+     *
+     * @param file the file to be deleted.
+     */
+    public static void deleteFile(File file) {
         if (file.exists()) {
-            if (!file.delete()) System.out.println("Deletion Failed: " + fileName);
+            if (!file.delete()) System.out.println("Deletion Failed: " + file.getAbsolutePath());
         }
     }
 
@@ -74,24 +83,23 @@ public abstract class Util {
     }
 
     /**
-     * Returns the name with the last extension removed, and a number added after main part to avoid duplication.
+     * Returns the name with a number added after main part to avoid duplication.
      * <p>
      * This method will find a available name anyway by adding one if a name already exist.
      *
-     * @param fileName the name with extension which will be removed
-     * @return the duplication-avoided name of the <code>fileName</code> with extension removed
+     * @param fileName the file's name
+     * @return the duplication-avoided name of the <code>fileName</code>
      */
-    public static String getOriginalCopyName(String fileName) {
-        String origName = fileName.substring(0, fileName.lastIndexOf("."));
-        int pos = origName.lastIndexOf(".");
+    public static String getCopyName(String fileName) {
+        int pos = fileName.lastIndexOf(".");
         String ext;
         String name;
         if (pos == -1) {
             ext = "";
-            name = origName;
+            name = fileName;
         } else {
-            ext = origName.substring(pos);
-            name = origName.substring(0, pos);
+            ext = fileName.substring(pos);
+            name = fileName.substring(0, pos);
         }
         int copy = 1;
         String copyName = name + "(" + copy + ")" + ext;
@@ -102,6 +110,18 @@ public abstract class Util {
         return copyName;
     }
 
+    /**
+     * Returns the name with the last extension removed, and a number added after main part to avoid duplication.
+     * <p>
+     * This method will find a available name anyway by adding one if a name already exist.
+     *
+     * @param compressedFileName the name with extension which will be removed
+     * @return the duplication-avoided name of the <code>fileName</code> with extension removed
+     */
+    public static String getOriginalCopyName(String compressedFileName) {
+        String origName = compressedFileName.substring(0, compressedFileName.lastIndexOf("."));
+        return getCopyName(origName);
+    }
 
     /**
      * Returns the sum of an integer array.
@@ -636,6 +656,23 @@ public abstract class Util {
         }
         fc.close();
         return crc.getValue();
+    }
+
+    /**
+     * Returns whether the <code>s</code> contains any character in <code>symbols</code>.
+     *
+     * @param symbols the dictionary chars
+     * @param s       the string to be searched
+     * @return {@code true} if <code>s</code> contains any character in <code>symbols</code>,
+     * {@code false} otherwise
+     */
+    public static boolean charArrayContains(char[] symbols, String s) {
+        int len = s.length();
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+            for (char x : symbols) if (c == x) return true;
+        }
+        return false;
     }
 
 }

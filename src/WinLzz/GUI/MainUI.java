@@ -18,6 +18,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
@@ -25,6 +26,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.util.Callback;
 
 import java.awt.*;
@@ -34,7 +36,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 import java.util.List;
-
 
 public class MainUI implements Initializable {
 
@@ -76,13 +77,21 @@ public class MainUI implements Initializable {
     private Label currentDirLabel;
 
     @FXML
-    private MenuItem languageSetting, about, licence, changelogView, openInDesktop;
+    private MenuItem languageSetting, about, licence, changelogView, openInDesktop, pasteHere;
+
+    /**
+     * {@code MenuItem}'s in right-click popup menu.
+     */
+    private MenuItem openR, openDirR, compressR, copyR, cutR, pasteR, deleteR, renameR, propertyR;
 
     private Label placeHolder = new Label();
-    private ContextMenu rightPopupMenu;
+    private ContextMenu rightPopupMenu = new ContextMenu();
 
     private LanguageLoader lanLoader = new LanguageLoader();
     private RegularFileNode currentSelection;
+
+    private char[] nameExclusion = new char[]{'\\', '/', ':', '*', '?', '"', '<', '>', '|'};
+    private FileMover[] clipBoard;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -109,8 +118,9 @@ public class MainUI implements Initializable {
             }
         }
         table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        setRightPopupMenu();
+        changeClipBoardStatus();
     }
-
 
     /* Actions and handlers */
 
@@ -178,6 +188,9 @@ public class MainUI implements Initializable {
             fillText();
             lsStage.close();
             fillTable();
+            setRightPopupMenu();
+            changeRightMenu();
+            changeClipBoardStatus();
         });
         pane.getChildren().addAll(languageBox, confirm);
         Scene scene = new Scene(pane);
@@ -186,7 +199,6 @@ public class MainUI implements Initializable {
         lsStage.setAlwaysOnTop(true);
         lsStage.showAndWait();
     }
-
 
     @FXML
     private void compressMode() throws Exception {
@@ -310,8 +322,6 @@ public class MainUI implements Initializable {
     }
 
     private void showFileProperty() throws IOException {
-        ObservableList<RegularFileNode> files = table.getSelectionModel().getSelectedItems();
-
         FXMLLoader loader = new FXMLLoader(getClass().getResource("filePropertiesUI.fxml"));
 
         Parent root = loader.load();
@@ -322,15 +332,18 @@ public class MainUI implements Initializable {
 
         FilePropertiesUI pui = loader.getController();
 
+        ObservableList<RegularFileNode> files = table.getSelectionModel().getSelectedItems();
         File[] fileArray = new File[files.size()];
         for (int i = 0; i < fileArray.length; i++)
             fileArray[i] = files.get(i).getFile();
         InfoNode node;
         if (fileArray.length == 1) node = new InfoNode(fileArray[0]);
+        else if (fileArray.length == 0) node = new InfoNode(new File(currentDirLabel.getText()));
         else node = new InfoNode(fileArray);
         pui.setFiles(node);
         pui.setLanLoader(lanLoader);
         pui.display();
+        stage.setOnCloseRequest(e -> pui.interrupt());
 
         stage.show();
     }
@@ -370,6 +383,142 @@ public class MainUI implements Initializable {
             }
             refreshAction();
         }
+    }
+
+    private void renameAction() {
+        File f = table.getSelectionModel().getSelectedItem().getFile();
+        VBox vbox = new VBox();
+        Stage st = new Stage();
+        st.setTitle(f.getName());
+        Scene sc = new Scene(vbox);
+        st.initStyle(StageStyle.UTILITY);
+        st.setScene(sc);
+
+        TextField nameField = new TextField(f.getName());
+        Label prompt = new Label("\n\n");
+        HBox hbox = new HBox();
+        Button confirm = new Button(lanLoader.get(1));
+        confirm.setOnAction(e -> {
+            String newName = nameField.getText();
+            if (Util.charArrayContains(nameExclusion, newName)) {
+                prompt.setText(String.format("%s\n%s", lanLoader.get(90), new String(nameExclusion)));
+            } else {
+                if (!newName.equals(f.getName())) {
+                    File newFile = new File(String.format("%s%s%s", f.getParent(), File.separator, newName));
+                    if (newFile.exists()) {
+                        prompt.setText(lanLoader.get(89) + "\n\n");
+                        return;
+                    } else {
+                        if (!f.renameTo(newFile)) {
+                            prompt.setText(lanLoader.get(91) + "\n\n");
+                            return;
+                        }
+                    }
+                }
+                refreshAction();
+                st.close();
+            }
+        });
+
+        Button cancel = new Button(lanLoader.get(2));
+        cancel.setOnAction(e -> st.close());
+
+        hbox.getChildren().addAll(confirm, cancel);
+        hbox.setSpacing(5.0);
+        hbox.setAlignment(Pos.CENTER_RIGHT);
+        vbox.getChildren().addAll(nameField, prompt, hbox);
+        vbox.setSpacing(5.0);
+        vbox.setPadding(new Insets(10.0));
+        vbox.setPrefSize(280.0, 120.0);
+        vbox.setAlignment(Pos.CENTER_LEFT);
+
+        st.setAlwaysOnTop(true);
+        st.showAndWait();
+    }
+
+    private void copyAction() {
+        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+        clipBoard = new FileMover[selections.size()];
+        for (int i = 0; i < clipBoard.length; i++) clipBoard[i] = new FileMover(selections.get(i).getFile(), true);
+        changeClipBoardStatus();
+    }
+
+    private void cutAction() {
+        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+        clipBoard = new FileMover[selections.size()];
+        for (int i = 0; i < clipBoard.length; i++) clipBoard[i] = new FileMover(selections.get(i).getFile(), false);
+        changeClipBoardStatus();
+    }
+
+    /**
+     * Pastes the files on {@code clipBoard} to the current opening directory.
+     */
+    @FXML
+    private void pasteHereAction() {
+        File destDir = new File(currentDirLabel.getText());
+        paste(destDir);
+    }
+
+    /**
+     * Pastes the files on {@code clipBoard} to the selected directory, if there is exactly one selection and it
+     * is a directory.
+     */
+    private void pasteAction() {
+        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+        if (selections.size() == 1 && selections.get(0).getFile().isDirectory()) paste(selections.get(0).getFile());
+        else pasteHereAction();
+    }
+
+    private void paste(File destDir) {
+        for (FileMover fm : clipBoard) {
+            File destFile = fm.getDestFile(destDir);
+            if (destFile.exists()) {
+                int result = replaceFileBox(destFile, fm.getFile());
+                if (result == 0) {
+                    Util.deleteFile(destFile);
+                    if (!fm.pasteTo(destFile)) pasteFailed(fm);
+                } else if (result == 2) {
+                    if (!fm.pasteTo(new File(Util.getCopyName(destFile.getAbsolutePath())))) pasteFailed(fm);
+                }
+            } else {
+                if (!fm.pasteTo(destFile)) pasteFailed(fm);
+            }
+            refreshAction();
+        }
+        if (!clipBoard[0].isCopy()) clipBoard = null;  // To prevent the second time "cut and paste"
+        changeClipBoardStatus();
+    }
+
+    private int replaceFileBox(File existFile, File foreignFile) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("replaceUI.fxml"));
+
+            Parent root = loader.load();
+            Stage stage = new Stage();
+            stage.setTitle(lanLoader.get(3));
+            stage.setScene(new Scene(root));
+            stage.setResizable(false);
+
+            ReplaceUI rui = loader.getController();
+            rui.setStage(stage);
+            rui.setLanLoader(lanLoader);
+            rui.setFiles(existFile, foreignFile);
+
+            stage.showAndWait();
+
+            return rui.getResult();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Internal error");
+        }
+    }
+
+    private void pasteFailed(FileMover fm) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(lanLoader.get(60));
+        alert.setHeaderText(lanLoader.get(86));
+        alert.setContentText(String.format("%s %s", lanLoader.get(87), fm.getFile().getAbsolutePath()));
+        alert.showAndWait();
     }
 
     /* Listeners */
@@ -418,11 +567,11 @@ public class MainUI implements Initializable {
                                 }
                             }
 
-                            setRightPopupMenu();
-
-                            if (click.getButton() == MouseButton.SECONDARY && item != null)
+                            if (click.getButton() == MouseButton.SECONDARY) {
+                                if (item == null) table.getSelectionModel().clearSelection();
+                                changeRightMenu();
                                 rightPopupMenu.show(table, click.getScreenX(), click.getScreenY());
-                            else rightPopupMenu.hide();
+                            } else rightPopupMenu.hide();
                         });
                     }
                 };
@@ -430,39 +579,34 @@ public class MainUI implements Initializable {
         });
     }
 
-
     /**
      * Sets up the hover property listener of the TableColumn object "nameCol".
      */
     private void setNameColHoverFactory() {
-        nameCol.setCellFactory(new Callback<>() {
+        nameCol.setCellFactory((TableColumn<RegularFileNode, String> tc) -> new TableCell<>() {
             @Override
-            public TableCell<RegularFileNode, String> call(TableColumn<RegularFileNode, String> param) {
-                return new TableCell<>() {
-                    @Override
-                    protected void updateItem(String item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (item == null || empty) {
-                            setText(null);
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setText(null);
+                } else {
+                    setText(item);
+                    hoverProperty().addListener((ObservableValue<? extends Boolean> obs, Boolean wasHovered,
+                                                 Boolean isNowHovered) -> {
+                        if (isNowHovered && !isEmpty() && getText().length() > 40) {
+                            Tooltip tp = new Tooltip();
+                            tp.setText(getText());
+                            table.setTooltip(tp);
                         } else {
-                            setText(item);
-                            hoverProperty().addListener((ObservableValue<? extends Boolean> obs, Boolean wasHovered,
-                                                         Boolean isNowHovered) -> {
-                                if (isNowHovered && !isEmpty() && getText().length() > 40) {
-                                    Tooltip tp = new Tooltip();
-                                    tp.setText(getText());
-                                    table.setTooltip(tp);
-                                } else {
-                                    table.setTooltip(null);
-                                }
-                            });
+                            table.setTooltip(null);
                         }
-                    }
-                };
+                    });
+                }
             }
+
+
         });
     }
-
 
     /**
      * Sets up the change listener of the directory tree.
@@ -532,7 +676,6 @@ public class MainUI implements Initializable {
         }
     }
 
-
     /**
      * Perform binary search to find the child that matches the name.
      *
@@ -575,38 +718,81 @@ public class MainUI implements Initializable {
     }
 
     private void setRightPopupMenu() {
-        if (rightPopupMenu == null) {
-            rightPopupMenu = new ContextMenu();
-            MenuItem open = new MenuItem(lanLoader.get(11));
-            open.setOnAction(e -> {
-                try {
-                    openAction();
-                } catch (Exception e1) {
-                    e1.printStackTrace();
-                }
-            });
-            MenuItem openDir = new MenuItem(lanLoader.get(72));
-            openDir.setOnAction(e -> desktopOpenAction());
-            MenuItem compress = new MenuItem(lanLoader.get(10));
-            compress.setOnAction(e -> {
-                try {
-                    compressMode();
-                } catch (Exception e1) {
-                    e1.printStackTrace();
-                }
-            });
-            MenuItem delete = new MenuItem(lanLoader.get(71));
-            delete.setOnAction(e -> deleteAction());
-            MenuItem property = new MenuItem(lanLoader.get(70));
-            property.setOnAction(e -> {
-                try {
-                    showFileProperty();
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                }
-            });
+        openR = new MenuItem(lanLoader.get(11));
+        openR.setOnAction(e -> {
+            try {
+                openAction();
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+        });
 
-            rightPopupMenu.getItems().addAll(open, openDir, compress, delete, property);
+        openDirR = new MenuItem(lanLoader.get(72));
+        openDirR.setOnAction(e -> desktopOpenAction());
+
+        compressR = new MenuItem(lanLoader.get(10));
+        compressR.setOnAction(e -> {
+            try {
+                compressMode();
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+        });
+
+        copyR = new MenuItem(lanLoader.get(77));
+        copyR.setOnAction(e -> copyAction());
+
+        cutR = new MenuItem(lanLoader.get(78));
+        cutR.setOnAction(e -> cutAction());
+
+        pasteR = new MenuItem(lanLoader.get(79));
+        pasteR.setOnAction(e -> pasteAction());
+
+        deleteR = new MenuItem(lanLoader.get(71));
+        deleteR.setOnAction(e -> deleteAction());
+
+        renameR = new MenuItem(lanLoader.get(88));
+        renameR.setOnAction(e -> renameAction());
+
+        propertyR = new MenuItem(lanLoader.get(70));
+        propertyR.setOnAction(e -> {
+            try {
+                showFileProperty();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        });
+    }
+
+    private void changeRightMenu() {
+        rightPopupMenu.getItems().clear();
+        int selectionNumber = table.getSelectionModel().getSelectedItems().size();
+        if (currentDirLabel.getText().length() == 0) {
+            // The current opening directory is the system root
+            if (selectionNumber != 0) rightPopupMenu.getItems().addAll(openR, openDirR, new SeparatorMenuItem(),
+                    propertyR);
+        } else {
+            // The current opening directory is a regular directory
+            if (selectionNumber == 0)
+                rightPopupMenu.getItems().addAll(pasteR, propertyR);
+            else if (selectionNumber == 1)
+                rightPopupMenu.getItems().addAll(openR, openDirR, new SeparatorMenuItem(), compressR,
+                        new SeparatorMenuItem(), copyR, cutR, pasteR, new SeparatorMenuItem(), deleteR, renameR,
+                        new SeparatorMenuItem(), propertyR);
+            else
+                rightPopupMenu.getItems().addAll(openR, openDirR, new SeparatorMenuItem(), compressR,
+                        new SeparatorMenuItem(), copyR, cutR, pasteR, new SeparatorMenuItem(), deleteR,
+                        new SeparatorMenuItem(), propertyR);
+        }
+    }
+
+    private void changeClipBoardStatus() {
+        if (clipBoard == null) {
+            pasteR.setDisable(true);
+            pasteHere.setDisable(true);
+        } else {
+            pasteR.setDisable(false);
+            pasteHere.setDisable(false);
         }
     }
 
@@ -625,5 +811,6 @@ public class MainUI implements Initializable {
         changelogView.setText(lanLoader.get(18));
         toolMenu.setText(lanLoader.get(30));
         openInDesktop.setText(lanLoader.get(32));
+        pasteHere.setText(lanLoader.get(31));
     }
 }

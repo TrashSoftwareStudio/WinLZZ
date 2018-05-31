@@ -27,8 +27,8 @@ English
 25=Folder
 26=Local Disk
 
-30=Tools
-31=BWG Image Viewer
+30=Edit
+31=Paste
 32=Open in Desktop
 
 #  Main GUI Text
@@ -51,6 +51,21 @@ English
 74=Deletion failed
 75=Cannot remove
 76=,
+77=Copy
+78=Cut
+79=Paste
+80=Replace
+81=Skip
+82=Keep both versions
+83=already exists, do you want to paste anyway?
+84=File existed
+85=File to be pasted
+86=Failed to paste
+87=Cannot move
+88=Rename
+89=File already exists
+90=Any of the listed characters are not allowed:
+91=Cannot rename file
 
 #  Compression UI FXML
 

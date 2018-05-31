@@ -24,9 +24,11 @@
                 <MenuItem fx:id="languageSetting" mnemonicParsing="false" onAction="#languageSelection"
                           text="语言"/>
             </Menu>
-            <Menu fx:id="toolMenu" mnemonicParsing="false" text="工具">
+            <Menu fx:id="toolMenu" mnemonicParsing="false" text="编辑">
                 <MenuItem fx:id="openInDesktop" mnemonicParsing="false" onAction="#desktopOpenAction"
                           text="在桌面中打开"/>
+                <MenuItem fx:id="pasteHere" mnemonicParsing="false" onAction="#pasteHereAction"
+                          text="粘贴"/>
             </Menu>
             <Menu fx:id="helpMenu" mnemonicParsing="false" text="帮助">
                 <MenuItem fx:id="about" mnemonicParsing="false" onAction="#aboutAction" text="关于"/>

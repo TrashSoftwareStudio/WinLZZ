@@ -36,9 +36,10 @@ public class FilePropertiesUI implements Initializable {
     @FXML
     private RowConstraints typeRow, containsRow, sepRow2, timeRow1, timeRow2, timeRow3;
 
+    private Service<Void> service;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
     }
 
     void setFiles(InfoNode file) {
@@ -57,6 +58,10 @@ public class FilePropertiesUI implements Initializable {
         } else {
             multiDisplay();
         }
+    }
+
+    void interrupt() {
+        service.cancel();
     }
 
     private void singleDisplay() {
@@ -124,7 +129,7 @@ public class FilePropertiesUI implements Initializable {
     }
 
     private void count() {
-        Service<Void> service = new Service<>() {
+        service = new Service<>() {
             @Override
             protected Task<Void> createTask() {
                 return new Task<>() {
@@ -164,6 +169,7 @@ public class FilePropertiesUI implements Initializable {
             }
         };
         service.setOnFailed(e -> e.getSource().getException().printStackTrace());
+        service.setOnCancelled(e -> file.interrupt());
         service.start();
     }
 

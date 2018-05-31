@@ -10,6 +10,14 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 
+/**
+ * A node {@code Object} represents the starting directory(s), or file(s).
+ * <p>
+ * This class is used to show the properties of files.
+ *
+ * @author zbh
+ * @since 0.7.0
+ */
 public class InfoNode {
 
     long size;
@@ -24,6 +32,8 @@ public class InfoNode {
     boolean isRunning = true;
 
     /**
+     * Creates a new {@code InfoNode} instance.
+     * <p>
      * Constructor for single file.
      *
      * @param file the file.
@@ -33,6 +43,8 @@ public class InfoNode {
     }
 
     /**
+     * Creates a new {@code InfoNode} instance.
+     * <p>
      * Constructor for multiple files;
      *
      * @param files file array
@@ -41,6 +53,11 @@ public class InfoNode {
         this.files = files;
     }
 
+    /**
+     * Reads attributes from the file.
+     *
+     * @throws IOException if the file is not readable
+     */
     public void readInfo() throws IOException {
         if (isSingle()) {
             BasicFileAttributes bfa = Files.readAttributes(Paths.get(this.file.getAbsolutePath()), BasicFileAttributes.class);
@@ -50,6 +67,9 @@ public class InfoNode {
         }
     }
 
+    /**
+     * Reads all the files and directories under the {@code file}, if the {@code file} is a directory.
+     */
     public void readDirs() {
         Thread timer = new Thread(new Timer(this));
         timer.start();
@@ -58,7 +78,12 @@ public class InfoNode {
         isRunning = false;
     }
 
+    public void interrupt() {
+        isRunning = false;
+    }
+
     private void traverse(File f) {
+        if (!isRunning) return;
         if (f.isDirectory()) {
             dirCount += 1;
             File[] children = f.listFiles();
@@ -69,10 +94,21 @@ public class InfoNode {
         }
     }
 
+    /**
+     * Returns whether this {@code InfoNode} represents a single file.
+     *
+     * @return {@code true} if this {@code InfoNode} represents a single file,
+     * {@code false} if this {@code InfoNode} represents multiple files
+     */
     public boolean isSingle() {
         return file != null;
     }
 
+    /**
+     * Returns the type of the {@code file} if this {@code InfoNode} represents a single file.
+     *
+     * @return the type of the {@code file} if this {@code InfoNode} represents a single file
+     */
     public String getType() {
         if (isSingle()) {
             if (file.isDirectory()) return null;
@@ -86,27 +122,57 @@ public class InfoNode {
         }
     }
 
+    /**
+     * Returns the file.
+     *
+     * @return the file
+     */
     public File getFile() {
         if (isSingle()) return file;
         else return files[0];
     }
 
+    /**
+     * Returns the size of all files under this {@code file} if this {@code InfoNode} represents directory(s) or
+     * multiple files, or the size of this {@code file} if this {@code InfoNode} represents a file.
+     *
+     * @return the size of all files under this {@code file} if this {@code InfoNode} represents directory(s) or
+     * multiple files, or the size of this {@code file} if this {@code InfoNode} represents a file.
+     */
     public long getSize() {
         return size;
     }
 
+    /**
+     * Returns the time of creation this {@code file}.
+     *
+     * @return the time of creation this {@code file}
+     */
     public long getCreationTime() {
         return creationTime;
     }
 
+    /**
+     * Returns the last modified time of this {@code file}.
+     *
+     * @return the last modified time of this {@code file}
+     */
     public long getModifiedTime() {
         return modifiedTime;
     }
 
+    /**
+     * Returns the last accessed time of this {@code file}.
+     *
+     * @return the last accessed time of this {@code file}
+     */
     public long getAccessTime() {
         return accessTime;
     }
 
+    /**
+     * Initializes all properties used for updating GUI.
+     */
     public void initializeProperties() {
         dirCountWrapper.set(1);
         fileCountWrapper.set(1);
@@ -130,10 +196,23 @@ public class InfoNode {
 }
 
 
+/**
+ * An implementation of {@code Runnable}, used to update status of a {@code InfoNode} instance to a
+ * {@code FilePropertyUI} instance every 1 second.
+ *
+ * @author zbh
+ * @see java.lang.Runnable
+ * @since 0.7.0
+ */
 class Timer implements Runnable {
 
     private InfoNode parent;
 
+    /**
+     * Creates a new {@code Timer} instance.
+     *
+     * @param parent the {@code Timer} which created this {@code Timer}.
+     */
     Timer(InfoNode parent) {
         this.parent = parent;
     }

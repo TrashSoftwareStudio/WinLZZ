@@ -13,14 +13,14 @@ import WinLzz.BWZ.Util.LinkedDictionary;
  */
 class MTFTransform {
 
-    private short[] origText;
+    private int[] origText;
 
     /**
      * Creates a new {@code MTFTransform} instance.
      *
      * @param text the text to be transformed.
      */
-    MTFTransform(short[] text) {
+    MTFTransform(int[] text) {
         this.origText = text;
     }
 
@@ -29,33 +29,33 @@ class MTFTransform {
      *
      * @return the text after mtf transformation and zero run length coding..
      */
-    short[] Transform() {
+    int[] Transform() {
         LinkedDictionary ld = new LinkedDictionary();
         ld.initialize(257);
-        short[] result = new short[origText.length];
+        int[] result = new int[origText.length];
         int index = 0;
         int i = 0;
         int count = 0;
         while (i < origText.length) {
-            short s = (short) ld.findAndMove(origText[i]);
+            int s = ld.findAndMove(origText[i]);
             if (s == 0) {
                 count += 1;  // If the MTF result is 0, add one to the run-length.
             } else {
                 if (count != 0) {
-                    short[] runLength = BWZUtil.runLength(count);
-                    for (short rl : runLength) result[index++] = rl;
+                    int[] runLength = BWZUtil.runLength(count);
+                    for (int rl : runLength) result[index++] = rl;
                     // Record the run-length of 0's and reset the counter.
                     count = 0;
                 }
-                result[index++] = (short) (s + 1);
+                result[index++] = s + 1;
             }
             i += 1;
         }
         if (count != 0) {  // Add last few 0's
-            short[] runLength = BWZUtil.runLength(count);
-            for (short rl : runLength) result[index++] = rl;
+            int[] runLength = BWZUtil.runLength(count);
+            for (int rl : runLength) result[index++] = rl;
         }
-        short[] rtn = new short[index];
+        int[] rtn = new int[index];
         System.arraycopy(result, 0, rtn, 0, index);
         return rtn;
     }

@@ -18,7 +18,7 @@ public class BWTEncoder {
     /**
      * Original text for encoding.
      */
-    private short[] text;
+    private int[] text;
 
     /**
      * The index of the row0 in the text after transformation, where row0 is the first row of the original text.
@@ -40,8 +40,8 @@ public class BWTEncoder {
      */
     public BWTEncoder(byte[] text, boolean isDc3) {
         this.isDc3 = isDc3;
-        this.text = new short[text.length + 1];
-        for (int i = 0; i < text.length; i++) this.text[i] = (short) ((text[i] & 0xff) + 1);  // Transform every byte
+        this.text = new int[text.length + 1];
+        for (int i = 0; i < text.length; i++) this.text[i] = (text[i] & 0xff) + 1;  // Transform every byte
         // to unsigned and plus one to make sure nothing is smaller than or equal to the EOF character.
         this.text[this.text.length - 1] = 0;  // Add the EOF character (0) at the end of the original text.
         // This is necessary for transforming suffix array into Burrows-Wheeler matrix.
@@ -52,16 +52,16 @@ public class BWTEncoder {
      *
      * @return the text after transformation, including the record of {@code origRowIndex}.
      */
-    public short[] Transform() {
-        short[] result = new short[text.length + 3];
-        short[] trans = transform();
+    public int[] Transform() {
+        int[] result = new int[text.length + 3];
+        int[] trans = transform();
         byte[] indexRep = Bytes.intToBytes24(origRowIndex);
-        for (int i = 0; i < 3; i++) result[i] = (short) (indexRep[i] & 0xff);
+        for (int i = 0; i < 3; i++) result[i] = indexRep[i] & 0xff;
         System.arraycopy(trans, 0, result, 3, trans.length);
         return result;
     }
 
-    private short[] transform() {
+    private int[] transform() {
         int[] suffixArray;
         if (isDc3) {
             SuffixArrayDC3 sa = new SuffixArrayDC3(text, 257);
@@ -74,7 +74,7 @@ public class BWTEncoder {
 
         int len = suffixArray.length;
         assert len == text.length;
-        short[] result = new short[len];
+        int[] result = new int[len];
         for (int i = 0; i < len; i++) {
             int pos = (suffixArray[i] + len - 1) % len;
             result[i] = text[pos];

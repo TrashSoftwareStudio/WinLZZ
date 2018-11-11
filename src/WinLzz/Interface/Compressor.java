@@ -22,7 +22,7 @@ public interface Compressor {
      * @param out the target output stream.
      * @throws Exception if any error occurs.
      */
-    void Compress(OutputStream out) throws Exception;
+    void compress(OutputStream out) throws Exception;
 
     /**
      * Sets up the parent {@code Packer}, which launched this {@code Compressor}.

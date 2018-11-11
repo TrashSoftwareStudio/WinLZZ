@@ -30,7 +30,7 @@ public class FileOutputBufferArray {
      */
     private boolean array2Init = false;
 
-    private int index, front = 0;
+    private long index, front = 0;
 
     /**
      * Creates a new instance of {@code FileOutputBufferArray}.
@@ -79,8 +79,8 @@ public class FileOutputBufferArray {
             }
             front += bufferSize;
         } else {
-            if (activeArray2) array2[index % bufferSize] = b;
-            else array1[index % bufferSize] = b;
+            if (activeArray2) array2[(int) (index % bufferSize)] = b;
+            else array1[(int) (index % bufferSize)] = b;
         }
         index += 1;
     }
@@ -94,16 +94,16 @@ public class FileOutputBufferArray {
      * @param to   the ending postition of the sub-sequence
      * @return the sub-sequence
      */
-    public byte[] subSequence(int from, int to) {
-        int len = to - from;
+    public byte[] subSequence(long from, long to) {
+        int len = (int) (to - from);
         byte[] rtn = new byte[len];
         if (to > index) throw new IndexOutOfBoundsException("Index Out Of Bounds: Index: " + index + ", To: " + to);
         else if (from > to) throw new NegativeArraySizeException("Negative sequence size");
         if (activeArray2) {
             if (front - from <= bufferSize) {
-                System.arraycopy(array2, from % bufferSize, rtn, 0, len);
+                System.arraycopy(array2, (int) (from % bufferSize), rtn, 0, len);
             } else if (front - from <= bufferSize * 2) {
-                int remain = from % bufferSize;
+                int remain = (int) (from % bufferSize);
                 int firstLen = Math.min(bufferSize - remain, len);
                 System.arraycopy(array1, remain, rtn, 0, firstLen);
                 System.arraycopy(array2, 0, rtn, firstLen, len - firstLen);
@@ -112,9 +112,9 @@ public class FileOutputBufferArray {
             }
         } else {
             if (front - from <= bufferSize) {
-                System.arraycopy(array1, from % bufferSize, rtn, 0, len);
+                System.arraycopy(array1, (int) (from % bufferSize), rtn, 0, len);
             } else if (front - from <= bufferSize * 2) {
-                int remain = from % bufferSize;
+                int remain = (int) (from % bufferSize);
                 int firstLen = Math.min(bufferSize - remain, len);
                 System.arraycopy(array2, remain, rtn, 0, firstLen);
                 System.arraycopy(array1, 0, rtn, firstLen, len - firstLen);
@@ -131,7 +131,7 @@ public class FileOutputBufferArray {
      *
      * @return the current writing position
      */
-    public int getIndex() {
+    public long getIndex() {
         return index;
     }
 
@@ -141,7 +141,7 @@ public class FileOutputBufferArray {
      * @throws IOException if the {@code fos} is not writable or cannot be flushed
      */
     public void flush() throws IOException {
-        int len = index % bufferSize;
+        int len = (int) (index % bufferSize);
         if (activeArray2) {
             if (array1Init) fos.write(array1);
             fos.write(array2, 0, len);

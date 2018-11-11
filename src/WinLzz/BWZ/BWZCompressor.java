@@ -52,12 +52,12 @@ public class BWZCompressor implements Compressor {
     /**
      * The alphabet size of the main huffman table.
      */
-    final static short huffmanTableSize = 259;
+    final static int huffmanTableSize = 259;
 
     /**
      * The signal that marks the end of a huffman stream.
      */
-    final static short huffmanEndSig = 258;
+    public final static int huffmanEndSig = 258;
 
     private OutputStream out;
     private FileChannel fis;
@@ -238,7 +238,7 @@ public class BWZCompressor implements Compressor {
      * @throws Exception if the output stream is not writable.
      */
     @Override
-    public void Compress(OutputStream out) throws Exception {
+    public void compress(OutputStream out) throws Exception {
         this.out = out;
         this.out.write(Util.windowSizeToByte(maxHuffmanSize));
 
@@ -361,18 +361,18 @@ class EncodeThread implements Runnable {
         flags = new byte[huffmanBlockNumber];
 
         BWTEncoder be = new BWTEncoder(buffer, isDc3);
-        short[] bwtResult = be.Transform();
+        int[] bwtResult = be.Transform();
 
         parent.pos += buffer.length * 0.6;
         if (parent.parent != null) parent.parent.progress.set(parent.pos);  // Update progress
 
         MTFTransform mtf = new MTFTransform(bwtResult);
-        short[] array = mtf.Transform();  // Also contains RLC Result.
+        int[] array = mtf.Transform();  // Also contains RLC Result.
 
         int eachLength = array.length / huffmanBlockNumber;
         int pos = 0;
         for (int i = 0; i < huffmanBlockNumber - 1; i++) {
-            short[] part = new short[eachLength];
+            int[] part = new int[eachLength];
             System.arraycopy(array, pos, part, 0, eachLength);
             pos += eachLength;
             LongHuffmanCompressorRam hcr =
@@ -391,7 +391,7 @@ class EncodeThread implements Runnable {
 
         // The last huffman block.
         int i = huffmanBlockNumber - 1;
-        short[] lastPart = new short[array.length - pos];  // Since we need to put everything remaining inside
+        int[] lastPart = new int[array.length - pos];  // Since we need to put everything remaining inside
         // the last block.
         System.arraycopy(array, pos, lastPart, 0, lastPart.length);
         LongHuffmanCompressorRam hcr =
@@ -453,6 +453,7 @@ class EncodeThread implements Runnable {
          * 5 - 8 : index of original row of bwt
          */
         byte[] numbers = new byte[8];
+        // this value will not exceed 32768
         System.arraycopy(Bytes.shortToBytes((short) flagsMtf.length), 0, numbers, 0, 2);
         System.arraycopy(Bytes.intToBytes24(cmpMap.length), 0, numbers, 2, 3);
         System.arraycopy(Bytes.intToBytes24(beb.getOrigRowIndex()), 0, numbers, 5, 3);

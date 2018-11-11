@@ -2,6 +2,7 @@ package Test;
 
 import WinLzz.LZZ2.LZZ2Compressor;
 import WinLzz.LZZ2.LZZ2DeCompressor;
+import WinLzz.Utility.ArrayHashTable;
 import WinLzz.Utility.Util;
 
 import java.io.BufferedOutputStream;
@@ -12,9 +13,13 @@ public class LZZ2Test {
     public static void main(String[] args) throws Exception {
         long start = System.currentTimeMillis();
 
+        long tx = System.currentTimeMillis();
+        new ArrayHashTable(16777216);
+        System.out.println(System.currentTimeMillis() - tx);
+
         String name;
         name = "dsCtrl.txt";
-//        name = "p1.png";
+        name = "p1.png";
 //        name = "t1.bmp";
 //        name = "t5.bmp";
 //        name = "allCodes.zip";
@@ -26,10 +31,10 @@ public class LZZ2Test {
 //        SequenceInputStream sis = new SequenceInputStream(v.elements());
         int ws = 65536;
         LZZ2Compressor c = new LZZ2Compressor(name, ws, 286);
-        c.setCompressionLevel(4);
+        c.setCompressionLevel(1);
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
-            c.Compress(fos);
+            c.compress(fos);
             System.out.println(c.getCompressedSize());
         } catch (Exception e) {
             //
@@ -38,14 +43,17 @@ public class LZZ2Test {
         fos.close();
 
         long mid = System.currentTimeMillis();
-        System.out.println("Compress Time: " + (mid - start) + " ms");
+        long t1 = mid - start;
+        System.out.println("Compress Time: " + t1 + " ms");
 
         String cpyName = Util.getOriginalCopyName(cmpName);
         LZZ2DeCompressor d = new LZZ2DeCompressor(cmpName, ws);
         FileOutputStream bos = new FileOutputStream(cpyName);
-        d.Uncompress(bos);
+        d.uncompress(bos);
         bos.close();
 
-        System.out.println("Uncompress Time: " + (System.currentTimeMillis() - mid) + " ms");
+        long t2 = System.currentTimeMillis() - mid;
+        System.out.println("Uncompress Time: " + t2 + " ms");
+        System.out.println("C/U time ratio: " + (double) t1 / t2);
     }
 }

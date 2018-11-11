@@ -16,7 +16,6 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.security.NoSuchAlgorithmException;
 import java.util.ResourceBundle;
 
 public class CompressUI implements Initializable {
@@ -25,13 +24,13 @@ public class CompressUI implements Initializable {
     private TextField nameText;
 
     @FXML
-    private ComboBox<String> algBox, levelBox, windowNameBox, modeBox;
+    private ComboBox<String> algBox, levelBox, windowNameBox, modeBox, partialBox, unitBox;
 
     @FXML
     private ComboBox<Integer> bufferBox, threadBox;
 
     @FXML
-    private Label nameLabel, algLabel, levelLabel, windowLabel, bufferLabel, strongModeLabel, threadLabel;
+    private Label nameLabel, algLabel, levelLabel, windowLabel, bufferLabel, strongModeLabel, threadLabel, partialLabel;
 
     @FXML
     private Button startCompressButton, passwordButton, annotationButton;
@@ -39,19 +38,29 @@ public class CompressUI implements Initializable {
     private File[] rootDir;
     private Stage pStage;
     private String password;
+    private String encAlg;
+    private String passAlg;
     private AnnotationNode annotation;
 
     private int encryptLevel = 0;
     private String[] algNames = new String[]{"BWZ", "LZZ2"};
+    private String[] algValues = new String[]{"bwz", "lzz2"};
     private String[] compressionLevels = new String[6];
     private String[] windowsSizeNames = new String[]{"4KB", "16KB", "32KB", "64KB", "128KB", "256KB", "1MB"};
     private String[] windowsSizeNames2 = new String[]{"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
+    private String[] splitSizeNames = new String[]{"1.44 MB - Floppy", "10 MB", "650 MB - CD", "700 MB - CD",
+            "4095 MB - FAT32", "4481 MB - DVD"};
 
     private int[] windowSizes = new int[]{4096, 16384, 32768, 65536, 131072, 262144, 1048576};
     // Window sizes of LZZ2.
 
     private int[] windowSizes2 = new int[]{131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
     // Window sizes of BWT.
+
+    /**
+     * Indices of units of corresponding pre-selections, 0 for byte, 1 for kb, 2 for mb, 3 for gb.
+     */
+    private int[] splitUnits = new int[]{2, 2, 2, 2, 2, 2};
 
     private Integer[] bufferSizes = new Integer[]{8, 16, 32, 64, 128, 256, 286};
 
@@ -77,9 +86,11 @@ public class CompressUI implements Initializable {
         setWindowSizeBox();
         setLevelListener();
         setAlgBoxListener();
+        setSizeUnitListener();
         levelBox.getSelectionModel().select(3);
         modeBox.getSelectionModel().select(1);
         algBox.getSelectionModel().select(0);
+        unitBox.getSelectionModel().select(0);
     }
 
     void setDir(File[] dir) {
@@ -95,8 +106,10 @@ public class CompressUI implements Initializable {
         this.password = password;
     }
 
-    void setEncryptLevel(int level) {
+    void setEncryption(int level, String encAlg, String passAlg) {
         this.encryptLevel = level;
+        this.encAlg = encAlg;
+        this.passAlg = passAlg;
     }
 
     void setAnnotation(AnnotationNode annotation) {
@@ -112,23 +125,37 @@ public class CompressUI implements Initializable {
         bufferBox.getItems().addAll(bufferSizes);
         levelBox.getItems().addAll(compressionLevels);
         modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
+        partialBox.getItems().addAll(splitSizeNames);
+        unitBox.getItems().addAll("B", "KB", "MB", "GB");
     }
 
     private void setWindowSizeBox() {
         windowNameBox.getItems().clear();
         threadBox.getItems().clear();
-        if (algBox.getSelectionModel().getSelectedItem().equals("BWZ")) {
-            windowNameBox.getItems().addAll(windowsSizeNames2);
-            threadBox.getItems().addAll(threads);
-        } else {
-            windowNameBox.getItems().addAll(windowsSizeNames);
-            threadBox.getItems().add(1);
+        switch (algBox.getSelectionModel().getSelectedItem()) {
+            case "BWZ":
+                windowNameBox.getItems().addAll(windowsSizeNames2);
+                threadBox.getItems().addAll(threads);
+                break;
+//            case "Huffman":
+//                threadBox.getItems().addAll(threads);
+//                break;
+            default:
+                windowNameBox.getItems().addAll(windowsSizeNames);
+                threadBox.getItems().add(1);
+                break;
         }
         threadBox.getSelectionModel().select(0);
     }
 
     private boolean isLevelAble() {
         return algBox.getSelectionModel().getSelectedItem().equals("LZZ2");
+    }
+
+    private void setSizeUnitListener() {
+        partialBox.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
+            if (newValue.intValue() != -1) unitBox.getSelectionModel().select(splitUnits[newValue.intValue()]);
+        }));
     }
 
     private void setLevelListener() {
@@ -173,6 +200,8 @@ public class CompressUI implements Initializable {
         algBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             switch (newValue) {
                 case "LZZ2":
+                    levelBox.setDisable(false);
+                    windowNameBox.setDisable(false);
                     bufferBox.setDisable(false);
                     modeBox.setDisable(false);
                     bufferBox.getSelectionModel().select(3);
@@ -181,6 +210,8 @@ public class CompressUI implements Initializable {
                     modeBox.getSelectionModel().select(1);
                     break;
                 case "BWZ":
+                    levelBox.setDisable(false);
+                    windowNameBox.setDisable(false);
                     bufferBox.getSelectionModel().clearSelection();
                     modeBox.getSelectionModel().clearSelection();
                     bufferBox.setDisable(true);
@@ -188,6 +219,14 @@ public class CompressUI implements Initializable {
                     modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
                     modeBox.getSelectionModel().select(1);
                     break;
+//                case "Huffman":
+//                    levelBox.setDisable(true);
+//                    windowNameBox.setDisable(true);
+//                    bufferBox.getSelectionModel().clearSelection();
+//                    modeBox.getSelectionModel().clearSelection();
+//                    bufferBox.setDisable(true);
+//                    modeBox.getItems().clear();
+//                    modeBox.setDisable(true);
             }
             setWindowSizeBox();
             levelBox.getSelectionModel().select(3);
@@ -236,18 +275,7 @@ public class CompressUI implements Initializable {
         String name = nameText.getText();
         if (!name.endsWith(".pz")) name += ".pz";
 
-        String algName = algBox.getSelectionModel().getSelectedItem();
-        String alg;
-        switch (algName) {
-            case "LZZ2":
-                alg = "lzz2";
-                break;
-            case "BWZ":
-                alg = "bwz";
-                break;
-            default:
-                throw new NoSuchAlgorithmException();
-        }
+        String alg = algValues[algBox.getSelectionModel().getSelectedIndex()];
 
         int window, buffer, cmpLevel;
         if (levelBox.getSelectionModel().getSelectedIndex() == 0) {
@@ -255,13 +283,39 @@ public class CompressUI implements Initializable {
             buffer = 0;
             cmpLevel = 0;
         } else {
-            if (alg.equals("bwz")) window = windowSizes2[windowNameBox.getSelectionModel().getSelectedIndex()];
-            else window = windowSizes[windowNameBox.getSelectionModel().getSelectedIndex()];
-            if (alg.equals("lzz2")) buffer = bufferBox.getSelectionModel().getSelectedItem();
-            else buffer = 0;
-            cmpLevel = modeBox.getSelectionModel().getSelectedIndex();
+            switch (alg) {
+                case "bwz":
+                    window = windowSizes2[windowNameBox.getSelectionModel().getSelectedIndex()];
+                    buffer = 0;
+                    cmpLevel = modeBox.getSelectionModel().getSelectedIndex();
+                    break;
+                case "lzz2":
+                    window = windowSizes[windowNameBox.getSelectionModel().getSelectedIndex()];
+                    buffer = bufferBox.getSelectionModel().getSelectedItem();
+                    cmpLevel = modeBox.getSelectionModel().getSelectedIndex();
+                    break;
+                default:
+                    window = windowSizes[windowNameBox.getSelectionModel().getSelectedIndex()];
+                    buffer = 256;
+                    cmpLevel = 0;
+                    break;
+            }
         }
         int threads = threadBox.getSelectionModel().getSelectedItem();
+
+        long partSize;
+        String partText = partialBox.getEditor().getText();
+        if (partialBox.getSelectionModel().getSelectedIndex() == 0)
+            partSize = 1457664;  // Special case for 3.5" floppy disk
+        else if (partText.length() != 0) {
+            long unit = (long) Math.pow(1024, unitBox.getSelectionModel().getSelectedIndex());
+            String partSizeText;
+            if (partText.contains(" ")) partSizeText = partText.split(" ")[0];
+            else partSizeText = partText;
+            partSize = (long) (Double.valueOf(partSizeText) * unit);
+        } else {
+            partSize = 0;
+        }
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("compressingUI.fxml"));
 
@@ -276,9 +330,9 @@ public class CompressUI implements Initializable {
         cui.setName(name, rootDir);
         cui.setLanLoader(lanLoader);
         cui.setGrandParent(parent);
-        cui.setPref(window, buffer, cmpLevel, alg, threads, annotation);
+        cui.setPref(window, buffer, cmpLevel, alg, threads, annotation, partSize);
         cui.setStage(stage);
-        cui.setEncrypt(password, encryptLevel);
+        cui.setEncrypt(password, encryptLevel, encAlg, passAlg);
         stage.show();
         cui.compress();
 
@@ -294,6 +348,7 @@ public class CompressUI implements Initializable {
         bufferLabel.setText(lanLoader.get(105));
         strongModeLabel.setText(lanLoader.get(106));
         threadLabel.setText(lanLoader.get(107));
+        partialLabel.setText(lanLoader.get(121));
         startCompressButton.setText(lanLoader.get(108));
         annotationButton.setText(lanLoader.get(109));
 

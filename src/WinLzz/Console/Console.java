@@ -2,7 +2,7 @@ package WinLzz.Console;
 
 import Main.Main;
 import WinLzz.Packer.*;
-import WinLzz.ZSE.WrongPasswordException;
+import WinLzz.Encrypters.WrongPasswordException;
 
 import java.io.File;
 import java.security.NoSuchAlgorithmException;
@@ -60,7 +60,7 @@ public class Console {
                     p.setAlgorithm(alg);
                     p.setThreads(threads);
                     p.setCmpLevel(pref[2]);
-                    p.setEncrypt(password, enc);
+                    p.setEncrypt(password, enc, "bzse", "sha-256");
 
                     long start = System.currentTimeMillis();
                     System.out.println("Compressing...");
@@ -81,11 +81,19 @@ public class Console {
                     break;
                 }
                 case "-u": {
+                    int sigCheck = UnPacker.checkSignature(inFile);
+                    if (sigCheck == 1) {
+                        System.out.println("This is an archive subsection. Please open the first section.");
+                        return;
+                    } else if (sigCheck == 2) {
+                        System.out.println("File may not be a WinLZZ archive");
+                        return;
+                    }
                     UnPacker up = new UnPacker(inFile);
                     try {
                         up.readInfo();
-                    } catch (NotAPzFileException e) {
-                        System.out.println("File may not be a WinLZZ archive");
+                    } catch (UnsupportedVersionException e) {
+                        System.out.println("Unsupported archive version");
                         return;
                     }
                     if (up.getEncryptLevel() != 0) {

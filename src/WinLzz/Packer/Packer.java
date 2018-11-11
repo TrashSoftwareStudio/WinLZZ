@@ -4,10 +4,11 @@
  * Archive header info:
  * 4 bytes: PZ header
  * 2 bytes: version
- * 1 byte: info byte
+ * 2 bytes: info bytes
  * 1 byte: window size
  * 4 bytes: time of creation
- * 4 bytes: CRC32 checksum
+ * 4 bytes: CRC32 checksum for context
+ * 4 bytes: CRC32 checksum for main text
  * 4 bytes: followed context length (n)
  * 2 bytes: extra field length (m)
  * m bytes: extra field
@@ -17,20 +18,20 @@
 package WinLzz.Packer;
 
 import WinLzz.BWZ.BWZCompressor;
+import WinLzz.Encrypters.BZSE.BZSEStreamEncoder;
 import WinLzz.GraphicUtil.AnnotationNode;
 import WinLzz.Interface.Compressor;
+import WinLzz.Interface.Encipher;
 import WinLzz.LZZ2.LZZ2Compressor;
 import WinLzz.ResourcesPack.Languages.LanguageLoader;
-import WinLzz.Utility.Bytes;
-import WinLzz.Utility.MultipleInputStream;
-import WinLzz.Utility.Util;
-import WinLzz.ZSE.ZSEEncoder;
-import WinLzz.ZSE.ZSEFileEncoder;
+import WinLzz.Utility.*;
+import WinLzz.Encrypters.ZSE.ZSEFileEncoder;
 import javafx.beans.property.*;
 
 import java.io.*;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.zip.CRC32;
 
 /**
  * The .pz archive packing program.
@@ -46,7 +47,7 @@ public class Packer {
      * <p>
      * Any change of this value will result the incompatibility between the program and older archive file.
      */
-    public final static byte primaryVersion = 24;
+    public final static byte primaryVersion = 25;
 
     /**
      * The secondary core version.
@@ -56,7 +57,12 @@ public class Packer {
     /**
      * The signature for a WinLZZ archive (*.pz) file.
      */
-    final static int HEADER = 0x03F92FBD;
+    public final static int SIGNATURE = 0x03F92FBD;
+
+    /**
+     * The digital signature of a section of a split compress file.
+     */
+    public final static int PART_SIGNATURE = 0x016416DA;
 
     /**
      * Set 1999-12-31 19:00 as the initial time.
@@ -97,6 +103,11 @@ public class Packer {
     private long compressedLength;
 
     /**
+     * Maximum length of each archive file. 0 if do not separate.
+     */
+    private long partSize;
+
+    /**
      * List of {@code IndexNode}'s.
      * <p>
      * This list is order-sensitive. Each node represents an actual file except the root node.
@@ -106,21 +117,35 @@ public class Packer {
     private File[] inFiles;
 
     private String password;
+
+    /**
+     * The encryption algorithm.
+     */
+    private String encryption;
+
+    private String passwordAlg;
     private String alg;
+
+    /**
+     * The CRC32 checksum generator of the context.
+     */
+    private CRC32 contextCrc = new CRC32();
 
     /**
      * List of extra field blocks.
      * <p>
      * Each element in this list is an extra field block, recorded in byte-array form.
      * <p>
-     * Structure of each block:
+     * Standard structure of each block:
      * 0: flag
      * 1: reserved
      * 2, 3: unit length (n)
      * 4 ~ 4 + n: block.
+     * <p>
      * Extra field one-byte flags:
      * 0: reserved
      * 1: annotation
+     * None: partition info
      */
     private ArrayList<byte[]> extraFields = new ArrayList<>();
 
@@ -188,7 +213,9 @@ public class Packer {
 
     private void writeMapToStream(OutputStream headBos, LinkedList<File> mainList) throws IOException {
         for (IndexNode in : indexNodes) {
-            headBos.write(in.toByteArray());
+            byte[] array = in.toByteArray();
+            contextCrc.update(array, 0, array.length);
+            headBos.write(array);
             if (!in.isDir()) mainList.addLast(in.getFile());
         }
     }
@@ -213,43 +240,95 @@ public class Packer {
     public void Pack(String outFile, int windowSize, int bufferSize) throws Exception {
         if (lanLoader != null) step.setValue(lanLoader.get(270));
         percentage.set("0.0");
-        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outFile));
-        bos.write(Bytes.intToBytes32(HEADER));  // Write header : 4 bytes
+        OutputStream bos;
+        if (partSize == 0) bos = new BufferedOutputStream(new FileOutputStream(outFile));
+        else {
+            bos = new SeparateOutputStream(outFile, partSize, true, PART_SIGNATURE);
+            setPartialInfo();
+        }
+        bos.write(Bytes.intToBytes32(SIGNATURE));  // Write header : 4 bytes
         bos.write(primaryVersion);  // Write version : 2 bytes
         bos.write(secondaryVersion);
 
         /*
          * Info:
-         * [0:2] encrypt level
-         * [2:4] algorithm
+         * [0:2) encrypt level
+         * [2:4) algorithm
+         * [5] if separate
          */
-        byte inf = (byte) 0b00000000;
+        byte inf = (byte) 0;
+
+        /*
+        `* Encryption info:
+         * [0:2) encryption algorithm
+         * [2:5) password encryption algorithm
+         */
+        byte encInf = (byte) 0;
 
         switch (encryptLevel) {
-            case 0:
+            case 0:  // 00
                 break;
             case 1:
-                inf = (byte) (inf | 0b10000000);
+                inf = (byte) (inf | 0b10000000);  // 10
                 break;
             case 2:
-                inf = (byte) (inf | 0b01000000);
+                inf = (byte) (inf | 0b01000000);  // 01
                 break;
         }
 
         switch (alg) {
-            case "lzz2":
+            case "lzz2":  // 00
+                break;
+            case "huf":
+                inf = (byte) (inf | 0b00010000);  // 01
                 break;
             case "bwz":
-                inf = (byte) (inf | 0b00100000);
+                inf = (byte) (inf | 0b00100000);  // 10
                 break;
         }
-        compressedLength = 22;
+
+        if (partSize != 0) inf = (byte) (inf | 0b00001000);  // If compress separately
+
+        if (encryptLevel != 0) {
+            switch (encryption) {
+                case "zse":
+                    break;
+                case "bzse":
+                    encInf = (byte) (encInf | 0b10000000);
+                    break;
+            }
+
+            switch (passwordAlg) {
+                case "md5":
+                    break;  // 000
+                case "sha-256":
+                    encInf = (byte) (encInf | 0b00001000);  // 001
+                    break;
+                case "sha-384":
+                    encInf = (byte) (encInf | 0b00010000);  // 010
+                    break;
+                case "sha-512":
+                    encInf = (byte) (encInf | 0b00011000);  // 011
+                    break;
+                case "zha64":
+                    encInf = (byte) (encInf | 0b00100000);  // 100
+                    break;
+            }
+        }
+        compressedLength = 27;
 
         bos.write(inf);  // Write info: 1 byte
+        bos.write(encInf);  // Write encryption info: 1 byte
         bos.write(Util.windowSizeToByte(windowSize));  // Write window size: 1 byte
-        bos.write(new byte[4]);  // Reserved for creation time.
-        bos.write(new byte[4]);  // Reserved for crc32 checksum
-        bos.write(new byte[4]);  // Reserved for header size.
+
+        /*
+         * Reserved bytes
+         * 4 for creation time,
+         * 4 for crc32 checksum of context
+         * 4 for crc32 checksum of main file
+         * 4 for context size
+         */
+        bos.write(new byte[16]);
 
         byte[] extraField = new byte[Util.collectionOfArrayLength(extraFields)];  // Extra field
         int i = 0;
@@ -274,9 +353,17 @@ public class Packer {
         headBos.flush();
         headBos.close();
 
+        // Stores the hashing value of password, with salt
         if (encryptLevel != 0) {
-            bos.write(ZSEFileEncoder.md5PlainCode(password));
-            compressedLength += 16;
+            byte[] hashPassword = Security.secureHashing(password, passwordAlg);
+            byte[] salt = Security.generateRandomSequence();
+            byte[] saltedPassword = new byte[hashPassword.length + 8];
+            System.arraycopy(hashPassword, 0, saltedPassword, 0, hashPassword.length);
+            System.arraycopy(salt, 0, saltedPassword, hashPassword.length, 8);
+            byte[] saltedHash = Security.secureHashing(saltedPassword, passwordAlg);
+            bos.write(salt);
+            bos.write(saltedHash);
+            compressedLength += (saltedHash.length + 8);
         }
 
         Compressor headCompressor;
@@ -285,6 +372,9 @@ public class Packer {
                 case "lzz2":
                     headCompressor = new LZZ2Compressor(tempHeadName, defaultWindowSize, 64);
                     break;
+//                case "qlz":
+//                    headCompressor = new QuickLZZCompressor(tempHeadName, 16384, 256);
+//                    break;
                 case "bwz":
                     headCompressor = new BWZCompressor(tempHeadName, defaultWindowSize);
                     break;
@@ -297,6 +387,9 @@ public class Packer {
                     headCompressor = new LZZ2Compressor(tempHeadName, windowSize, bufferSize);
                     headCompressor.setCompressionLevel(cmpLevel);
                     break;
+//                case "qlz":
+//                    headCompressor = new QuickLZZCompressor(tempHeadName, windowSize, 256);
+//                    break;
                 case "bwz":
                     headCompressor = new BWZCompressor(tempHeadName, windowSize);
                     break;
@@ -304,19 +397,36 @@ public class Packer {
                     throw new NoSuchAlgorithmException("No such algorithm");
             }
         }
+        long cmpHeadLen;
         if (encryptLevel != 2) {
-            headCompressor.Compress(bos);
+            headCompressor.compress(bos);
+            cmpHeadLen = headCompressor.getCompressedSize();
         } else {
             String encHeadName = outFile + ".head.enc";
             FileOutputStream encFos = new FileOutputStream(encHeadName);
-            headCompressor.Compress(encFos);
+            headCompressor.compress(encFos);
             encFos.flush();
             encFos.close();
-            ZSEFileEncoder zfe = new ZSEFileEncoder(encHeadName, password);
-            zfe.Encode(bos);
+            InputStream encHeadIs;
+            Encipher encipher;
+            switch (encryption) {
+                case "zse":
+                    encHeadIs = new FileInputStream(encHeadName);
+                    encipher = new ZSEFileEncoder(encHeadIs, password);
+                    break;
+                case "bzse":
+                    encHeadIs = new BufferedInputStream(new FileInputStream(encHeadName));
+                    encipher = new BZSEStreamEncoder(encHeadIs, password);
+                    break;
+                default:
+                    throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
+            }
+            encipher.encrypt(bos);
+            cmpHeadLen = encipher.encryptedLength();
+            encHeadIs.close();
             Util.deleteFile(encHeadName);
         }
-        compressedLength += headCompressor.getCompressedSize();
+        compressedLength += cmpHeadLen;
 
         Util.deleteFile(tempHeadName);
 
@@ -324,22 +434,43 @@ public class Packer {
 
         String encMainName = outFile + ".enc";
 
-        MultipleInputStream mis = new MultipleInputStream(inputStreams, this);
+        MultipleInputStream mis;
         if (windowSize == 0) {
             if (encryptLevel == 0) {
+                mis = new MultipleInputStream(inputStreams, this, false);
                 Util.fileTruncate(mis, bos, 8192, totalLength);
                 compressedLength += totalLength;
             } else {
-                ZSEFileEncoder zfe = new ZSEFileEncoder(mis, password);
-                zfe.Encode(bos);
-                compressedLength += zfe.getEncodeLength();
+                Encipher encipher;
+                switch (encryption) {
+                    case "zse":
+                        mis = new MultipleInputStream(inputStreams, this, false);
+                        encipher = new ZSEFileEncoder(mis, password);
+                        break;
+                    case "bzse":
+                        mis = new MultipleInputStream(inputStreams, this, true);
+                        encipher = new BZSEStreamEncoder(mis, password);
+                        break;
+                    default:
+                        throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
+                }
+                step.setValue(lanLoader.get(271));
+                progress.set(1);
+                percentage.setValue("0.0");
+                encipher.setParent(this, totalLength);
+                encipher.encrypt(bos);
+                compressedLength += encipher.encryptedLength();
             }
         } else if (totalLength != 0) {
+            mis = new MultipleInputStream(inputStreams, this, false);
             Compressor mainCompressor;
             switch (alg) {
                 case "lzz2":
                     mainCompressor = new LZZ2Compressor(mis, windowSize, bufferSize, totalLength);
                     break;
+//                case "qlz":
+//                    mainCompressor = new QuickLZZCompressor(mis, windowSize, 256, totalLength);
+//                    break;
                 case "bwz":
                     mainCompressor = new BWZCompressor(mis, windowSize);
                     break;
@@ -350,16 +481,38 @@ public class Packer {
             mainCompressor.setCompressionLevel(cmpLevel);
             mainCompressor.setThreads(threads);
             if (encryptLevel == 0) {
-                mainCompressor.Compress(bos);
+                mainCompressor.compress(bos);
             } else {
                 FileOutputStream encFos = new FileOutputStream(encMainName);
-                mainCompressor.Compress(encFos);
+                mainCompressor.compress(encFos);
                 encFos.flush();
                 encFos.close();
-                ZSEFileEncoder zfe = new ZSEFileEncoder(encMainName, password);
-                zfe.Encode(bos);
+
+                InputStream encMainIs;
+                Encipher encipher;
+                switch (encryption) {
+                    case "zse":
+                        encMainIs = new FileInputStream(encMainName);
+                        encipher = new ZSEFileEncoder(encMainIs, password);
+                        break;
+                    case "bzse":
+                        encMainIs = new BufferedInputStream(new FileInputStream(encMainName));
+                        encipher = new BZSEStreamEncoder(encMainIs, password);
+                        break;
+                    default:
+                        throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
+                }
+                step.setValue(lanLoader.get(271));
+                file.setValue(outFile);
+                progress.set(1);
+                percentage.setValue("0.0");
+                encipher.setParent(this, mainCompressor.getCompressedSize());
+                encipher.encrypt(bos);
+                encMainIs.close();
             }
             compressedLength += mainCompressor.getCompressedSize();
+        } else {
+            mis = new MultipleInputStream();
         }
         long crc32 = mis.getCrc32Checksum();
         byte[] fullBytes = Bytes.longToBytes(crc32);
@@ -375,14 +528,39 @@ public class Packer {
             return;
         }
 
-        RandomAccessFile raf = new RandomAccessFile(outFile, "rw");
-        raf.seek(8);
+        long contextCrcValue = contextCrc.getValue();
+        byte[] contextCrcArray = Arrays.copyOfRange(Bytes.longToBytes(contextCrcValue), 4, 8);
+
+        RandomAccessFile raf;
+        if (bos instanceof SeparateOutputStream) {
+            raf = new RandomAccessFile(((SeparateOutputStream) bos).getFirstName(), "rw");
+        } else raf = new RandomAccessFile(outFile, "rw");
+
+        raf.seek(9);
         int currentTimeInt = (int) ((System.currentTimeMillis() - dateOffset) / 1000);  // Creation time,
         // rounded to second. Starting from 1999-12-31 19:00
         raf.writeInt(currentTimeInt);
+        raf.write(contextCrcArray);
         raf.write(crc32Checksum);
-        raf.writeInt((int) headCompressor.getCompressedSize());
+        raf.writeInt((int) cmpHeadLen);
+
+        if (bos instanceof SeparateOutputStream) {
+            // If the archive is partially
+            int fCount = ((SeparateOutputStream) bos).getCount();
+            raf.seek(27);  // Seek to the first extra field block.
+            raf.writeInt(fCount);
+            raf.writeLong(((SeparateOutputStream) bos).getCumulativeLength());
+        }
         raf.close();
+    }
+
+    private void setPartialInfo() {
+        byte[] block = new byte[12];  // This is not a standard extra block
+        // Structure:
+        // blocks count: 4 bytes
+        // length of the whole archive: 8 bytes
+        extraFields.add(0, block);  // To make sure this is the first block, which is because when compresses
+        // partially, this block should be in the first archive part.
     }
 
     /**
@@ -413,14 +591,27 @@ public class Packer {
     }
 
     /**
+     * Sets up the maximum length of each archive file. 0 if do not separate.
+     *
+     * @param partSize the maximum length of each archive file
+     */
+    public void setPartSize(long partSize) {
+        this.partSize = partSize;
+    }
+
+    /**
      * Sets the encryption parameters of this archive.
      *
-     * @param password the password text.
-     * @param level    the {@code encryptLevel}.
+     * @param password    the password text.
+     * @param level       the {@code encryptLevel}.
+     * @param encryption  the encryption algorithm
+     * @param passwordAlg the hash algorithm used for encrypting password
      */
-    public void setEncrypt(String password, int level) {
+    public void setEncrypt(String password, int level, String encryption, String passwordAlg) {
         this.password = password;
         this.encryptLevel = level;
+        this.encryption = encryption;
+        this.passwordAlg = passwordAlg;
     }
 
     /**
@@ -444,11 +635,16 @@ public class Packer {
      *
      * @param annotation the node contains annotation text and info.
      */
-    public void setAnnotation(AnnotationNode annotation) {
+    public void setAnnotation(AnnotationNode annotation) throws IOException {
         byte[] encAnnotation;
         if (encryptLevel == 2) {
-            ZSEEncoder encoder = new ZSEEncoder(annotation.getAnnotation(), password);
-            encAnnotation = encoder.Encode();
+            ByteArrayInputStream ais = new ByteArrayInputStream(annotation.getAnnotation());
+            BZSEStreamEncoder encoder = new BZSEStreamEncoder(ais, password);
+            ByteArrayOutputStream aos = new ByteArrayOutputStream();
+            encoder.encrypt(aos);
+            encAnnotation = aos.toByteArray();
+            ais.close();
+            aos.close();
         } else {
             encAnnotation = annotation.getAnnotation();
         }

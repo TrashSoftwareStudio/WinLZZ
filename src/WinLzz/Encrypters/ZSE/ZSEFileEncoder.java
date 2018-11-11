@@ -1,10 +1,9 @@
-package WinLzz.ZSE;
+package WinLzz.Encrypters.ZSE;
 
-import WinLzz.Utility.MultipleInputStream;
+import WinLzz.Interface.Encipher;
+import WinLzz.Packer.Packer;
 
 import java.io.*;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * A ZSE-based encoder that encodes a file.
@@ -13,7 +12,7 @@ import java.security.NoSuchAlgorithmException;
  * @see ZSEEncoder
  * @since 0.4
  */
-public class ZSEFileEncoder {
+public class ZSEFileEncoder implements Encipher {
 
     static final int blockSize = 8192;
 
@@ -23,46 +22,21 @@ public class ZSEFileEncoder {
 
     private long encodeLength;
 
-    /**
-     * Creates a new {ZSEFileEncoder} instance.
-     * <p>
-     * This constructor takes a file as input.
-     *
-     * @param inFile   the name of the file to be encoded
-     * @param password the password
-     * @throws IOException if the file is not readable
-     */
-    public ZSEFileEncoder(String inFile, String password) throws IOException {
-        fis = new FileInputStream(inFile);
-        this.password = password;
-    }
+    private Packer parent;
+
+    private long beforeLength;
 
     /**
      * Creates a new {ZSEFileEncoder} instance.
      * <p>
-     * This constructor takes a {MultipleInputStream} as input.
+     * This constructor takes a {InputStream} as input.
      *
      * @param in       the input stream to be encoded
      * @param password the password
      */
-    public ZSEFileEncoder(MultipleInputStream in, String password) {
+    public ZSEFileEncoder(InputStream in, String password) {
         fis = in;
         this.password = password;
-    }
-
-    /**
-     * Returns the MD5 checksum of the <code>password</code>.
-     *
-     * @param password the password to be calculated
-     * @return the MD5 checksum
-     */
-    public static byte[] md5PlainCode(String password) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            return md.digest(password.getBytes("utf-8"));
-        } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
-            throw new RuntimeException("This cannot happen");
-        }
     }
 
     /**
@@ -71,7 +45,8 @@ public class ZSEFileEncoder {
      * @param out the output stream to write data
      * @throws IOException if the output stream is not writable
      */
-    public void Encode(OutputStream out) throws IOException {
+    @Override
+    public void encrypt(OutputStream out) throws IOException {
         int read;
         byte[] block = new byte[blockSize];
         while ((read = fis.read(block)) != -1) {
@@ -94,7 +69,20 @@ public class ZSEFileEncoder {
      *
      * @return the length of the data after encoding
      */
-    public long getEncodeLength() {
+    @Override
+    public long encryptedLength() {
         return encodeLength;
+    }
+
+    /**
+     * Sets up the parent {@code Packer} instance.
+     *
+     * @param parent                 the parent {@code Packer} instance
+     * @param lengthBeforeEncryption the stream length before encryption
+     */
+    @Override
+    public void setParent(Packer parent, long lengthBeforeEncryption) {
+        this.parent = parent;
+        this.beforeLength = lengthBeforeEncryption;
     }
 }

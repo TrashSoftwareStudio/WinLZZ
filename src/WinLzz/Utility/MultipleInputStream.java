@@ -2,11 +2,8 @@ package WinLzz.Utility;
 
 import WinLzz.Packer.Packer;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.LinkedList;
+import java.io.*;
+import java.util.Deque;
 import java.util.zip.CRC32;
 
 /**
@@ -21,33 +18,46 @@ public class MultipleInputStream extends InputStream {
     /**
      * The input stream of the current opening file.
      */
-    private FileInputStream currentInputStream;
+    InputStream currentInputStream;
 
     /**
      * The length of the part of the current opening file that has not been read.
      */
-    private long currentLength;
+    long currentLength;
 
-    private LinkedList<File> files;
+    Deque<File> files;
 
     private CRC32 crc32 = new CRC32();
 
     private Packer parent;
 
+    boolean buffered;
+
     /**
      * Creates a new {@code MultipleInputStream} instance.
      *
-     * @param files  a queue of input files
-     * @param parent the {@code Packer} instance which launched this {@code MultipleInputStream}.
+     * @param files    a queue of input files
+     * @param parent   the {@code Packer} instance which launched this {@code MultipleInputStream}.
+     * @param buffered whether to use a buffer to read the input
      * @throws IOException if any of the files in <code>files</code> is not readable
      */
-    public MultipleInputStream(LinkedList<File> files, Packer parent) throws IOException {
+    public MultipleInputStream(Deque<File> files, Packer parent, boolean buffered) throws IOException {
         this.files = files;
         this.parent = parent;
+        this.buffered = buffered;
         File f = this.files.removeFirst();
         if (parent != null) parent.file.setValue(String.format("%s\\\n%s", f.getParent(), f.getName()));
         currentLength = f.length();
-        currentInputStream = new FileInputStream(f);
+        if (buffered) currentInputStream = new BufferedInputStream(new FileInputStream(f));
+        else currentInputStream = new FileInputStream(f);
+    }
+
+    /**
+     * Creates a new {@code MultipleInputStream} instance.
+     * <p>
+     * The empty constructor.
+     */
+    public MultipleInputStream() {
     }
 
     /**
@@ -58,6 +68,17 @@ public class MultipleInputStream extends InputStream {
     @Override
     public int read() {
         return 0;
+    }
+
+    public int read(byte[] array, int src, int len) throws IOException {
+        if (src != 0)
+        throw new IOException("Method unavailable");
+        else {
+            byte[] realArray = new byte[len];
+            int r = read(realArray);
+            System.arraycopy(realArray, 0, array, 0, r);
+            return r;
+        }
     }
 
     /**
@@ -83,14 +104,15 @@ public class MultipleInputStream extends InputStream {
                 if (parent != null) parent.file.setValue(String.format("%s\\\n%s", f.getParent(), f.getName()));
                 currentLength = f.length();
                 currentInputStream.close();
-                currentInputStream = new FileInputStream(f);
+                if (buffered) currentInputStream = new BufferedInputStream(new FileInputStream(f));
+                else currentInputStream = new FileInputStream(f);
             }
         }
-        if (remain == 0) crc32.update(array);
+        if (remain == 0) crc32.update(array, 0, array.length);
         else if (array.length >= remain) {
             byte[] copy = new byte[array.length - remain];
             System.arraycopy(array, 0, copy, 0, copy.length);
-            crc32.update(copy);
+            crc32.update(copy, 0, copy.length);
         }
         return array.length - remain;
     }

@@ -10,9 +10,9 @@ public class LinkedDictionary {
      * @param size the size of dictionary.
      */
     public void initialize(int size) {
-        head = new Node((short) (size - 1));
+        head = new Node(size - 1);
         for (int i = size - 2; i >= 0; i--) {
-            Node node = new Node((short) i);
+            Node node = new Node(i);
             node.setNext(head);
             head = node;
         }
@@ -24,7 +24,7 @@ public class LinkedDictionary {
      * @param value the value to be searched.
      * @return the index of this value in this dictionary.
      */
-    public int findAndMove(short value) {
+    public int findAndMove(int value) {
         Node prev = head;
         Node current = head;
         int count = 0;
@@ -58,10 +58,10 @@ public class LinkedDictionary {
 
 class Node {
 
-    private short value;
+    private int value;
     private Node next;
 
-    Node(short value) {
+    Node(int value) {
         this.value = value;
     }
 
@@ -69,7 +69,7 @@ class Node {
         this.next = next;
     }
 
-    public short getValue() {
+    public int getValue() {
         return value;
     }
 

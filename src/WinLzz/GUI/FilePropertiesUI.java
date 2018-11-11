@@ -129,10 +129,10 @@ public class FilePropertiesUI implements Initializable {
     }
 
     private void count() {
-        service = new Service<>() {
+        service = new Service<Void>() {
             @Override
             protected Task<Void> createTask() {
-                return new Task<>() {
+                return new Task<Void>() {
                     @Override
                     protected Void call() {
                         ChangeListener<Number> sizeListener = (observable, oldValue, newValue) ->

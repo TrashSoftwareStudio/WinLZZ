@@ -6,6 +6,12 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+/**
+ * Graphic User Interface of WinLZZ.
+ *
+ * @author zbh
+ * @see javafx.application.Application
+ */
 public class GUIClient extends Application {
 
     /**
@@ -17,6 +23,12 @@ public class GUIClient extends Application {
         launch(args);
     }
 
+    /**
+     * Launches the GUI.
+     *
+     * @param primaryStage the <code>javafx.Stage</code>
+     * @throws Exception if any exceptions are raised during the execution
+     */
     @Override
     public void start(Stage primaryStage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("mainUI.fxml"));

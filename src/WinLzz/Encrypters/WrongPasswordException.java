@@ -1,4 +1,4 @@
-package WinLzz.ZSE;
+package WinLzz.Encrypters;
 
 /**
  * An {@code Exception} that will be thrown when the password used for decode does not match the password used while

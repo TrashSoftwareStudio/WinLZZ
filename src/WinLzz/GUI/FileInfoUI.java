@@ -23,7 +23,8 @@ public class FileInfoUI implements Initializable {
 
     @FXML
     private Label typeLabel, algLabel, versionLabel, versionNeededLabel, fileCountLabel, dirCountLabel, windowSizeLabel,
-            compressRateLabel, origSizeLabel, compressSizeLabel, annotationLabel, timeLabel, crcChecksumLabel;
+            compressRateLabel, origSizeLabel, compressSizeLabel, annotationLabel, timeLabel, crcChecksumLabel,
+            encryptionLabel, secretKeyLabel;
 
     @FXML
     private ProgressBar compressRateBar;
@@ -45,9 +46,10 @@ public class FileInfoUI implements Initializable {
 
 
     void setItems() {
-        String prefix = unPacker.getEncryptLevel() == 0 ? "" : lanLoader.get(650) + " ";
+        String prefix = unPacker.isSeparated() ? lanLoader.get(650) + " " : "";
         typeLabel.setText(prefix + "WinLZZ " + lanLoader.get(651));
-        double rate = unPacker.getTotalOrigSize() == 0 ? 0 : (double) cmpFile.length() / unPacker.getTotalOrigSize();
+        double rate = unPacker.getTotalOrigSize() == 0 ? 0 : (double) unPacker.getDisplayArchiveLength() /
+                unPacker.getTotalOrigSize();
 
         String alg;
         switch (unPacker.getAlg()) {
@@ -74,13 +76,27 @@ public class FileInfoUI implements Initializable {
         compressRateLabel.setText(lanLoader.get(603) + ": " + String.valueOf(roundedRate) + " %");
         windowSizeLabel.setText(lanLoader.get(604) + ": " + sizeToString3Digit(unPacker.getWindowSize()));
         origSizeLabel.setText(lanLoader.get(605) + ": " + Util.sizeToReadable(unPacker.getTotalOrigSize()));
-        compressSizeLabel.setText(lanLoader.get(606) + ": " + Util.sizeToReadable(cmpFile.length()));
+        compressSizeLabel.setText(lanLoader.get(606) + ": " + Util.sizeToReadable(unPacker.getDisplayArchiveLength()));
         fileCountLabel.setText(lanLoader.get(607) + ": " + Util.splitNumber(String.valueOf(unPacker.getFileCount())));
         dirCountLabel.setText(lanLoader.get(608) + ": " + Util.splitNumber(String.valueOf(unPacker.getDirCount() - 1)));
+
         String ann = lanLoader.get(612) + ": ";
         if (unPacker.getAnnotation() != null) ann += lanLoader.get(613);
         else ann += lanLoader.get(614);
         annotationLabel.setText(ann);
+
+        String enc = lanLoader.get(615) + ": ";
+        String secretKey = lanLoader.get(616) + ": ";
+        if (unPacker.getEncryptLevel() == 0) {
+            enc += lanLoader.get(614);
+            secretKey += lanLoader.get(614);
+        } else {
+            enc += unPacker.getEncryption().toUpperCase();
+            secretKey += unPacker.getPasswordAlg().toUpperCase();
+        }
+        encryptionLabel.setText(enc);
+        secretKeyLabel.setText(secretKey);
+
         // There is one root directory created by packer.
         timeLabel.setText(lanLoader.get(609) + ": " + sdf.format(date));
         crcChecksumLabel.setText(lanLoader.get(610) + ": " + Bytes.longToHex(unPacker.getCrc32Checksum(), false));
@@ -109,7 +125,8 @@ public class FileInfoUI implements Initializable {
         else if (versionInt == 21) return "0.6.2";
         else if (versionInt == 22) return "0.7+";
         else if (versionInt == 23) return "0.7.0 - 0.7.1";
-        else if (versionInt == 24) return "0.7.2+";
+        else if (versionInt == 24) return "0.7.2 - 0.7.3";
+        else if (versionInt == 25) return "0.7.4+";
         else return lanLoader.get(652);
     }
 

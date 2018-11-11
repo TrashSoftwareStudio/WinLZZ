@@ -30,7 +30,7 @@ public class LongHuffmanInputStream {
     /**
      * The signal that makes the end of a part of the stream.
      */
-    private short endSig;
+    private int endSig;
 
     /**
      * The maximum code length.
@@ -47,25 +47,25 @@ public class LongHuffmanInputStream {
      * shorter than {@code average} is extended by all possible combination of 0's and 1's until they reaches the
      * length {@code average}.
      */
-    private HashMap<Integer, Short> shortMap = new HashMap<>();
+    private HashMap<Integer, Integer> shortMap = new HashMap<>();
 
     /**
      * The huffman code table that records all codes that are shorter than or equal to {@code maxCodeLen}, but all
      * codes shorter than {@code maxCodeLen} is extended by all possible combination of 0's and 1's until they
      * reaches the length {@code maxCodeLen}.
      */
-    private HashMap<Integer, Short> longMap = new HashMap<>();
+    private HashMap<Integer, Integer> longMap = new HashMap<>();
 
     /**
      * The table that records all huffman symbol and their corresponding code length.
      */
-    private HashMap<Short, Integer> lengthMap = new HashMap<>();
+    private HashMap<Integer, Integer> lengthMap = new HashMap<>();
 
     private long compressedBitLength;
 
     private boolean isTerminated;
 
-    private short[] result;
+    private int[] result;
 
     private int currentIndex;
 
@@ -82,15 +82,15 @@ public class LongHuffmanInputStream {
         this.fc = fc;
         this.compressedBitLength = fc.position() * 8;
         this.alphabetSize = alphabetSize;
-        this.result = new short[maxLength];
+        this.result = new int[maxLength];
     }
 
-    private HashMap<Short, Integer> recoverLengthCode(byte[] map) {
-        HashMap<Short, Integer> lengthCode = new HashMap<>();
+    private HashMap<Integer, Integer> recoverLengthCode(byte[] map) {
+        HashMap<Integer, Integer> lengthCode = new HashMap<>();
         for (int i = 0; i < alphabetSize; i++) {
             int len = map[i] & 0xff;
             if (len != 0) {
-                lengthCode.put((short) i, len);
+                lengthCode.put(i, len);
                 if (len > maxCodeLen) maxCodeLen = len;
             }
         }
@@ -100,8 +100,8 @@ public class LongHuffmanInputStream {
         return lengthCode;
     }
 
-    private void generateIdenticalMap(HashMap<Short, String> origMap) {
-        for (short value : origMap.keySet()) {
+    private void generateIdenticalMap(HashMap<Integer, String> origMap) {
+        for (int value : origMap.keySet()) {
             String s = origMap.get(value);
             lengthMap.put(value, s.length());
 
@@ -133,7 +133,7 @@ public class LongHuffmanInputStream {
         int i = 0;
         while (builder.length() - i > maxCodeLen) {
             int index = Integer.parseInt(builder.substring(i, i + average), 2);
-            short value;
+            int value;
             int len;
             if (shortMap.containsKey(index)) {
                 value = shortMap.get(index);
@@ -142,9 +142,13 @@ public class LongHuffmanInputStream {
                 value = longMap.get(Integer.parseInt(builder.substring(i, i + maxCodeLen), 2));
                 len = lengthMap.get(value);
             }
+//            System.out.print(builder.substring(i, i + len));
             compressedBitLength += len;
             if (value == endSig) {
+//                System.out.println();
+
                 while (compressedBitLength % 8 != 0) compressedBitLength += 1;
+//                System.out.println(compressedBitLength + "r");
                 isTerminated = true;
                 break;
             }
@@ -162,7 +166,7 @@ public class LongHuffmanInputStream {
         int i = 0;
         while (true) {
             int index = Integer.parseInt(builder.substring(i, i + average), 2);
-            short value;
+            int value;
             int len;
             if (shortMap.containsKey(index)) {
                 value = shortMap.get(index);
@@ -209,6 +213,7 @@ public class LongHuffmanInputStream {
      *
      * @param compressedBitLength the current bit position.
      */
+    @Deprecated
     public void pushCompressedBitLength(long compressedBitLength) {
         this.compressedBitLength += compressedBitLength;
     }
@@ -235,7 +240,7 @@ public class LongHuffmanInputStream {
      * @return The uncompressed text.
      * @throws IOException If the file is not readable.
      */
-    public short[] read(byte[] map, short endSig) throws IOException {
+    public int[] read(byte[] map, int endSig) throws IOException {
         this.endSig = endSig;
 
         currentIndex = 0;
@@ -245,12 +250,12 @@ public class LongHuffmanInputStream {
         longMap.clear();
         lengthMap.clear();
 
-        HashMap<Short, Integer> lengthCode = recoverLengthCode(map);
-        HashMap<Short, String> huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
+        HashMap<Integer, Integer> lengthCode = recoverLengthCode(map);
+        HashMap<Integer, String> huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
         generateIdenticalMap(huffmanCode);
         unCompress();
 
-        short[] rtn = new short[currentIndex];
+        int[] rtn = new int[currentIndex];
         System.arraycopy(result, 0, rtn, 0, currentIndex);
         return rtn;
     }

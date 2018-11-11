@@ -83,7 +83,7 @@ public class AnnotationUI implements Initializable {
             compressor.setCompressionLevel(1);
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            compressor.Compress(out);
+            compressor.compress(out);
             node = new AnnotationNode(out.toByteArray(), true);
             out.flush();
             out.close();

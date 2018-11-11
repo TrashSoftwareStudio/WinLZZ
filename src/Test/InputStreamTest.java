@@ -15,7 +15,7 @@ public class InputStreamTest {
         files.addLast(new File("a0.txt"));
         files.addLast(new File("a1.txt"));
         files.addLast(new File("a2.txt"));
-        MultipleInputStream mis = new MultipleInputStream(files, null);
+        MultipleInputStream mis = new MultipleInputStream(files, null, false);
         byte[] arr = new byte[16];
         System.out.println(mis.read(arr));
         System.out.println(new String(arr));

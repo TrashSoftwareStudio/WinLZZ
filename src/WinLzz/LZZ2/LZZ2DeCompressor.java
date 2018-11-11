@@ -165,11 +165,11 @@ public class LZZ2DeCompressor implements DeCompressor {
 
         try {
             while (true) {
-                char s;
+                int s;
                 s = flagBis.read();
-                if (s == '2') {
+                if (s == 2) {
                     break;
-                } else if (s == '0') {
+                } else if (s == 0) {
                     byte[] b = new byte[1];
                     if (mainBis.read(b) != 1) break;
                     tempResult.write(b[0]);
@@ -194,15 +194,15 @@ public class LZZ2DeCompressor implements DeCompressor {
                     lastLen = length;
                     if (lastDistances.size() > 4) lastDistances.removeLast();
 
-                    int index = tempResult.getIndex();
-                    int from = index - distance;
-                    int to = from + length;
+                    long index = tempResult.getIndex();
+                    long from = index - distance;
+                    long to = from + length;
                     if (to <= index) {
                         byte[] repeat = tempResult.subSequence(from, to);
                         for (byte b : repeat) tempResult.write(b);
                     } else {
                         byte[] overlapRepeat = new byte[length];
-                        int overlap = index - from;
+                        int overlap = (int) (index - from);
                         byte[] repeat = tempResult.subSequence(from, index);
                         int p = 0;
                         while (p < length) {
@@ -253,7 +253,7 @@ public class LZZ2DeCompressor implements DeCompressor {
     }
 
     @Override
-    public void Uncompress(OutputStream outFile) throws IOException {
+    public void uncompress(OutputStream outFile) throws IOException {
         generateTempNames();
         if (disHeadLen == 0) {
             Util.fileTruncate(bis, outFile, 8192, mainLen);
@@ -267,7 +267,7 @@ public class LZZ2DeCompressor implements DeCompressor {
         deleteTemp();
     }
 
-    private void updateInfo(int current, long updateTime) {
+    private void updateInfo(long current, long updateTime) {
         parent.progress.set(current);
         if (timeAccumulator == 19) {
             timeAccumulator = 0;

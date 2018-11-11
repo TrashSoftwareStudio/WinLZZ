@@ -15,7 +15,7 @@ import java.util.ArrayDeque;
  */
 public class BWTDecoder {
 
-    private short[] cmpText;
+    private int[] cmpText;
     private int origIndex;
 
     /**
@@ -23,12 +23,12 @@ public class BWTDecoder {
      *
      * @param cmpText the text after bwt transformation.
      */
-    public BWTDecoder(short[] cmpText) {
-        short[] indexBytesS = new short[3];
+    public BWTDecoder(int[] cmpText) {
+        int[] indexBytesS = new int[3];
         System.arraycopy(cmpText, 0, indexBytesS, 0, 3);
         byte[] indexBytes = new byte[]{(byte) indexBytesS[0], (byte) indexBytesS[1], (byte) indexBytesS[2]};
         origIndex = Bytes.bytesToInt24(indexBytes);
-        this.cmpText = new short[cmpText.length - 3];
+        this.cmpText = new int[cmpText.length - 3];
         System.arraycopy(cmpText, 3, this.cmpText, 0, this.cmpText.length);
     }
 
@@ -43,7 +43,7 @@ public class BWTDecoder {
     public byte[] Decode() {
         int len = cmpText.length;
         int[] lShift = new int[len];
-        short[] sorted = new short[len];
+        int[] sorted = new int[len];
         System.arraycopy(cmpText, 0, sorted, 0, len);
         Util.countingSort(sorted, 257);
 

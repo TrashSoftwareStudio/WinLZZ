@@ -1,25 +1,26 @@
 package WinLzz.Packer;
 
 import WinLzz.BWZ.BWZDeCompressor;
+import WinLzz.Encrypters.BZSE.BZSEStreamDecoder;
 import WinLzz.Interface.DeCompressor;
+import WinLzz.Interface.Decipher;
 import WinLzz.LZZ2.LZZ2DeCompressor;
 import WinLzz.ResourcesPack.Languages.LanguageLoader;
-import WinLzz.Utility.Bytes;
-import WinLzz.Utility.Util;
-import WinLzz.ZSE.WrongPasswordException;
-import WinLzz.ZSE.ZSEDecoder;
-import WinLzz.ZSE.ZSEFileDecoder;
-import WinLzz.ZSE.ZSEFileEncoder;
+import WinLzz.Utility.*;
+import WinLzz.Encrypters.WrongPasswordException;
+import WinLzz.Encrypters.ZSE.ZSEFileDecoder;
 import javafx.beans.property.ReadOnlyLongProperty;
 import javafx.beans.property.ReadOnlyLongWrapper;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.CRC32;
 
 /**
  * The .pz archive unpacking program.
@@ -32,12 +33,12 @@ public class UnPacker {
     /**
      * Names of temporary files that will be created for unpacking and decompressing.
      */
-    private String packName, mapName, cmpMapName, tempName, cmpTempName, encMapName, encMainName;
+    private String packName, mapName, cmpMapName, tempName, cmpTempName, encMapName, encMainName, combineName;
 
     /**
      * The input stream of this archive file itself.
      */
-    private BufferedInputStream bis;
+    private InputStream bis;
 
     /**
      * Primary version of the current opening archive.
@@ -66,6 +67,10 @@ public class UnPacker {
      */
     private ContextNode rootNode;
 
+    private boolean isSeparated;
+
+    private int partCount;
+
     private int fileCount, dirCount;
 
     /**
@@ -82,6 +87,10 @@ public class UnPacker {
     private int windowSize;
 
     private int encryptLevel, threadNumber;
+
+    private String encryption = "bzse";
+
+    private String passwordAlg = "sha-256";
 
     /**
      * Length of the main part.
@@ -101,10 +110,14 @@ public class UnPacker {
     private String password;
     private boolean passwordSet;
 
+    private boolean isTest;
+
     /**
-     * 16-byte array representing the md5 checksum of original password, if exists.
+     * 16-byte array representing the checksum of original password, if exists.
      */
-    private byte[] origMD5Value;
+    private byte[] origPasswordChecksum;
+
+    private byte[] passwordSalt;
 
     private byte[] extraField;
 
@@ -118,6 +131,8 @@ public class UnPacker {
      */
     private String annotation;
 
+    private String failInfo;
+
     public final ReadOnlyLongWrapper progress = new ReadOnlyLongWrapper();
     public final ReadOnlyStringWrapper percentage = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper ratio = new ReadOnlyStringWrapper();
@@ -125,10 +140,10 @@ public class UnPacker {
     public final ReadOnlyStringWrapper timeUsed = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper timeExpected = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper passedLength = new ReadOnlyStringWrapper();
-    private final ReadOnlyStringWrapper currentFile = new ReadOnlyStringWrapper();
+    public final ReadOnlyStringWrapper currentFile = new ReadOnlyStringWrapper();
 
     public long startTime;
-    private long creationTime, crc32Checksum;
+    private long creationTime, crc32Checksum, crc32Context;
 
     public boolean isInterrupted;
     private LanguageLoader languageLoader;
@@ -151,60 +166,32 @@ public class UnPacker {
     /**
      * Reads the archive information from the archive file to this {@code UnPacker} instance.
      *
-     * @throws IOException         if the archive file is not readable,
-     *                             or any error occurs during reading.
-     * @throws NotAPzFileException if the archive file is not a pz archive,
-     *                             or the primary version of this archive file is older than 20.
+     * @throws IOException if the archive file is not readable,
+     *                     or any error occurs during reading.
+     *                     //     * @throws NotAPzFileException if the archive file is not a pz archive,
+     *                     //     *                             or the primary version of this archive file is older than 20.
      */
-    public void readInfo() throws IOException, NotAPzFileException {
-        File f = new File(packName);
-        archiveLength = f.length();
+    public void readInfo() throws IOException {
 
         bis = new BufferedInputStream(new FileInputStream(packName));
 
         byte[] buffer2 = new byte[2];
         byte[] buffer4 = new byte[4];
 
-        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
-        int headerInt = Bytes.bytesToInt32(buffer4);
-        if (headerInt != Packer.HEADER) throw new NotAPzFileException("Not a PZ archive");
+        if (bis.skip(4) != 4) throw new IOException("Error occurs while reading");
+//        int headerInt = Bytes.bytesToInt32(buffer4);
+//        if (headerInt != Packer.SIGNATURE) throw new NotAPzFileException("Not a PZ archive");
 
         if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
         primaryVersion = buffer2[0];
         secondaryVersion = buffer2[1];
         if (primaryVersion != Packer.primaryVersion) throw new UnsupportedVersionException("Unsupported file version");
 
-        byte[] infoByte = new byte[1];
-        if (bis.read(infoByte) != 1) throw new IOException("Error occurs while reading");
+        byte[] infoBytes = new byte[2];
+        if (bis.read(infoBytes) != 2) throw new IOException("Error occurs while reading");
 
-        byte[] windowSizeByte = new byte[1];
-        if (bis.read(windowSizeByte) != 1) throw new IOException("Error occurs while reading");
-        if ((windowSizeByte[0] & 0xff) == 0) windowSize = 0;
-        else windowSize = (int) Math.pow(2, windowSizeByte[0] & 0xff);
-
-        byte[] creationTimeByte = new byte[4];
-        if (bis.read(creationTimeByte) != 4) throw new IOException("Error occurs while reading");
-        creationTime = (long) Bytes.bytesToInt32(creationTimeByte) * 1000 + Packer.dateOffset;
-
-        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
-        byte[] fullCRC32Bytes = new byte[8];
-        System.arraycopy(buffer4, 0, fullCRC32Bytes, 4, 4);
-        crc32Checksum = Bytes.bytesToLong(fullCRC32Bytes);
-
-        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
-        cmpMapLen = Bytes.bytesToInt32(buffer4);
-
-        if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
-        byte[] extraFieldLength = new byte[4];
-        System.arraycopy(buffer2, 0, extraFieldLength, 2, 2);
-        int extraFieldLen = Bytes.bytesToInt32(extraFieldLength);
-
-        extraField = new byte[extraFieldLen];
-        if (bis.read(extraField) != extraFieldLen) throw new IOException("Error occurs while reading");
-
-        cmpMainLength = archiveLength - cmpMapLen - extraFieldLen - 22;
-
-        String info = Bytes.byteToBitString(infoByte[0]);
+        String info = Bytes.byteToBitString(infoBytes[0]);
+        String encInfo = Bytes.byteToBitString(infoBytes[1]);
         String enc = info.substring(0, 2);  // The encrypt level of this archive.
         switch (enc) {
             case "00":
@@ -229,10 +216,106 @@ public class UnPacker {
                 break;
         }
 
+        char sepRep = info.charAt(4);
+        isSeparated = sepRep == '1';
+
+        String encAlgName = encInfo.substring(0, 2);
+        switch (encAlgName) {
+            case "00":
+                encryption = "zse";
+                break;
+            case "10":
+                encryption = "bzse";
+                break;
+        }
+
+        String passAlgName = encInfo.substring(2, 5);
+        int passwordPlainLength = 0;
+        switch (passAlgName) {
+            case "000":
+                passwordAlg = "md5";
+                passwordPlainLength = 16;
+                break;
+            case "001":
+                passwordAlg = "sha-256";
+                passwordPlainLength = 32;
+                break;
+            case "010":
+                passwordAlg = "sha-384";
+                passwordPlainLength = 48;
+                break;
+            case "011":
+                passwordAlg = "sha-512";
+                passwordPlainLength = 64;
+                break;
+            case "100":
+                passwordAlg = "zha64";
+                passwordPlainLength = 8;
+                break;
+        }
+
+        byte[] windowSizeByte = new byte[1];
+        if (bis.read(windowSizeByte) != 1) throw new IOException("Error occurs while reading");
+        if ((windowSizeByte[0] & 0xff) == 0) windowSize = 0;
+        else windowSize = (int) Math.pow(2, windowSizeByte[0] & 0xff);
+
+        byte[] creationTimeByte = new byte[4];
+        if (bis.read(creationTimeByte) != 4) throw new IOException("Error occurs while reading");
+        creationTime = (long) Bytes.bytesToInt32(creationTimeByte) * 1000 + Packer.dateOffset;
+
+        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
+        byte[] fullCRC32Bytes1 = new byte[8];
+        System.arraycopy(buffer4, 0, fullCRC32Bytes1, 4, 4);
+        crc32Context = Bytes.bytesToLong(fullCRC32Bytes1);
+
+        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
+        byte[] fullCRC32Bytes2 = new byte[8];
+        System.arraycopy(buffer4, 0, fullCRC32Bytes2, 4, 4);
+        crc32Checksum = Bytes.bytesToLong(fullCRC32Bytes2);
+
+        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
+        cmpMapLen = Bytes.bytesToInt32(buffer4);
+
+        if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
+        byte[] extraFieldLength = new byte[4];
+        System.arraycopy(buffer2, 0, extraFieldLength, 2, 2);
+        int extraFieldLen = Bytes.bytesToInt32(extraFieldLength);
+
+        int extraLen;
+        if (isSeparated) {
+            if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
+            partCount = Bytes.bytesToInt32(buffer4);
+            byte[] buffer8 = new byte[8];
+            if (bis.read(buffer8) != 8) throw new IOException("Error occurs while reading");
+            archiveLength = Bytes.bytesToLong(buffer8);
+            extraFieldLen -= 12;
+            extraField = new byte[extraFieldLen];
+            String prefixName1 = packName.substring(0, packName.lastIndexOf("."));
+            String prefixName = prefixName1.substring(0, prefixName1.lastIndexOf("."));
+            String suffixName = packName.substring(packName.lastIndexOf("."));
+            bis.close();
+            bis = SeparateInputStream.createNew(prefixName, suffixName, partCount, this, Packer.PART_SIGNATURE);
+            ((SeparateInputStream) bis).setLanLoader(languageLoader);
+            if (bis.skip(39) != 39) throw new IOException("Error occurs while reading");
+            extraLen = 12;
+        } else {
+            File f = new File(packName);
+            archiveLength = f.length();
+            extraField = new byte[extraFieldLen];
+            extraLen = 0;
+        }
+
+        if (bis.read(extraField) != extraFieldLen) throw new IOException("Error occurs while reading");
+
+        cmpMainLength = archiveLength - cmpMapLen - extraFieldLen - extraLen - 27;
+
         if (encryptLevel != 0) {
-            cmpMainLength -= 16;
-            origMD5Value = new byte[16];
-            if (bis.read(origMD5Value) != 16) throw new IOException("Error occurs while reading");
+            cmpMainLength -= (passwordPlainLength + 8);
+            passwordSalt = new byte[8];
+            if (bis.read(passwordSalt) != 8) throw new IOException("Error occurs while reading");
+            origPasswordChecksum = new byte[passwordPlainLength];
+            if (bis.read(origPasswordChecksum) != passwordPlainLength)
+                throw new IOException("Error occurs while reading");
         }
     }
 
@@ -245,22 +328,30 @@ public class UnPacker {
      * @throws Exception if any error occurs during reading.
      */
     public void readMap() throws Exception {
-        unCompressMap(cmpMapLen);
+        unCompressMap();
         readContext();
         deleteTemp();
 
         rootNode = new ContextNode(indexNodes.get(0).getName());
         buildContextTree(rootNode, indexNodes.get(0));
-
         interpretExtraField();
     }
 
-    private void unCompressMap(int cmpMapLen) throws Exception {
+    private void unCompressMap() throws Exception {
         if (encryptLevel == 2) {
-            Util.fileTruncate(bis, encMapName, 8192, cmpMapLen);
             FileOutputStream fos = new FileOutputStream(cmpMapName);
-            ZSEFileDecoder zfd = new ZSEFileDecoder(encMapName, password);
-            zfd.Decode(fos);
+            Decipher decipher;
+            switch (encryption) {
+                case "zse":
+                    decipher = new ZSEFileDecoder(bis, password, cmpMapLen);
+                    break;
+                case "bzse":
+                    decipher = new BZSEStreamDecoder(bis, password, cmpMapLen);
+                    break;
+                default:
+                    throw new NoSuchAlgorithmException("No Such Decoding Algorithm");
+            }
+            decipher.decrypt(fos);
             fos.flush();
             fos.close();
         } else {
@@ -293,7 +384,7 @@ public class UnPacker {
         }
         FileOutputStream fos = new FileOutputStream(mapName);
         try {
-            mapDec.Uncompress(fos);
+            mapDec.uncompress(fos);
         } catch (Exception e) {
             fos.close();
             deleteTemp();
@@ -303,31 +394,32 @@ public class UnPacker {
         fos.close();
     }
 
-    private void readContext() throws IOException {
+    private void readContext() throws IOException, ChecksumDoesNotMatchException {
         BufferedInputStream mapInputStream = new BufferedInputStream(new FileInputStream(mapName));
+        CRC32 contextChecker = new CRC32();
         while (true) {
-            byte[] flag = new byte[1];
-            if (mapInputStream.read(flag) != 1) break;
+            byte[] flag = new byte[2];
+            if (mapInputStream.read(flag) != 2) break;
+            contextChecker.update(flag, 0, flag.length);
             boolean isDir = (flag[0] & 0xff) == 0;
-            if (mapInputStream.read(flag) != 1) throw new IOException("Error occurs while reading");
-            int nameLen = flag[0] & 0xff;
+            int nameLen = flag[1] & 0xff;
             byte[] nameBytes = new byte[nameLen];
             if (mapInputStream.read(nameBytes) != nameLen) throw new IOException("Error occurs while reading");
+            contextChecker.update(nameBytes, 0, nameBytes.length);
             String name = Bytes.stringDecode(nameBytes);
             IndexNodeUnp inu = new IndexNodeUnp(name);
+
+            byte[] buffer8 = new byte[8];
+            if (mapInputStream.read(buffer8) != 8) throw new IOException("Error occurs while reading");
+            contextChecker.update(buffer8, 0, buffer8.length);
+            long start = Bytes.bytesToLong(buffer8);
+            if (mapInputStream.read(buffer8) != 8) throw new IOException("Error occurs while reading");
+            contextChecker.update(buffer8, 0, buffer8.length);
+            long end = Bytes.bytesToLong(buffer8);
             if (isDir) {
-                byte[] numberBytes = new byte[8];
-                if (mapInputStream.read(numberBytes) != 8) throw new IOException("Error occurs while reading");
-                long begin = Bytes.bytesToLong(numberBytes);
-                if (mapInputStream.read(numberBytes) != 8) throw new IOException("Error occurs while reading");
-                inu.setChildrenRange((int) begin, (int) Bytes.bytesToLong(numberBytes));
+                inu.setChildrenRange((int) start, (int) end);
                 dirCount += 1;
             } else {
-                byte[] sizeByte = new byte[8];
-                if (mapInputStream.read(sizeByte) != 8) throw new IOException("Error occurs while reading");
-                long start = Bytes.bytesToLong(sizeByte);
-                if (mapInputStream.read(sizeByte) != 8) throw new IOException("Error occurs while reading");
-                long end = Bytes.bytesToLong(sizeByte);
                 inu.setScale(start, end);
                 origSize = end;
                 fileCount += 1;
@@ -335,6 +427,8 @@ public class UnPacker {
             indexNodes.add(inu);
         }
         mapInputStream.close();
+
+        if (contextChecker.getValue() != crc32Context) throw new ChecksumDoesNotMatchException("Context damaged");
     }
 
     private void buildContextTree(ContextNode node, IndexNodeUnp inu) {
@@ -378,8 +472,15 @@ public class UnPacker {
     private void readAnnotation(byte[] byteText, boolean compressed) {
         try {
             byte[] decodeText;
-            if (encryptLevel == 2) decodeText = new ZSEDecoder(byteText, password).Decode();
-            else decodeText = byteText;
+            if (encryptLevel == 2) {
+                ByteArrayInputStream ais = new ByteArrayInputStream(byteText);
+                BZSEStreamDecoder decoder = new BZSEStreamDecoder(ais, password, byteText.length);
+                ByteArrayOutputStream aos = new ByteArrayOutputStream();
+                decoder.decrypt(aos);
+                decodeText = aos.toByteArray();
+                ais.close();
+                aos.close();
+            } else decodeText = byteText;
 
             byte[] uncompressedText;
             if (compressed) {
@@ -392,8 +493,9 @@ public class UnPacker {
                 try {
                     ByteArrayOutputStream out = new ByteArrayOutputStream();
                     BWZDeCompressor deCompressor = new BWZDeCompressor(temp, 32768, 0);
-                    deCompressor.Uncompress(out);
+                    deCompressor.uncompress(out);
                     uncompressedText = out.toByteArray();
+                    out.close();
                 } catch (Exception e) {
                     Util.deleteFile(temp);
                     throw e;
@@ -402,7 +504,7 @@ public class UnPacker {
             } else {
                 uncompressedText = decodeText;
             }
-            annotation = new String(uncompressedText, "utf-8");
+            annotation = new String(uncompressedText, StandardCharsets.UTF_8);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -457,24 +559,51 @@ public class UnPacker {
     }
 
     private void unCompressMainPureBWZ() throws Exception {
-        BWZDeCompressor mainDec = new BWZDeCompressor(packName, windowSize, archiveLength - cmpMainLength);
+        String name;
+        long startPos;
+        if (isSeparated) {
+            step.setValue(languageLoader.get(573));
+            combineName = packName + ".comb";
+            name = combineName;
+            try {
+                combineSplitBwz();
+            } catch (IOInterruptedException e) {
+                Util.deleteFile(cmpTempName);
+                Util.deleteFile(combineName);
+                return;
+            }
+            startPos = 0;
+        } else {
+            name = packName;
+            startPos = archiveLength - cmpMainLength;
+        }
+        if (isTest) step.setValue(languageLoader.get(506));
+        else step.setValue(languageLoader.get(504));
+
+        BWZDeCompressor mainDec = new BWZDeCompressor(name, windowSize, startPos);
         mainDec.setParent(this);
         mainDec.setThreads(threadNumber);
         FileOutputStream mainFos = new FileOutputStream(tempName);
         try {
-            mainDec.Uncompress(mainFos);
+            mainDec.uncompress(mainFos);
             mainFos.close();
         } catch (Exception e) {
             mainDec.deleteCache();
             throw e;
         } finally {
             bis.close();
+            Util.deleteFile(combineName);
+            Util.deleteFile(cmpTempName);
+            deleteTemp();
         }
 
-        if (isInterrupted) return;
-        long currentCRC32 = Util.generateCRC32(tempName);
-        if (currentCRC32 != crc32Checksum) throw new Exception("CRC32 Checksum does not match");
+//        if (isInterrupted) return;
+//        long currentCRC32 = Security.generateCRC32(tempName);
+//        if (currentCRC32 != crc32Checksum) throw new ChecksumDoesNotMatchException("CRC32 Checksum does not match");
+    }
 
+    private void combineSplitBwz() throws IOException {
+        Util.fileTruncate(bis, combineName, 8192, cmpMainLength);
     }
 
     private void unCompressMain() throws Exception {
@@ -483,21 +612,40 @@ public class UnPacker {
             if (!f.createNewFile()) System.out.println("Creation failed");
         } else if (!isUnCompressed()) {
             if (encryptLevel != 0) {
+                step.setValue(languageLoader.get(509));
+                Decipher decipher;
                 FileOutputStream fos = new FileOutputStream(cmpTempName);
-                ZSEFileDecoder zfd = new ZSEFileDecoder(bis, password, cmpMainLength);
-                zfd.Decode(fos);
+                switch (encryption) {
+                    case "zse":
+                        decipher = new ZSEFileDecoder(bis, password, cmpMainLength);
+                        break;
+                    case "bzse":
+                        decipher = new BZSEStreamDecoder(bis, password, cmpMainLength);
+                        break;
+                    default:
+                        throw new NoSuchAlgorithmException("No such algorithm");
+                }
+                decipher.setParent(this);
+                decipher.decrypt(fos);
                 fos.flush();
                 fos.close();
             } else if (windowSize != 0 && alg.equals("bwz")) {
                 unCompressMainPureBWZ();
                 return;
             } else {
-                Util.fileTruncate(bis, cmpTempName, 8192, cmpMainLength);
+                try {
+                    Util.fileTruncate(bis, cmpTempName, 8192, cmpMainLength);
+                } catch (IOInterruptedException e) {
+                    Util.deleteFile(cmpTempName);
+                    return;
+                }
             }
 
             if (windowSize == 0) {
                 tempName = cmpTempName;
             } else {
+                if (isTest) step.setValue(languageLoader.get(506));
+                else step.setValue(languageLoader.get(504));
                 DeCompressor mainDec;
                 switch (alg) {
                     case "lzz2":
@@ -513,7 +661,7 @@ public class UnPacker {
                 mainDec.setThreads(threadNumber);
                 FileOutputStream mainFos = new FileOutputStream(tempName);
                 try {
-                    mainDec.Uncompress(mainFos);
+                    mainDec.uncompress(mainFos);
                     mainFos.close();
                 } catch (Exception e) {
                     mainDec.deleteCache();
@@ -524,9 +672,6 @@ public class UnPacker {
                 }
             }
         }
-        if (isInterrupted) return;
-        long currentCRC32 = Util.generateCRC32(tempName);
-        if (currentCRC32 != crc32Checksum) throw new Exception("CRC32 Checksum does not match");
     }
 
 
@@ -542,7 +687,6 @@ public class UnPacker {
         for (ContextNode cn : rootNode.getChildren()) unCompressFrom(targetDir, cn);
     }
 
-
     /**
      * Extracts and uncompress all files and directories which are under <code>cn</code> to the path
      * <code>targetDir</code>, recursively.
@@ -554,11 +698,23 @@ public class UnPacker {
      * @throws Exception if any failure happens during extraction and decompression.
      */
     public void unCompressFrom(String targetDir, ContextNode cn) throws Exception {
+        isTest = false;
         startTime = System.currentTimeMillis();
-        if (languageLoader != null) step.set(languageLoader.get(504));
         progress.set(1);
         unCompressMain();
-        if (isInterrupted) return;
+
+        if (isInterrupted) {
+            failInfo = languageLoader.get(580);
+            throw new IOInterruptedException();
+        }
+
+        step.setValue(languageLoader.get(508));
+        long currentCRC32 = Security.generateCRC32(tempName);
+        if (currentCRC32 != crc32Checksum) {
+            failInfo = languageLoader.get(581);
+            throw new ChecksumDoesNotMatchException("CRC32 Checksum does not match");
+        }
+
         RandomAccessFile raf = new RandomAccessFile(tempName, "r");
         String dirOffset;
         if (!cn.getPath().contains(File.separator)) dirOffset = "";
@@ -595,13 +751,18 @@ public class UnPacker {
     /**
      * Returns whether the compressed file is undamaged.
      *
-     * @return true if the file can be uncompress successfully and the total length is equal to the original length.
+     * @return true if the file can be uncompress successfully and the uncompressed file is the same as the
+     * original file
      */
     public boolean TestPack() {
-        if (languageLoader != null) step.set(languageLoader.get(506));
+        isTest = true;
+//        if (languageLoader != null) step.set(languageLoader.get(506));
         try {
             unCompressMain();
-            return true;
+            if (isInterrupted) return false;
+            step.setValue(languageLoader.get(508));
+            long currentCRC32 = Security.generateCRC32(tempName);
+            return currentCRC32 == crc32Checksum;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -616,8 +777,13 @@ public class UnPacker {
      */
     public void setPassword(String password) throws Exception {
         this.password = password;
-        byte[] md5Value = ZSEFileEncoder.md5PlainCode(password);
-        if (!Arrays.equals(md5Value, origMD5Value)) throw new WrongPasswordException();
+        byte[] checksum = Security.secureHashing(password, passwordAlg);
+        byte[] saltedChecksum = new byte[checksum.length + 8];
+        System.arraycopy(checksum, 0, saltedChecksum, 0, checksum.length);
+        System.arraycopy(passwordSalt, 0, saltedChecksum, checksum.length, 8);
+        byte[] saltedHash = Security.secureHashing(saltedChecksum, passwordAlg);
+
+        if (!Arrays.equals(saltedHash, origPasswordChecksum)) throw new WrongPasswordException();
         else passwordSet = true;
     }
 
@@ -657,6 +823,15 @@ public class UnPacker {
      */
     public int getEncryptLevel() {
         return encryptLevel;
+    }
+
+    /**
+     * Returns {@code true} if and only if this archive is a split archive.
+     *
+     * @return {@code true} if and only if this archive is a split archive}
+     */
+    public boolean isSeparated() {
+        return isSeparated;
     }
 
     /**
@@ -739,9 +914,84 @@ public class UnPacker {
         return secondaryVersion & 0xff;
     }
 
+    /**
+     * Returns the name of the encryption algorithm.
+     *
+     * @return the name of the encryption algorithm
+     */
+    public String getEncryption() {
+        return encryption;
+    }
+
+    /**
+     * Returns the name of the secret key algorithm.
+     *
+     * @return the name of the secret key algorithm
+     */
+    public String getPasswordAlg() {
+        return passwordAlg;
+    }
+
+    /**
+     * Returns the true ratio of compression, which is the ratio between the length of the main part in the archive
+     * and the original file size.
+     *
+     * @return the compression ratio of main part
+     */
+    public double getMainRatio() {
+        return (double) cmpMainLength / origSize;
+    }
+
+    /**
+     * Returns the total length of the archive(s), used for displaying.
+     *
+     * @return the total length of the archive(s), used for displaying.
+     */
+    public long getDisplayArchiveLength() {
+        if (isSeparated) {
+            return archiveLength + (partCount - 1) * 4;
+        } else {
+            return archiveLength;
+        }
+    }
+
     private boolean isUnCompressed() {
         File f = new File(tempName);
         return f.exists() && f.length() == origSize;
+    }
+
+    /**
+     * Checks the signature of the archive file.
+     *
+     * @return {@code 0} if this archive is a WinLZZ archive,
+     * {@code 1} if it is a WinLZZ archive section,
+     * {@code 2} if unrecognizable.
+     */
+    public static int checkSignature(String path) {
+        try {
+            FileInputStream fis = new FileInputStream(path);
+            byte[] sigBytes = new byte[4];
+            if (fis.read(sigBytes) != 4) {
+                fis.close();
+                return 2;
+            }
+            fis.close();
+            int signature = Bytes.bytesToInt32(sigBytes);
+            if (signature == Packer.SIGNATURE) return 0;
+            else if (signature == Packer.PART_SIGNATURE) return 1;
+            else return 2;
+        } catch (IOException e) {
+            return 2;
+        }
+    }
+
+    /**
+     * Returns the information of a decompression failure, which would be set when fail.
+     *
+     * @return the information of a decompression failure, which would be set when fail
+     */
+    public String getFailInfo() {
+        return failInfo;
     }
 
     public ReadOnlyLongProperty progressProperty() {

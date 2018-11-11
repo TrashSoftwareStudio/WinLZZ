@@ -2,6 +2,7 @@ package Test;
 
 import WinLzz.BWZ.BWZCompressor;
 import WinLzz.BWZ.BWZDeCompressor;
+import WinLzz.Utility.Security;
 import WinLzz.Utility.Util;
 
 import java.io.BufferedOutputStream;
@@ -14,17 +15,18 @@ public class BWZTest {
         String name;
         name = "dsCtrl.txt";
 //        name = "allCodes.zip";
-//        name = "p1.png";
+        name = "p1.png";
 //        name = "t1.bmp";
 //        name = "cmpFiles.tar";
-        int ws = 65536;
+        name = "BWZ.zip";
+        int ws = 32768;
         String cmpName = Util.getCompressFileName(name, "bwz");
-        long crc32 = Util.generateCRC32(name);
+        long crc32 = Security.generateCRC32(name);
         long start = System.currentTimeMillis();
 
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(cmpName));
         BWZCompressor bwz = new BWZCompressor(name, ws);
-        bwz.Compress(bos);
+        bwz.compress(bos);
         bos.flush();
         bos.close();
 
@@ -35,11 +37,11 @@ public class BWZTest {
         String cpyName = Util.getOriginalCopyName(cmpName);
         BWZDeCompressor d = new BWZDeCompressor(cmpName, ws, 0);
         FileOutputStream bos2 = new FileOutputStream(cpyName);
-        d.Uncompress(bos2);
+        d.uncompress(bos2);
         bos.close();
 
         System.out.println("Uncompress Time: " + (System.currentTimeMillis() - mid) + " ms");
-        System.out.format("Matches: %b", Util.generateCRC32(cpyName) == crc32);
+        System.out.format("Matches: %b", Security.generateCRC32(cpyName) == crc32);
 
     }
 }

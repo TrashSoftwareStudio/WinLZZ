@@ -22,7 +22,7 @@ public class SuffixArrayDC3 {
      * @param text         the original text.
      * @param alphabetSize the size of alphabet.
      */
-    public SuffixArrayDC3(short[] text, int alphabetSize) {
+    public SuffixArrayDC3(int[] text, int alphabetSize) {
         int max_n = text.length + 256;  // For safe
         wa = new int[max_n];
         wb = new int[max_n];
@@ -32,7 +32,8 @@ public class SuffixArrayDC3 {
         int n = text.length;
         this.n = n;
         int[] r = new int[n * 3];
-        for (int i = 0; i < n; i++) r[i] = text[i];
+//        for (int i = 0; i < n; i++) r[i] = text[i];
+        System.arraycopy(text, 0, r, 0, n);
         sa = new int[n * 3];
         dc3(new ArrayWrapper(r, 0), new ArrayWrapper(sa, 0), n, alphabetSize);
         clearUnused();

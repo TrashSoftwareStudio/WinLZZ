@@ -1,6 +1,6 @@
 package WinLzz.Utility;
 
-import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 /**
  * A class that consists of byte and bit level manipulations.
@@ -304,10 +304,9 @@ public abstract class Bytes {
      *
      * @param name the {@code String} to be encoded
      * @return the UTF-8 encoded byte array
-     * @throws UnsupportedEncodingException if any error occurs during encoding
      */
-    public static byte[] stringEncode(String name) throws UnsupportedEncodingException {
-        return name.getBytes("utf-8");
+    public static byte[] stringEncode(String name) {
+        return name.getBytes(StandardCharsets.UTF_8);
     }
 
     /**
@@ -315,10 +314,9 @@ public abstract class Bytes {
      *
      * @param nameBytes byte array representation
      * @return the {@code String} encoded by <code>nameBytes</code>
-     * @throws UnsupportedEncodingException if any error occurs during encoding
      */
-    public static String stringDecode(byte[] nameBytes) throws UnsupportedEncodingException {
-        return new String(nameBytes, "utf-8");
+    public static String stringDecode(byte[] nameBytes) {
+        return new String(nameBytes, StandardCharsets.UTF_8);
 
     }
 

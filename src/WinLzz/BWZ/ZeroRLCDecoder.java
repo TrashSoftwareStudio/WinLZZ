@@ -15,7 +15,7 @@ import java.util.ArrayList;
  */
 class ZeroRLCDecoder {
 
-    private short[] text;
+    private int[] text;
     private int maxBlockLength;
 
     /**
@@ -24,7 +24,7 @@ class ZeroRLCDecoder {
      * @param text           the text after zero rlc coding.
      * @param maxBlockLength the maximum possible length after decode.
      */
-    ZeroRLCDecoder(short[] text, int maxBlockLength) {
+    ZeroRLCDecoder(int[] text, int maxBlockLength) {
         this.text = text;
         this.maxBlockLength = maxBlockLength;
     }
@@ -34,14 +34,14 @@ class ZeroRLCDecoder {
      *
      * @return the decoded text.
      */
-    short[] Decode() {
-        short[] temp = new short[maxBlockLength];
+    int[] Decode() {
+        int[] temp = new int[maxBlockLength];
         int index = 0;
-        ArrayList<Short> runLengths = new ArrayList<>();
+        ArrayList<Integer> runLengths = new ArrayList<>();
         int i = 0;
         while (i < text.length) {
-            short b = text[i];
-            if (b < (short) 2) {
+            int b = text[i];
+            if (b < 2) {
                 runLengths.add(b);
             } else {
                 if (!runLengths.isEmpty()) {
@@ -49,19 +49,19 @@ class ZeroRLCDecoder {
                     runLengths.clear();
                     for (int j = 0; j < length; j++) temp[index++] = 0;
                 }
-                temp[index++] = (short) (b - 1);
+                temp[index++] = b - 1;
             }
             i += 1;
         }
         if (!runLengths.isEmpty()) {  // Last few 0's
-            int length = BWZUtil.runLengthInverse(Util.collectionToShortArray(runLengths));
+            int length = BWZUtil.runLengthInverse(Util.collectionToIntArray(runLengths));
             for (int j = 0; j < length; j++) {
                 temp[index++] = 0;
             }
         }
         if (index == maxBlockLength) return temp;
         else {
-            short[] rtn = new short[index];
+            int[] rtn = new int[index];
             System.arraycopy(temp, 0, rtn, 0, index);
             return rtn;
         }

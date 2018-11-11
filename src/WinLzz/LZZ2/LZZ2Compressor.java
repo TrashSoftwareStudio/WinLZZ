@@ -106,15 +106,15 @@ public class LZZ2Compressor implements Compressor {
             bufferMaxSize = (int) totalLength - 1;
         }
         SimpleHashSlider slider = new SimpleHashSlider();
-        LinkedHashSet<Integer> omitSet = new LinkedHashSet<>();
+        LinkedHashSet<Long> omitSet = new LinkedHashSet<>();
 
-        int front = bufferMaxSize;  // The frontier of buffer.
-        int position = 0;  // The processing index. i.e. the border of buffer and slider.
+        long front = bufferMaxSize;  // The frontier of buffer.
+        long position = 0;  // The processing index. i.e. the border of buffer and slider.
         int lastRead = 0;  // The number of bytes proceed in last round.
         int sliderSize = 0;
         int bufferSize = bufferMaxSize;
 
-        fillHashSlider(fba, 0, front, slider, omitSet);
+        fillHashSlider(fba, 0, (int) front, slider, omitSet);
 
         LinkedList<Integer> lastMatches = new LinkedList<>();
         int lastLength = -1;
@@ -134,7 +134,7 @@ public class LZZ2Compressor implements Compressor {
             // Push buffer.
             int newLoad = bufferMaxSize - bufferSize;
 
-            if (front + newLoad >= totalLength) newLoad = (int) totalLength - front;
+            if (front + newLoad >= totalLength) newLoad = (int) (totalLength - front);
 
             fillHashSlider(fba, front, newLoad, slider, omitSet);
 
@@ -148,8 +148,8 @@ public class LZZ2Compressor implements Compressor {
             if (sliderSize > dictSize) sliderSize = dictSize;
 
             if (bufferSize < 3) {
-                for (int i = position; i < totalLength; i++) {
-                    flagFos.write('0');
+                for (long i = position; i < totalLength; i++) {
+                    flagFos.write(0);
                     mainFos.write(fba.getByte(i));
                 }
                 break;
@@ -162,7 +162,7 @@ public class LZZ2Compressor implements Compressor {
 
             if (search[1] < minimumMatchLen) {
                 // Not a match
-                flagFos.write('0');
+                flagFos.write(0);
                 mainFos.write(fba.getByte(position));
                 lastRead = 1;
                 bufferSize -= 1;
@@ -172,14 +172,14 @@ public class LZZ2Compressor implements Compressor {
                 bufferSize -= search[1];
                 if (search[2] > 0) {
                     for (int i = 0; i < search[2]; i++) {
-                        flagFos.write('0');
+                        flagFos.write(0);
                         mainFos.write(fba.getByte(position));
                         position += 1;
                     }
                     bufferSize -= search[2];
                 }
 
-                flagFos.write('1');
+                flagFos.write(1);
                 int distanceInt = sliderSize - search[0] + search[2];
                 int lengthInt = search[1];
 
@@ -221,12 +221,12 @@ public class LZZ2Compressor implements Compressor {
 
     }
 
-    private void fillHashSlider(FileInputBufferArray fba, int front, int newLoad, SimpleHashSlider slider,
-                                LinkedHashSet<Integer> omitSet) {
-        for (int i = front; i < front + newLoad; i++) {
+    private void fillHashSlider(FileInputBufferArray fba, long front, int newLoad, SimpleHashSlider slider,
+                                LinkedHashSet<Long> omitSet) {
+        for (long i = front; i < front + newLoad; i++) {
             if (i > fba.length() - 3) break;
             HashNode hn = new HashNode(fba.getByte(i), fba.getByte(i + 1), fba.getByte(i + 2));
-            ArrayDeque<Integer> indices = slider.get(hn);
+            ArrayDeque<Long> indices = slider.get(hn);
             if (indices != null) {
                 if (getCompressionParam()[1] == 0) {
                     if (indices.getLast() != i - 1 && !omitSet.contains(i)) {
@@ -251,12 +251,12 @@ public class LZZ2Compressor implements Compressor {
         }
     }
 
-    private int[] search0(FileInputBufferArray fba, int pos, SimpleHashSlider slider, int sliderSize, int bufferSize) {
+    private int[] search0(FileInputBufferArray fba, long pos, SimpleHashSlider slider, int sliderSize, int bufferSize) {
         int[] search = longestMatch(fba, pos, slider, sliderSize, bufferSize);
         return new int[]{search[0], search[1], 0};
     }
 
-    private int[] search1(FileInputBufferArray fba, int pos, SimpleHashSlider slider, int sliderSize, int bufferSize) {
+    private int[] search1(FileInputBufferArray fba, long pos, SimpleHashSlider slider, int sliderSize, int bufferSize) {
         int[] first = longestMatch(fba, pos, slider, sliderSize, bufferSize);
         if (first[1] == 0 || first[1] == bufferSize - 1) {
             return new int[]{first[0], first[1], 0};
@@ -267,7 +267,7 @@ public class LZZ2Compressor implements Compressor {
         }
     }
 
-    private int[] search2(FileInputBufferArray fba, int pos, SimpleHashSlider slider, int sliderSize, int bufferSize) {
+    private int[] search2(FileInputBufferArray fba, long pos, SimpleHashSlider slider, int sliderSize, int bufferSize) {
         int[] first = longestMatch(fba, pos, slider, sliderSize, bufferSize);
         if (first[1] == 0 || first[1] == bufferSize - 1) return new int[]{first[0], first[1], 0};
         else {
@@ -282,16 +282,16 @@ public class LZZ2Compressor implements Compressor {
 
     }
 
-    private int[] longestMatch(FileInputBufferArray fba, int pos, SimpleHashSlider slider, int sliderSize, int bufferSize) {
+    private int[] longestMatch(FileInputBufferArray fba, long pos, SimpleHashSlider slider, int sliderSize, int bufferSize) {
         if (bufferSize < 3) return new int[]{0, 0};
-        int sliderStart = pos - sliderSize;
+        long sliderStart = pos - sliderSize;
 
         HashNode hn = new HashNode(fba.getByte(pos), fba.getByte(pos + 1), fba.getByte(pos + 2));
 
-        ArrayDeque<Integer> indices = slider.get(hn);
+        ArrayDeque<Long> indices = slider.get(hn);
         if (indices != null) {
             ArrayList<Integer> list = new ArrayList<>();
-            for (int i : indices) if (i >= sliderStart && i < pos) list.add(i - sliderStart);
+            for (long i : indices) if (i >= sliderStart && i < pos) list.add((int) (i - sliderStart));
             if (list.isEmpty()) return new int[]{0, 0};
 
             int indexInSlider = list.get(list.size() - 1);
@@ -339,12 +339,12 @@ public class LZZ2Compressor implements Compressor {
         Util.deleteFile(dlBodyTempName);
     }
 
-    private void optimizeLinkedHashSet(LinkedHashSet<Integer> set, int currentIndex) {
-        Iterator<Integer> iterator = set.iterator();
+    private void optimizeLinkedHashSet(LinkedHashSet<Long> set, long currentIndex) {
+        Iterator<Long> iterator = set.iterator();
         while (set.size() > 0 && iterator.hasNext() && iterator.next() < currentIndex - dictSize) iterator.remove();
     }
 
-    private void updateInfo(int current, long updateTime) {
+    private void updateInfo(long current, long updateTime) {
         parent.progress.set(current);
         if (timeAccumulator == 19) {
             timeAccumulator = 0;
@@ -374,7 +374,7 @@ public class LZZ2Compressor implements Compressor {
      * @throws IOException if io error occurs during compression.
      */
     @Override
-    public void Compress(OutputStream outFile) throws IOException {
+    public void compress(OutputStream outFile) throws IOException {
         compressText();
 
         if (itemCount == 0) {

@@ -21,10 +21,16 @@ public class PasswordBox implements Initializable {
     private CheckBox encryptNameBox, showPasswordBox;
 
     @FXML
-    private Label inputPassword, confirmLabel, promptLabel;
+    private ComboBox<String> algorithmBox, passwordAlgBox;
+
+    @FXML
+    private Label inputPassword, confirmLabel, promptLabel, algLabel, passAlgLabel;
 
     @FXML
     private Button confirmButton;
+
+    private String[] algorithms = new String[]{"BZSE", "ZSE"};
+    private String[] passAlgorithms = new String[]{"SHA-256", "SHA-384", "SHA-512"};
 
     private Stage stage;
     private CompressUI parent;
@@ -36,9 +42,15 @@ public class PasswordBox implements Initializable {
         showPasswordListener();
         plainPasswordListener();
         setPasswordListener();
+        fillBoxes();
     }
 
-    public void setParent(CompressUI parent) {
+    /**
+     * Sets up the parent {@code CompressUI} which launches this {@code PasswordBox} instance.
+     *
+     * @param parent the parent {@code CompressUI} which launches this {@code PasswordBox} instance
+     */
+    void setParent(CompressUI parent) {
         this.parent = parent;
     }
 
@@ -51,18 +63,27 @@ public class PasswordBox implements Initializable {
         this.stage = stage;
     }
 
+    private void fillBoxes() {
+        algorithmBox.getItems().addAll(algorithms);
+        passwordAlgBox.getItems().addAll(passAlgorithms);
+        algorithmBox.getSelectionModel().select(0);
+        passwordAlgBox.getSelectionModel().select(0);
+    }
+
     @FXML
     void confirmAction() {
         String p1 = setPassword.getText();
         String p2 = confirmPassword.getText();
+        String alg = algorithmBox.getSelectionModel().getSelectedItem().toLowerCase();
+        String passAlg = passwordAlgBox.getSelectionModel().getSelectedItem().toLowerCase();
         if (p1.isEmpty() && p2.isEmpty()) {
             parent.setPassword("");
-            parent.setEncryptLevel(0);
+            parent.setEncryption(0, alg, passAlg);
             stage.close();
         } else if (p1.equals(p2)) {
             parent.setPassword(p1);
-            if (encryptNameBox.isSelected()) parent.setEncryptLevel(2);
-            else parent.setEncryptLevel(1);
+            if (encryptNameBox.isSelected()) parent.setEncryption(2, alg, passAlg);
+            else parent.setEncryption(1, alg, passAlg);
             stage.close();
         } else {
             promptLabel.setText(lanLoader.get(404));
@@ -113,5 +134,7 @@ public class PasswordBox implements Initializable {
         showPasswordBox.setText(lanLoader.get(402));
         encryptNameBox.setText(lanLoader.get(403));
         confirmButton.setText(lanLoader.get(1));
+        algLabel.setText(lanLoader.get(405));
+        passAlgLabel.setText(lanLoader.get(406));
     }
 }

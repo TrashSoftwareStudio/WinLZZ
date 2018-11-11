@@ -1,7 +1,7 @@
 package WinLzz.Utility;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * An input stream which reads a file in bit level.
@@ -11,19 +11,43 @@ import java.io.IOException;
  */
 public class FileBitInputStream {
 
-    private BufferedInputStream bis;
+    private InputStream bis;
 
-    private int index = 0;
+    /**
+     * The current reading byte.
+     */
+    private int current;
 
-    private String currentByte;
+    /**
+     * The current operating position in {@code current}, from left to right.
+     */
+    private int pointer;
 
     /**
      * Creates a new instance of {@code FileBitInputStream}.
      *
      * @param bis the {@code BufferedInputStream} which this {@code FileBitInputStream} reads data from
      */
-    public FileBitInputStream(BufferedInputStream bis) {
+    public FileBitInputStream(InputStream bis) {
         this.bis = bis;
+    }
+
+    /**
+     * Returns the combination of the next <code>length</code> bits.
+     *
+     * @param length the length to of the reading
+     * @return the combination of the next <code>length</code> bits
+     * @throws IOException if the stream is not readable
+     */
+    public int read(int length) throws IOException {
+        int number = 0;
+        for (int i = 0; i < length; i++) {
+            number = number << 1;
+            int r = read();
+            if (r == 2) throw new IOException();
+            number = number | r;
+        }
+        return number;
     }
 
     /**
@@ -32,18 +56,19 @@ public class FileBitInputStream {
      * @return the next bit in the stream {@code bis}, or {@code 2} if the stream ends.
      * @throws IOException if the input stream is not readable
      */
-    public char read() throws IOException {
-        char c;
-        if (index % 8 == 0) {
+    public int read() throws IOException {
+        int i;
+        if (pointer == 0) {
             byte[] b = new byte[1];
-            if (bis.read(b) != 1) return '2';
-            currentByte = Bytes.byteToBitString(b[0]);
-            c = currentByte.charAt(0);
+            if (bis.read(b) != 1) return 2;
+            current = b[0];
+            i = (current >> 7) & 1;
         } else {
-            c = currentByte.charAt(index % 8);
+            i = (current >> (7 - pointer)) & 1;
         }
-        index += 1;
-        return c;
+        if (pointer == 7) pointer = 0;
+        else pointer += 1;
+        return i;
     }
 
     /**

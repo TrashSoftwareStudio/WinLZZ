@@ -22,7 +22,7 @@ public interface DeCompressor {
      * @param out the target output stream.
      * @throws Exception if any error occurs.
      */
-    void Uncompress(OutputStream out) throws Exception;
+    void uncompress(OutputStream out) throws Exception;
 
     /**
      * Sets up the parent {@code UnPacker}, which launched this {@code DeCompressor}.

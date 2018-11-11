@@ -18,6 +18,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
@@ -36,6 +37,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class MainUI implements Initializable {
 
@@ -74,10 +76,19 @@ public class MainUI implements Initializable {
     private Menu settingsMenu, toolMenu, helpMenu;
 
     @FXML
-    private Label currentDirLabel;
+    private ScrollPane currentDirPane;
+
+    @FXML
+    private HBox currentDirBox;
 
     @FXML
     private MenuItem languageSetting, about, licence, changelogView, openInDesktop, pasteHere;
+
+    private String currentDir;
+
+    private boolean isClickingDirBox;
+
+    private ArrayList<DirButton> dirButtons = new ArrayList<>();
 
     /**
      * {@code MenuItem}'s in right-click popup menu.
@@ -267,7 +278,7 @@ public class MainUI implements Initializable {
      */
     @FXML
     public void refreshAction() {
-        String dir = currentDirLabel.getText();
+        String dir = currentDir;
         if (dir.length() > 0) currentSelection = new RegularFileNode(new File(dir), lanLoader);
         else currentSelection = null;
         fillTable();
@@ -276,7 +287,7 @@ public class MainUI implements Initializable {
     @FXML
     private void desktopOpenAction() {
         try {
-            String dir = currentDirLabel.getText();
+            String dir = currentDir;
             if (dir.length() > 0) {
                 Desktop.getDesktop().open(new File(dir));
             } else {
@@ -284,6 +295,25 @@ public class MainUI implements Initializable {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void refreshDirButtons() {
+        currentDirBox.getChildren().clear();
+        if (currentDir.length() > 0) {
+            String split = Pattern.quote(System.getProperty("file.separator"));
+            String[] dirs = currentDir.split(split);
+            StringBuilder cumulativeDir = new StringBuilder();
+            for (String pattern : dirs) {
+                cumulativeDir.append(pattern).append(File.separator);
+                DirButton db = new DirButton(cumulativeDir.toString(), pattern);
+                db.setOnAction(e -> {
+                    currentDir = db.getFullPath();
+                    isClickingDirBox = true;
+                    fillTable();
+                });
+                currentDirBox.getChildren().add(db);
+            }
         }
     }
 
@@ -337,8 +367,9 @@ public class MainUI implements Initializable {
         for (int i = 0; i < fileArray.length; i++)
             fileArray[i] = files.get(i).getFile();
         InfoNode node;
-        if (fileArray.length == 1) node = new InfoNode(fileArray[0]);
-        else if (fileArray.length == 0) node = new InfoNode(new File(currentDirLabel.getText()));
+        if (fileArray.length == 1) {
+            node = new InfoNode(fileArray[0]);
+        } else if (fileArray.length == 0) node = new InfoNode(new File(currentDir));
         else node = new InfoNode(fileArray);
         pui.setFiles(node);
         pui.setLanLoader(lanLoader);
@@ -349,10 +380,10 @@ public class MainUI implements Initializable {
     }
 
     private void deleteAction() {
-        Collection<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+        ObservableList<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
         File[] files = new File[selections.size()];
         for (int i = 0; i < files.length; i++)
-            files[i] = ((ObservableList<RegularFileNode>) selections).get(i).getFile();
+            files[i] = selections.get(i).getFile();
 
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
         confirmation.setTitle("WinLZZ");
@@ -455,7 +486,7 @@ public class MainUI implements Initializable {
      */
     @FXML
     private void pasteHereAction() {
-        File destDir = new File(currentDirLabel.getText());
+        File destDir = new File(currentDir);
         paste(destDir);
     }
 
@@ -544,10 +575,10 @@ public class MainUI implements Initializable {
             backButtonListener();
         });
 
-        table.setRowFactory(new Callback<>() {
+        table.setRowFactory(new Callback<TableView<RegularFileNode>, TableRow<RegularFileNode>>() {
             @Override
             public TableRow<RegularFileNode> call(TableView<RegularFileNode> param) {
-                return new TableRow<>() {
+                return new TableRow<RegularFileNode>() {
                     @Override
                     protected void updateItem(RegularFileNode item, boolean empty) {
                         super.updateItem(item, empty);
@@ -583,7 +614,7 @@ public class MainUI implements Initializable {
      * Sets up the hover property listener of the TableColumn object "nameCol".
      */
     private void setNameColHoverFactory() {
-        nameCol.setCellFactory((TableColumn<RegularFileNode, String> tc) -> new TableCell<>() {
+        nameCol.setCellFactory((TableColumn<RegularFileNode, String> tc) -> new TableCell<RegularFileNode, String>() {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
@@ -638,29 +669,38 @@ public class MainUI implements Initializable {
     private void fillTable() {
         refreshButton.setDisable(false);
         table.getItems().clear();
-        ArrayList<RegularFileNode> nonDirectories = new ArrayList<>();
-        if (currentSelection != null) {
-            currentDirLabel.setText(currentSelection.getFullPath());
+        if (isClickingDirBox) {
+            isClickingDirBox = false;
+            File f = new File(currentDir);
+            fillFrom(f);
+        } else if (currentSelection != null) {
+            currentDir = currentSelection.getFullPath();
             File node = currentSelection.getFile();
             try {
-                for (File f : Objects.requireNonNull(node.listFiles())) {
-                    if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, lanLoader));
-                    else nonDirectories.add(new RegularFileNode(f, lanLoader));
-                }
-                table.getItems().addAll(nonDirectories);
-                GeneralLoaders.writeLastDir(currentSelection.getFile());
+                fillFrom(node);
             } catch (NullPointerException npe) {
                 placeHolder.setText(lanLoader.get(63));
-                return;
             }
         } else {
-            currentDirLabel.setText("");
+            currentDir = "";
             for (File d : File.listRoots())
                 table.getItems().add(new RegularFileNode(d, lanLoader));
             GeneralLoaders.writeLastDir(null);
         }
+        refreshDirButtons();
         if (table.getItems().size() == 0) placeHolder.setText(lanLoader.get(355));
         else placeHolder.setText("");
+    }
+
+    private void fillFrom(File node) {
+        ArrayList<RegularFileNode> nonDirectories = new ArrayList<>();
+        for (File f : Objects.requireNonNull(node.listFiles())) {
+            if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, lanLoader));
+            else nonDirectories.add(new RegularFileNode(f, lanLoader));
+        }
+        table.getItems().addAll(nonDirectories);
+        GeneralLoaders.writeLastDir(currentSelection.getFile());
+
     }
 
     private void expandTill(File file) throws FileNotFoundException {
@@ -767,7 +807,7 @@ public class MainUI implements Initializable {
     private void changeRightMenu() {
         rightPopupMenu.getItems().clear();
         int selectionNumber = table.getSelectionModel().getSelectedItems().size();
-        if (currentDirLabel.getText().length() == 0) {
+        if (currentDir.length() == 0) {
             // The current opening directory is the system root
             if (selectionNumber != 0) rightPopupMenu.getItems().addAll(openR, openDirR, new SeparatorMenuItem(),
                     propertyR);

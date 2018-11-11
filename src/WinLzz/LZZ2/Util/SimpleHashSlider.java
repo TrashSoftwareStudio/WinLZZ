@@ -1,25 +1,28 @@
 package WinLzz.LZZ2.Util;
 
+import WinLzz.Utility.ArrayHashTable;
+
 import java.util.ArrayDeque;
 import java.util.HashMap;
 
-public class SimpleHashSlider extends HashMap<HashNode, ArrayDeque<Integer>> {
+//public class SimpleHashSlider extends HashMap<HashNodeBase, ArrayDeque<Long>> {
+public class SimpleHashSlider extends ArrayHashTable {
 
     private ArrayDeque<HashNodeBase> trackQueue = new ArrayDeque<>();
 
     private HashNodeBase nullRep = new HashNodeBase();
 
     public SimpleHashSlider() {
-        super();
+        super(16777216);
     }
 
     @Override
-    public ArrayDeque<Integer> put(HashNode key, ArrayDeque<Integer> value) {
+    public ArrayDeque<Long> put(HashNodeBase key, ArrayDeque<Long> value) {
         trackQueue.addLast(key);
         return super.put(key, value);
     }
 
-    public void addIndex(HashNode key, int index) {
+    public void addIndex(HashNode key, long index) {
         get(key).addLast(index);
         trackQueue.addLast(key);
     }
@@ -32,7 +35,7 @@ public class SimpleHashSlider extends HashMap<HashNode, ArrayDeque<Integer>> {
         while (trackQueue.size() > dictSize) {
             HashNodeBase first = trackQueue.removeFirst();
             if (first instanceof HashNode) {
-                ArrayDeque<Integer> ll = get(first);
+                ArrayDeque<Long> ll = get(first);
                 if (ll.size() > 1) {
                     ll.removeFirst();
                 } else {

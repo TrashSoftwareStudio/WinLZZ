@@ -12,7 +12,7 @@ public class FileInputBufferArray {
 
     private InputStream bis;
 
-    private int bufferSize, remainSize, index;
+    private int bufferSize, remainSize;
 
     private byte[] array1, array2;
 
@@ -21,7 +21,7 @@ public class FileInputBufferArray {
      */
     private boolean activeArray2;
 
-    private long length;
+    private long length, index;
 
     /**
      * Creates a new instance of {@code FileInputBufferArray}.
@@ -47,7 +47,7 @@ public class FileInputBufferArray {
      * @param index the access index
      * @return the byte at the position <code>index</code>
      */
-    public byte getByte(int index) {
+    public byte getByte(long index) {
         if (index >= this.index) {
             activeArray2 = !activeArray2;
             if (activeArray2) {
@@ -78,11 +78,11 @@ public class FileInputBufferArray {
             return getByte(index);
         } else if (index >= this.index - remainSize) {
             // else if (index < this.index && index >= this.index - remainSize)
-            if (activeArray2) return array2[index - this.index + remainSize];
-            else return array1[index - this.index + remainSize];
+            if (activeArray2) return array2[(int) (index - this.index + remainSize)];
+            else return array1[(int) (index - this.index + remainSize)];
         } else if (index < this.index - remainSize) {
-            if (activeArray2) return array1[index - this.index + bufferSize + remainSize];
-            else return array2[index - this.index + bufferSize + remainSize];
+            if (activeArray2) return array1[(int) (index - this.index + bufferSize + remainSize)];
+            else return array2[(int) (index - this.index + bufferSize + remainSize)];
         } else {
             throw new IndexOutOfBoundsException("Index out of buffer range");
         }

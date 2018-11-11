@@ -1,4 +1,4 @@
-package WinLzz.ZSE;
+package WinLzz.Encrypters.ZSE;
 
 import WinLzz.Utility.Util;
 

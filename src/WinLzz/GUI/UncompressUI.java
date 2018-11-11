@@ -5,7 +5,7 @@ import WinLzz.Packer.*;
 import WinLzz.ResourcesPack.ConfigLoader.GeneralLoaders;
 import WinLzz.ResourcesPack.Languages.LanguageLoader;
 import WinLzz.Utility.Util;
-import WinLzz.ZSE.WrongPasswordException;
+import WinLzz.Encrypters.WrongPasswordException;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -84,24 +84,36 @@ public class UncompressUI implements Initializable {
     }
 
     void loadContext() throws Exception {
-        unPacker = new UnPacker(packFile.getAbsolutePath());
-        unPacker.setLanguageLoader(lanLoader);
-        try {
-            unPacker.readInfo();
-        } catch (NotAPzFileException npe) {
+        int sigCheck = UnPacker.checkSignature(packFile.getAbsolutePath());
+        if (sigCheck == 0) {
+            unPacker = new UnPacker(packFile.getAbsolutePath());
+            unPacker.setLanguageLoader(lanLoader);
+
+            try {
+                unPacker.readInfo();
+            } catch (UnsupportedVersionException uve) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle(lanLoader.get(351));
+                alert.setHeaderText(lanLoader.get(352));
+                alert.setContentText(lanLoader.get(353) + Packer.primaryVersion + lanLoader.get(354) +
+                        unPacker.versionNeeded());
+                alert.showAndWait();
+                stage.close();
+                return;
+            }
+        } else if (sigCheck == 1) {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle(lanLoader.get(370));
+            alert.setHeaderText(lanLoader.get(371));
+            alert.setContentText(String.format("%s %s", lanLoader.get(372), probableFirstName()));
+            alert.showAndWait();
+            stage.close();
+            return;
+        } else if (sigCheck == 2) {
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle(lanLoader.get(351));
             alert.setHeaderText(lanLoader.get(361));
             alert.setContentText(lanLoader.get(362));
-            alert.showAndWait();
-            stage.close();
-            return;
-        } catch (UnsupportedVersionException uve) {
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle(lanLoader.get(351));
-            alert.setHeaderText(lanLoader.get(352));
-            alert.setContentText(lanLoader.get(353) + Packer.primaryVersion + lanLoader.get(354) +
-                    unPacker.versionNeeded());
             alert.showAndWait();
             stage.close();
             return;
@@ -110,6 +122,12 @@ public class UncompressUI implements Initializable {
         setThreadNumberBox();
         if (unPacker.getEncryptLevel() != 2) showContext();
         else passwordInputAction(true);
+    }
+
+    private String probableFirstName() {
+        String nameWithNumber = packFile.getName().substring(0, packFile.getName().lastIndexOf('.'));
+        String pureName = nameWithNumber.substring(0, nameWithNumber.lastIndexOf('.'));
+        return String.format("%s.1.pz", pureName);
     }
 
     private void setThreadNumberBox() {
@@ -122,8 +140,17 @@ public class UncompressUI implements Initializable {
     private void showContext() {
         try {
             unPacker.readMap();
+        } catch (ChecksumDoesNotMatchException e) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle(lanLoader.get(60));
+            alert.setHeaderText(lanLoader.get(351));
+            alert.setContentText(lanLoader.get(363));
+            alert.showAndWait();
+            stage.close();
+            return;
         } catch (Exception e) {
             e.printStackTrace();
+            return;
         }
         currentNode = unPacker.getRootNode();
         showFiles();
@@ -172,10 +199,11 @@ public class UncompressUI implements Initializable {
     }
 
     private void fileListSelectionListener() {
-        fileList.setRowFactory(new Callback<>() {
+
+        fileList.setRowFactory(new Callback<TableView<FileNode>, TableRow<FileNode>>() {
             @Override
             public TableRow<FileNode> call(TableView<FileNode> param) {
-                return new TableRow<>() {
+                return new TableRow<FileNode>() {
                     @Override
                     protected void updateItem(FileNode item, boolean empty) {
                         super.updateItem(item, empty);

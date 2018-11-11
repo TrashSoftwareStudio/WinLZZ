@@ -59,6 +59,13 @@ public class UncompressingUI implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
     }
 
+    /**
+     * Sets up the parent {@code MainUI} instance of the parent {@code UncompressUI} instance which launches this
+     * {@code UncompressingUI}.
+     *
+     * @param grandParent the parent {@code MainUI} instance of the parent {@code UncompressUI} instance which
+     *                    launches this {@code UncompressingUI}
+     */
     void setGrandParent(MainUI grandParent) {
         this.grandParent = grandParent;
     }
@@ -162,6 +169,7 @@ public class UncompressingUI implements Initializable {
             Alert info = new Alert(Alert.AlertType.INFORMATION);
             info.setTitle("WinLZZ");
             info.setHeaderText(lanLoader.get(551));
+            info.setContentText(unPacker.getFailInfo());
             info.show();
             System.gc();
             stage.close();
@@ -268,7 +276,7 @@ public class UncompressingUI implements Initializable {
 
         @Override
         protected Task<Void> createTask() {
-            return new Task<>() {
+            return new Task<Void>() {
                 @Override
                 protected Void call() throws Exception {
                     startTime = System.currentTimeMillis();

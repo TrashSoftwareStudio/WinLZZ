@@ -1,6 +1,6 @@
 package WinLzz.LZZ2.Util;
 
-class HashNodeBase {
+public class HashNodeBase {
 
     HashNodeBase() {
     }

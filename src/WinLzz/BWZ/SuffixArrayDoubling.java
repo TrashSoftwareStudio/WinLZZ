@@ -9,7 +9,7 @@ package WinLzz.BWZ;
  */
 public class SuffixArrayDoubling {
 
-    private short[] text;
+    private int[] text;
     private int n;
     private int[] sa, t, t2, c;
 
@@ -18,7 +18,7 @@ public class SuffixArrayDoubling {
      *
      * @param text the original text.
      */
-    public SuffixArrayDoubling(short[] text) {
+    public SuffixArrayDoubling(int[] text) {
         n = text.length;
         int max_n = n + 65536;
         this.text = text;

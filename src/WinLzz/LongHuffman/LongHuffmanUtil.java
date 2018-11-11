@@ -1,24 +1,27 @@
 package WinLzz.LongHuffman;
 
+import WinLzz.BWZ.BWZCompressor;
 import WinLzz.Utility.Bytes;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
 abstract class LongHuffmanUtil {
 
-    static void addArrayToFreqMap(short[] array, HashMap<Short, Integer> freqMap, int range) {
+    static void addArrayToFreqMap(int[] array, HashMap<Integer, Integer> freqMap, int range) {
         for (int i = 0; i < range; i++) {
-            short b = array[i];
+            int b = array[i];
             if (freqMap.containsKey(b)) freqMap.put(b, freqMap.get(b) + 1);
             else freqMap.put(b, 1);
         }
     }
 
-    static HuffmanNode generateHuffmanTree(HashMap<Short, Integer> freqMap) {
+    static HuffmanNode generateHuffmanTree(HashMap<Integer, Integer> freqMap) {
         ArrayList<HuffmanNode> list = new ArrayList<>();
-        for (short key : freqMap.keySet()) {
+        for (int key : freqMap.keySet()) {
             HuffmanNode hn = new HuffmanNode(freqMap.get(key));
             hn.setValue(key);
             list.add(hn);
@@ -41,7 +44,42 @@ abstract class LongHuffmanUtil {
         return list.get(0);
     }
 
-    static void generateCodeLengthMap(HashMap<Short, Integer> lengthMap, HuffmanNode node, int length) {
+    static HuffmanNode generateHuffmanTree(HashMap<Integer, Integer> freqMap, int endSig) {
+        ArrayList<HuffmanNode> list = new ArrayList<>();
+        HuffmanNode last = new HuffmanNode(freqMap.get(endSig));
+        last.setValue(endSig);
+        for (int key : freqMap.keySet()) {
+            if (key != endSig) {
+                HuffmanNode hn = new HuffmanNode(freqMap.get(key));
+                hn.setValue(key);
+                list.add(hn);
+            }
+        }
+//        if (list.size() == 1) {
+//            HuffmanNode root = new HuffmanNode(0);
+//            root.setLeft(list.remove(0));
+//            return root;
+//        }
+        Collections.sort(list);
+        HuffmanNode sLast = list.remove(list.size() - 1);
+        HuffmanNode lastParent = new HuffmanNode(sLast.getFreq() + last.getFreq());
+        lastParent.setLeft(sLast);
+        lastParent.setRight(last);
+        list.add(lastParent);
+        while (list.size() > 1) {
+            Collections.sort(list);
+            // Pop out two nodes with smallest frequency.
+            HuffmanNode left = list.remove(list.size() - 1);
+            HuffmanNode right = list.remove(list.size() - 1);
+            HuffmanNode parent = new HuffmanNode(left.getFreq() + right.getFreq());
+            parent.setLeft(left);
+            parent.setRight(right);
+            list.add(parent);
+        }
+        return list.get(0);
+    }
+
+    static void generateCodeLengthMap(HashMap<Integer, Integer> lengthMap, HuffmanNode node, int length) {
         if (node != null) {
             if (node.isLeaf()) {
                 lengthMap.put(node.getValue(), length);
@@ -52,12 +90,12 @@ abstract class LongHuffmanUtil {
         }
     }
 
-    static HashMap<Short, String> generateCanonicalCode(HashMap<Short, Integer> lengthCode) {
-        HashMap<Short, String> canonicalCode = new HashMap<>();
+    static HashMap<Integer, String> generateCanonicalCode(HashMap<Integer, Integer> lengthCode) {
+        HashMap<Integer, String> canonicalCode = new HashMap<>();
 
         ArrayList<HuffmanTuple> tupleList = new ArrayList<>();
 
-        for (short key : lengthCode.keySet()) {
+        for (int key : lengthCode.keySet()) {
             HuffmanTuple current = new HuffmanTuple(key, lengthCode.get(key));
             tupleList.add(current);
         }
@@ -77,35 +115,76 @@ abstract class LongHuffmanUtil {
         return canonicalCode;
     }
 
-    static byte[] generateCanonicalCodeBlock(HashMap<Short, Integer> lengthCode, int alphabetSize) {
+    static byte[] generateCanonicalCodeBlock(HashMap<Integer, Integer> lengthCode, int alphabetSize) {
         byte[] result = new byte[alphabetSize];
         for (int i = 0; i < alphabetSize; i++)
-            if (lengthCode.containsKey((short) i)) result[i] = (byte) (int) lengthCode.get((short) i);
+            if (lengthCode.containsKey(i)) result[i] = (byte) (int) lengthCode.get(i);
             else result[i] = (byte) 0;
         return result;
     }
 
-    static void addCompressed(short[] buffer, int range, StringBuilder builder, HashMap<Short, String> huffmanCode) {
+    static void addCompressed(int[] buffer, int range, StringBuilder builder, HashMap<Integer, String> huffmanCode) {
         for (int i = 0; i < range; i++) {
-            short b = buffer[i];
+            int b = buffer[i];
             builder.append(huffmanCode.get(b));
         }
     }
 
-    static HashMap<Short, Integer> generateLengthCode(byte[] canonicalMap) {
-        HashMap<Short, Integer> lengthCode = new HashMap<>();
+    @Deprecated
+    static void addCompressed(int[] buffer, int range, OutputStream out, HashMap<Integer, String> huffmanCode,
+                              int endSig) {
+        try {
+            StringBuilder charBuf = new StringBuilder();
+            int temp;
+            for (int i = 0; i < range + 1; i++) {
+                int s;
+                if (i == range) s = endSig;
+                else s = buffer[i];
+                charBuf.append(huffmanCode.get(s));
+                while (charBuf.length() >= 8) {
+                    temp = 0;
+                    for (int j = 0; j < 8; j++) {
+                        temp = temp << 1;
+                        if (charBuf.charAt(j) == '1') temp = temp | 1;
+                    }
+                    out.write((byte) temp);
+                    charBuf = new StringBuilder(charBuf.substring(8));
+                }
+            }
+            if (charBuf.length() > 0) {
+                // Fills the last text
+                temp = 0;
+                for (int i = 0; i < charBuf.length(); i++) {
+                    temp = temp << 1;
+                    if (charBuf.charAt(i) == '1')
+                        temp = temp | 1;
+                }
+                temp = temp << (8 - charBuf.length());
+                out.write((byte) temp);
+            }
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe.getMessage());
+        }
+    }
+
+    static void swapEndSig(HuffmanNode root, short endSig) {
+
+    }
+
+    static HashMap<Integer, Integer> generateLengthCode(byte[] canonicalMap) {
+        HashMap<Integer, Integer> lengthCode = new HashMap<>();
         for (int i = 0; i < canonicalMap.length; i++) {
             int len = canonicalMap[i] & 0xff;
             if (len != 0) {
-                lengthCode.put((short) i, len);
+                lengthCode.put(i, len);
             }
         }
         return lengthCode;
     }
 
-    static void heightControl(HashMap<Short, Integer> codeLength, HashMap<Short, Integer> freqMap, int maxHeight) {
+    static void heightControl(HashMap<Integer, Integer> codeLength, HashMap<Integer, Integer> freqMap, int maxHeight) {
         ArrayList<LengthTuple> list = new ArrayList<>();
-        for (short key : codeLength.keySet()) list.add(new LengthTuple(key, codeLength.get(key), freqMap.get(key)));
+        for (int key : codeLength.keySet()) list.add(new LengthTuple(key, codeLength.get(key), freqMap.get(key)));
         Collections.sort(list);
 
         int debt = getTotalDebt(list, maxHeight);
@@ -153,7 +232,7 @@ abstract class LongHuffmanUtil {
  */
 class LengthTuple implements Comparable<LengthTuple> {
 
-    private short b;
+    private int b;
 
     int length;
 
@@ -166,7 +245,7 @@ class LengthTuple implements Comparable<LengthTuple> {
      * @param length the code length
      * @param freq   the occurrences of <code>b</code> in the original text
      */
-    LengthTuple(short b, int length, int freq) {
+    LengthTuple(int b, int length, int freq) {
         this.b = b;
         this.length = length;
         this.freq = freq;
@@ -177,7 +256,7 @@ class LengthTuple implements Comparable<LengthTuple> {
      *
      * @return the value
      */
-    public short getByte() {
+    public int getByte() {
         return b;
     }
 
@@ -208,7 +287,7 @@ class HuffmanNode implements Comparable<HuffmanNode> {
 
     private int freq;
 
-    private short value;
+    private int value;
 
     private HuffmanNode left;
 
@@ -228,7 +307,7 @@ class HuffmanNode implements Comparable<HuffmanNode> {
      *
      * @param value the value
      */
-    public void setValue(short value) {
+    public void setValue(int value) {
         this.value = value;
     }
 
@@ -255,7 +334,7 @@ class HuffmanNode implements Comparable<HuffmanNode> {
      *
      * @return the value represented by this {@code HuffmanNode}
      */
-    public short getValue() {
+    public int getValue() {
         return value;
     }
 
@@ -293,6 +372,12 @@ class HuffmanNode implements Comparable<HuffmanNode> {
     @Override
     public int compareTo(HuffmanNode o) {
         return Integer.compare(o.freq, freq);
+//        int x = Integer.compare(o.freq, freq);
+////        if (value == BWZCompressor.huffmanEndSig) return -1;
+////        else if (o.value == BWZCompressor.huffmanEndSig) return 1;
+//        if (x != 0 || !isLeaf() || !o.isLeaf()) return x;
+////        if (x != 0 || value == 0 || o.value == 0) return x;
+//        else return Short.compare(value, o.value);
     }
 }
 
@@ -305,7 +390,7 @@ class HuffmanNode implements Comparable<HuffmanNode> {
  */
 class HuffmanTuple implements Comparable<HuffmanTuple> {
 
-    private short value;
+    private int value;
 
     private int codeLength;
 
@@ -315,7 +400,7 @@ class HuffmanTuple implements Comparable<HuffmanTuple> {
      * @param value      the value of this {@code HuffmanTuple}
      * @param codeLength the length of huffman code of this {@code HuffmanTuple}
      */
-    HuffmanTuple(short value, int codeLength) {
+    HuffmanTuple(int value, int codeLength) {
         this.value = value;
         this.codeLength = codeLength;
     }
@@ -334,7 +419,7 @@ class HuffmanTuple implements Comparable<HuffmanTuple> {
      *
      * @return the value
      */
-    public short getValue() {
+    public int getValue() {
         return value;
     }
 
@@ -349,7 +434,7 @@ class HuffmanTuple implements Comparable<HuffmanTuple> {
     @Override
     public int compareTo(HuffmanTuple o) {
         int lengthCmp = Integer.compare(codeLength, o.codeLength);
-        if (lengthCmp == 0) return Short.compare(value, o.value);
+        if (lengthCmp == 0) return Integer.compare(value, o.value);
         else return lengthCmp;
     }
 }

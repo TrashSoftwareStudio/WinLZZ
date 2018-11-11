@@ -5,6 +5,7 @@ import WinLzz.BWZ.BWT.BWTDecoderByte;
 import WinLzz.Huffman.MapCompressor.MapDeCompressor;
 import WinLzz.Interface.DeCompressor;
 import WinLzz.LongHuffman.LongHuffmanInputStream;
+//import WinLzz.LongHuffman.LongHuffmanInputStreamBit;
 import WinLzz.Packer.UnPacker;
 import WinLzz.Utility.Bytes;
 import WinLzz.Utility.Util;
@@ -14,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+//import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
@@ -32,12 +34,14 @@ public class BWZDeCompressor implements DeCompressor {
     private int huffmanBlockMaxSize, windowSize;
 
     private FileChannel fc;
+//    private InputStream fis;
     private LinkedList<byte[]> huffmanMaps = new LinkedList<>();
     private int threadNum = 1;  // Default thread number.
     UnPacker parent;
     private long lastUpdateProgress;
     boolean isRunning = true;
     long ratio, pos;
+//    long initBytePos;
 
     /**
      * Constructs a new {@code BWZDeCompressor} instance.
@@ -49,13 +53,21 @@ public class BWZDeCompressor implements DeCompressor {
     public BWZDeCompressor(String inFile, int windowSize, long startPos) throws IOException {
         this.windowSize = windowSize;
 
+//        initBytePos = startPos;
         fc = new FileInputStream(inFile).getChannel();
+//        fis = new FileInputStream(inFile);
+//        if (fis.skip(startPos) != startPos) throw new IOException("Error occurs while reading");
         fc.position(startPos);
+//        byte[] buffer1 = new byte[1];
         ByteBuffer buffer = ByteBuffer.allocate(1);
 
-        int r = fc.read(buffer);
+        int r;
+        r = fc.read(buffer);
+//        r = fis.read(buffer1);
+
         if (r != 1) throw new IOException("Error occurs during reading");
-        huffmanBlockMaxSize = (int) Math.pow(2, buffer.array()[0]);
+        huffmanBlockMaxSize = (int) Math.pow(2, buffer.get(0));
+//        System.out.println(huffmanBlockMaxSize);
     }
 
     private void fillMaps(byte[] block, int flagLen, int mapLen, int origRow) {
@@ -97,13 +109,15 @@ public class BWZDeCompressor implements DeCompressor {
         if (windowSize <= huffmanBlockMaxSize) huffmanBlockForEachWindow = 1;
         else huffmanBlockForEachWindow = windowSize / huffmanBlockMaxSize;
 
-        ArrayList<short[]> blockList = new ArrayList<>();
-        ArrayList<short[]> huffmanBlockList = new ArrayList<>();
+        ArrayList<int[]> blockList = new ArrayList<>();
+        ArrayList<int[]> huffmanBlockList = new ArrayList<>();
 
         LongHuffmanInputStream his =
                 new LongHuffmanInputStream(fc, BWZCompressor.huffmanTableSize, huffmanBlockMaxSize + 256);
+//        LongHuffmanInputStreamBit his2 =
+//                new LongHuffmanInputStreamBit(fis, initBytePos + 1, BWZCompressor.huffmanTableSize, huffmanBlockMaxSize + 256);
 //        his.pushCompressedBitLength(8);  // Skip the first byte
-        short[] huffmanResult;
+        int[] huffmanResult;
         byte[] headBytes;
         byte[] blockBytes;
         byte[] flagLenBytes = new byte[2];
@@ -113,6 +127,7 @@ public class BWZDeCompressor implements DeCompressor {
         while (true) {
             if (huffmanMaps.isEmpty()) {
                 headBytes = his.read(8);
+//                if (!Arrays.equals(headBytes, his.read(8))) System.out.println(111);
                 if (headBytes == null) break;  // Reach the end of the stream.
 
                 System.arraycopy(headBytes, 0, flagLenBytes, 0, 2);
@@ -121,19 +136,35 @@ public class BWZDeCompressor implements DeCompressor {
                 int flagLen = Bytes.bytesToShort(flagLenBytes);
                 int mapLen = Bytes.bytesToInt24(mapLenBytes);
                 int origRow = Bytes.bytesToInt24(origRowBytes);
+//                System.out.format("%d %d %d\n", flagLen, mapLen, origRow);
                 blockBytes = his.read(mapLen + flagLen);
+//                byte[] bb2;
+//                if (!Arrays.equals(blockBytes, bb2 = his.read(mapLen + flagLen))) {
+//                    System.out.println(222);
+//                }
+//                System.out.println(Arrays.toString(Util.byteArrayToStringArray(blockBytes)) +
+//                        "\n" + Arrays.toString(Util.byteArrayToStringArray(bb2)));
+
                 fillMaps(blockBytes, flagLen, mapLen, origRow);
             }
-            huffmanResult = his.read(huffmanMaps.removeFirst(), BWZCompressor.huffmanEndSig);
+            byte[] map = huffmanMaps.removeFirst();
+            huffmanResult = his.read(map, BWZCompressor.huffmanEndSig);
+//            System.out.println(Arrays.toString(huffmanResult));
+//            short[] hr2 = his.read(map, BWZCompressor.huffmanEndSig);
+////            System.out.println(Arrays.toString(hr2));
+//            if (!Arrays.equals(huffmanResult, hr2)) {
+//                System.out.println(Arrays.toString(huffmanResult));
+//                System.out.println(Arrays.toString(hr2));
+//            }
 
             huffmanBlockList.add(huffmanResult);
 
             // Got a complete block for rlc decoding, or reaches the end of file.
             if (huffmanBlockList.size() == huffmanBlockForEachWindow || huffmanMaps.isEmpty()) {
                 int totalLen = totalLength(huffmanBlockList);
-                short[] concatenateHuffman = new short[totalLen];
+                int[] concatenateHuffman = new int[totalLen];
                 int index = 0;
-                for (short[] s : huffmanBlockList) {
+                for (int[] s : huffmanBlockList) {
                     System.arraycopy(s, 0, concatenateHuffman, index, s.length);
                     index += s.length;
                 }
@@ -171,6 +202,7 @@ public class BWZDeCompressor implements DeCompressor {
                 }
             }
         }
+
         fc.close();
     }
 
@@ -181,7 +213,7 @@ public class BWZDeCompressor implements DeCompressor {
      * @throws Exception if the stream is not writable.
      */
     @Override
-    public void Uncompress(OutputStream out) throws Exception {
+    public void uncompress(OutputStream out) throws Exception {
         if (parent != null) {
             Thread timer = new Thread(new DTimer(parent, this));
             timer.start();
@@ -196,6 +228,7 @@ public class BWZDeCompressor implements DeCompressor {
             throw e;
         }
         fc.close();
+//        fis.close();
         isRunning = false;
     }
 
@@ -206,9 +239,9 @@ public class BWZDeCompressor implements DeCompressor {
         ratio = (long) ((double) newUpdated / (currentTime - lastCheckTime) * 1.024);
     }
 
-    private int totalLength(Collection<short[]> c) {
+    private int totalLength(Collection<int[]> c) {
         int len = 0;
-        for (short[] s : c) len += s.length;
+        for (int[] s : c) len += s.length;
         return len;
     }
 
@@ -250,7 +283,7 @@ public class BWZDeCompressor implements DeCompressor {
  */
 class DecodeThread implements Runnable {
 
-    private short[] text;
+    private int[] text;
     private byte[] result;
     private int windowSize;
     private BWZDeCompressor parent;
@@ -262,7 +295,7 @@ class DecodeThread implements Runnable {
      * @param windowSize the maximum size of the block
      * @param parent     the parent {@code BWZDeCompressor} which has launched this {@code DecodeThread}.
      */
-    DecodeThread(short[] text, int windowSize, BWZDeCompressor parent) {
+    DecodeThread(int[] text, int windowSize, BWZDeCompressor parent) {
         this.text = text;
         this.windowSize = windowSize;
         this.parent = parent;
@@ -273,10 +306,10 @@ class DecodeThread implements Runnable {
      */
     @Override
     public void run() {
-        short[] rld = new ZeroRLCDecoder(text, windowSize + 4).Decode();
+        int[] rld = new ZeroRLCDecoder(text, windowSize + 4).Decode();
         parent.pos += rld.length / 2;
         if (parent.parent != null) parent.parent.progress.set(parent.pos);
-        short[] mtf = new MTFInverse(rld).decode();
+        int[] mtf = new MTFInverse(rld).decode();
         result = new BWTDecoder(mtf).Decode();
         parent.pos = parent.pos - rld.length / 2 + result.length;
     }

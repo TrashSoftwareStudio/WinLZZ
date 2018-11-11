@@ -2,6 +2,7 @@ package WinLzz.LongHuffman;
 
 import WinLzz.Utility.Bytes;
 
+import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 
 /**
@@ -14,10 +15,10 @@ import java.util.HashMap;
  */
 public class LongHuffmanCompressorRam {
 
-    private short[] text;
+    private int[] text;
     private int alphabetSize;
-    private HashMap<Short, Integer> freqMap = new HashMap<>();
-    private HashMap<Short, String> huffmanCode = new HashMap<>();
+    private HashMap<Integer, Integer> freqMap = new HashMap<>();
+    private HashMap<Integer, String> huffmanCode = new HashMap<>();
 
     /**
      * The maximum height (depth) of the huffman tree.
@@ -27,7 +28,7 @@ public class LongHuffmanCompressorRam {
     /**
      * The signal that marks the
      */
-    private short endSig;
+    private int endSig;
 
     /**
      * Creates a new {@code LongHuffmanCompressorRam} instance.
@@ -39,7 +40,7 @@ public class LongHuffmanCompressorRam {
      * @param alphabetSize the alphabet size.
      * @param endSig       the mark of the end of stream.
      */
-    public LongHuffmanCompressorRam(short[] text, int alphabetSize, short endSig) {
+    public LongHuffmanCompressorRam(int[] text, int alphabetSize, int endSig) {
         this.text = text;
         this.endSig = endSig;
         this.alphabetSize = alphabetSize;
@@ -57,12 +58,18 @@ public class LongHuffmanCompressorRam {
         return Bytes.stringBuilderToBytesFull(builder);
     }
 
+//    private byte[] compressText2() {
+//        ByteArrayOutputStream os = new ByteArrayOutputStream();
+//        LongHuffmanUtil.addCompressed(text, text.length, os, huffmanCode, endSig);
+//        return os.toByteArray();
+//    }
+
     /**
      * Sets up the {@code maxHeight} value which limits the max depth of the huffman tree.
      *
      * @param height the tree-height limit.
      */
-    @Deprecated
+    @SuppressWarnings("all")
     public void setMaxHeight(int height) {
         this.maxHeight = height;
     }
@@ -75,9 +82,11 @@ public class LongHuffmanCompressorRam {
      */
     public byte[] getMap(int length) {
         generateFreqMap();
+//        System.out.println(freqMap);
         HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freqMap);
-        HashMap<Short, Integer> codeLengthMap = new HashMap<>();
+        HashMap<Integer, Integer> codeLengthMap = new HashMap<>();
         LongHuffmanUtil.generateCodeLengthMap(codeLengthMap, rootNode, 0);
+//        System.out.println(codeLengthMap);
 
         LongHuffmanUtil.heightControl(codeLengthMap, freqMap, maxHeight);
         huffmanCode = LongHuffmanUtil.generateCanonicalCode(codeLengthMap);
@@ -102,7 +111,7 @@ public class LongHuffmanCompressorRam {
      * @return the compressed text.
      */
     public byte[] Compress(byte[] anotherMap) {
-        HashMap<Short, Integer> lengthCode = LongHuffmanUtil.generateLengthCode(anotherMap);
+        HashMap<Integer, Integer> lengthCode = LongHuffmanUtil.generateLengthCode(anotherMap);
         huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
         return compressText();
     }
@@ -119,7 +128,7 @@ public class LongHuffmanCompressorRam {
     public long calculateExpectLength(byte[] codeLengthMap) {
         long aftLen = 0;
         for (int i = 0; i < codeLengthMap.length; i++) {
-            Integer freq = freqMap.get((short) i);
+            Integer freq = freqMap.get(i);
             if (freq != null) {
                 if (codeLengthMap[i] == 0) return -1;
                 aftLen += freq * (codeLengthMap[i] & 0xff);

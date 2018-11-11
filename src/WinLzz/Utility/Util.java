@@ -1,11 +1,8 @@
 package WinLzz.Utility;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.zip.CRC32;
 
 /**
  * A class that consists of common utility methods.
@@ -20,8 +17,10 @@ public abstract class Util {
      * @param fileName the path or name of the file to be deleted.
      */
     public static void deleteFile(String fileName) {
-        File file = new File(fileName);
-        deleteFile(file);
+        if (fileName != null) {
+            File file = new File(fileName);
+            deleteFile(file);
+        }
     }
 
     /**
@@ -30,9 +29,9 @@ public abstract class Util {
      * @param file the file to be deleted.
      */
     public static void deleteFile(File file) {
-        if (file.exists()) {
-            if (!file.delete()) System.out.println("Deletion Failed: " + file.getAbsolutePath());
-        }
+        if (file != null)
+            if (file.exists())
+                if (!file.delete()) System.out.println("Deletion Failed: " + file.getAbsolutePath());
     }
 
     /**
@@ -223,9 +222,15 @@ public abstract class Util {
         FileOutputStream bos = new FileOutputStream(file);
         byte[] buffer = new byte[bufferSize];
         int read;
-        while ((read = bis.read(buffer, 0, (int) Math.min(bufferSize, lengthRem))) != -1 && lengthRem != 0) {
-            bos.write(buffer, 0, read);
-            lengthRem -= read;
+        try {
+            while ((read = bis.read(buffer, 0, (int) Math.min(bufferSize, lengthRem))) != -1 && lengthRem != 0) {
+                bos.write(buffer, 0, read);
+                lengthRem -= read;
+            }
+        } catch (IOInterruptedException e) {
+            bos.flush();
+            bos.close();
+            throw e;
         }
         bos.flush();
         bos.close();
@@ -340,6 +345,22 @@ public abstract class Util {
     }
 
     /**
+     * Converts a {@code Collection<Integer>} into a int array, with the same element values.
+     *
+     * @param c the short collection
+     * @return the byte array which has same element values with <code>c</code>
+     */
+    public static int[] collectionToIntArray(Collection<Integer> c) {
+        int[] result = new int[c.size()];
+        int i = 0;
+        for (int b : c) {
+            result[i] = b;
+            i += 1;
+        }
+        return result;
+    }
+
+    /**
      * Converts the number of seconds into the form "Minutes:Seconds".
      *
      * @param seconds the number of seconds
@@ -432,11 +453,11 @@ public abstract class Util {
      * @param buckets the bucket number used to sort,
      *                which is typically the alphabet size
      */
-    public static void countingSort(short[] data, int buckets) {
+    public static void countingSort(int[] data, int buckets) {
         int[] counts = new int[buckets];
-        for (short s : data) counts[s] += 1;
+        for (int s : data) counts[s] += 1;
         int index = 0;
-        for (short i = 0; i < buckets; i++) for (int j = 0; j < counts[i]; j++) data[index++] = i;
+        for (int i = 0; i < buckets; i++) for (int j = 0; j < counts[i]; j++) data[index++] = i;
     }
 
     /**
@@ -638,27 +659,6 @@ public abstract class Util {
     }
 
     /**
-     * Generates the CRC32 checksum of the file which has name or path <code>fileName</code>.
-     *
-     * @param fileName the name or path of the file to be calculated
-     * @return the CRC32 checksum of the file which has name or path <code>fileName</code>
-     * @throws IOException if the file which has name or path <code>fileName</code> is not readable
-     */
-    public static long generateCRC32(String fileName) throws IOException {
-        CRC32 crc = new CRC32();
-        FileChannel fc = new FileInputStream(fileName).getChannel();
-        ByteBuffer buffer = ByteBuffer.allocate(8192);
-        int read;
-        while ((read = fc.read(buffer)) > 0) {
-            buffer.flip();
-            crc.update(buffer.array(), 0, read);
-            buffer.clear();
-        }
-        fc.close();
-        return crc.getValue();
-    }
-
-    /**
      * Returns whether the <code>s</code> contains any character in <code>symbols</code>.
      *
      * @param symbols the dictionary chars
@@ -675,4 +675,18 @@ public abstract class Util {
         return false;
     }
 
+    /**
+     * Returns the array of bit-strings, converted from the input byte array <code>array</code>.
+     *
+     * @param array the byte array to be converted
+     * @return the bit string array
+     */
+    @Deprecated
+    public static String[] byteArrayToBitStringArray(byte[] array) {
+        String[] result = new String[array.length];
+        for (int i = 0; i < array.length; i++) {
+            result[i] = Bytes.byteToBitString(array[i]);
+        }
+        return result;
+    }
 }

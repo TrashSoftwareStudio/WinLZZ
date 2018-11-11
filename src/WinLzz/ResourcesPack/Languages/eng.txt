@@ -92,6 +92,8 @@ English
 119=Strong
 120=Extreme
 
+121=Split Size:
+
 #  Compression Progress UI FXML
 
 200=Original Size:
@@ -116,6 +118,7 @@ English
 257=Do you really want to cancel the compression progress?
 
 270=Creating database...
+271=Encrypting...
 
 #  Uncompress UI FXML
 
@@ -143,6 +146,11 @@ English
 
 361=Unsupported File Format
 362=This file may not be a WinLZZ archive
+363=Context damaged
+
+370=该文件不是第一个分卷
+371=请打开第一个分卷
+372=第一个分卷可能为:
 
 #  Password UI
 
@@ -151,6 +159,8 @@ English
 402=Show password
 403=Encrypt file names
 404=Passwords do not match
+405=Algorithm:
+406=Secret key algorithm:
 
 #  Uncompress Progress UI FXML
 
@@ -162,6 +172,8 @@ English
 505=Speed:
 506=Testing...
 507=Extracting...
+508=Verifying...
+509=Decrypting...
 
 #  Uncompress Progress UI Text
 
@@ -176,6 +188,11 @@ English
 558=Test failed, archive was damaged
 559=s
 560=Decompression Succeed
+
+570=Next section required
+571=Browse
+572=Please insert the driver that contains the next archive section, or choose the section file manually
+573=Integrating...
 
 #  File Info UI
 
@@ -194,8 +211,10 @@ English
 612=Annotation
 613=Exists
 614=Does not exist
+615=Encryption
+616=Secret key
 
-650=Encrypted
+650=Split
 651=Archive
 652=Unknown
 

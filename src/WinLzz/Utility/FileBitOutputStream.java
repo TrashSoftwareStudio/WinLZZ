@@ -14,14 +14,14 @@ public class FileBitOutputStream {
     private BufferedOutputStream bos;
 
     /**
-     * The buffer array.
+     * The current operating byte.
      */
-    private char[] currentByte = new char[8];
+    private int current;
 
     /**
-     * The current using position in {@code currentByte}.
+     * The current writing position of the byte {@code current}.
      */
-    private short pointer = 0;
+    private int pointer;
 
     /**
      * Creates a new {@code FileBitOutputStream} instance.
@@ -33,33 +33,48 @@ public class FileBitOutputStream {
     }
 
     /**
-     * Writes a bit into the stream.
+     * Writes the last {@code numberOfBits} bits of {@code bits} into the output stream.
      *
-     * @param bit the bit to be written
-     * @throws IOException if the stream is not writable
+     * @param bits         the bits to be written
+     * @param numberOfBits the number of bits to be written
+     * @throws IOException if the output stream is not writable
      */
-    public void write(char bit) throws IOException {
-        currentByte[pointer] = bit;
+    public void write(int bits, int numberOfBits) throws IOException {
+        for (int i = 0; i < numberOfBits; i++) {
+            write(bits >> (numberOfBits - i - 1));
+        }
+    }
+
+    /**
+     * Writes the one-bit value to the output stream.
+     * <p>
+     * This method writes the {@code current} to the output stream if the {@code current} consists of full 8 bits,
+     * or adds the <code>bit</code> to the {@code current}.
+     *
+     * @param bit the one-bit value to be written
+     * @throws IOException if the output stream is not writable
+     */
+    public void write(int bit) throws IOException {
+        current = current << 1;
+        current = current | bit;
         if (pointer != 7) {
             pointer += 1;
         } else {
-            bos.write(charArrayToByte());
+            bos.write((byte) current);
             pointer = 0;
         }
     }
 
     /**
-     * Writes a sequence of bits in to the stream.
+     * Writes a full byte to the output stream.
      *
-     * @param s the sequence of bits
-     * @throws IOException if the stream is not writable
+     * @param b the byte to be written
+     * @throws IOException if the output stream is not writable
      */
-    public void write(String s) throws IOException {
-        for (int i = 0; i < s.length(); i++) write(s.charAt(i));
-    }
-
-    private byte charArrayToByte() {
-        return Bytes.bitStringToByte(String.valueOf(currentByte));
+    public void writeByte(byte b) throws IOException {
+        for (int i = 0; i < 8; i++) {
+            write(b >> (7 - i) & 1);
+        }
     }
 
     /**
@@ -69,10 +84,8 @@ public class FileBitOutputStream {
      */
     public void flush() throws IOException {
         if (pointer != 0) {
-            char[] remain = new char[pointer];
-            System.arraycopy(currentByte, 0, remain, 0, pointer);
-            byte b = Bytes.bitStringToByteNo8(String.valueOf(remain));
-            bos.write(b);
+            current = current << (8 - pointer);
+            bos.write((byte) current);
         }
         bos.flush();
     }

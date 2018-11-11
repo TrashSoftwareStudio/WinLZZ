@@ -41,9 +41,12 @@ public class CompressingUI implements Initializable {
     private File[] path;
     private int windowSize, bufferSize, cmpLevel, encryptLevel, threads;
     private String password;
+    private String encAlg;
+    private String passAlg;
     private Packer packer;
     private AnnotationNode annotation;
     private long startTime;
+    private long partSize;
 
     private MainUI grandParent;
     private Stage stage;
@@ -58,6 +61,13 @@ public class CompressingUI implements Initializable {
         fillText();
     }
 
+    /**
+     * Sets up the parent {@code MainUI} instance of the parent {@code CompressUI} instance which launches this
+     * {@code CompressingUI}.
+     *
+     * @param grandParent the parent {@code MainUI} instance of the parent {@code CompressUI} instance which launches
+     *                    this {@code CompressingUI}
+     */
     void setGrandParent(MainUI grandParent) {
         this.grandParent = grandParent;
     }
@@ -72,13 +82,14 @@ public class CompressingUI implements Initializable {
     }
 
     void setPref(int windowSize, int bufferSize, int compressionLevel, String algorithm, int threads,
-                 AnnotationNode annotation) {
+                 AnnotationNode annotation, long partSize) {
         this.windowSize = windowSize;
         this.bufferSize = bufferSize;
         this.cmpLevel = compressionLevel;
         this.alg = algorithm;
         this.threads = threads;
         this.annotation = annotation;
+        this.partSize = partSize;
         if (algorithm.equals("lzz2")) {
             compressedSizeLabel.setDisable(true);
             compressedSizeLabel.setVisible(false);
@@ -91,9 +102,11 @@ public class CompressingUI implements Initializable {
         }
     }
 
-    void setEncrypt(String password, int level) {
+    void setEncrypt(String password, int level, String encAlg, String passAlg) {
         this.encryptLevel = level;
         this.password = password;
+        this.encAlg = encAlg;
+        this.passAlg = passAlg;
     }
 
     void compress() {
@@ -185,16 +198,17 @@ public class CompressingUI implements Initializable {
 
         @Override
         protected Task<Void> createTask() {
-            return new Task<>() {
+            return new Task<Void>() {
                 @Override
                 protected Void call() throws Exception {
                     startTime = System.currentTimeMillis();
                     packer = new Packer(path);
                     if (isCancelled()) return null;
                     packer.setCmpLevel(cmpLevel);
-                    packer.setEncrypt(password, encryptLevel);
+                    packer.setEncrypt(password, encryptLevel, encAlg, passAlg);
                     packer.setAlgorithm(alg);
                     packer.setThreads(threads);
+                    packer.setPartSize(partSize);
                     packer.setLanLoader(lanLoader);
                     if (annotation != null) packer.setAnnotation(annotation);
 

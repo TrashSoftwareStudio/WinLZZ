@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="trashsoftware.win_bwz.GUI.MainUI">
+    <VBox prefHeight="540.0" prefWidth="960.0">
+        <padding>
+            <Insets bottom="10.0" left="5.0" right="5.0"/>
+        </padding>
+        <MenuBar prefHeight="25.0">
+            <Menu fx:id="settingsMenu" mnemonicParsing="false" text="设置">
+                <MenuItem fx:id="languageSetting" mnemonicParsing="false" onAction="#languageSelection" text="语言"/>
+            </Menu>
+            <Menu fx:id="toolMenu" mnemonicParsing="false" text="编辑">
+                <MenuItem fx:id="openInDesktop" mnemonicParsing="false" onAction="#desktopOpenAction" text="在桌面中打开"/>
+                <MenuItem fx:id="pasteHere" mnemonicParsing="false" onAction="#pasteHereAction" text="粘贴"/>
+            </Menu>
+            <Menu fx:id="helpMenu" mnemonicParsing="false" text="帮助">
+                <MenuItem fx:id="about" mnemonicParsing="false" onAction="#aboutAction" text="关于"/>
+                <MenuItem fx:id="licence" mnemonicParsing="false" onAction="#licenceAction" text="开源许可证"/>
+                <MenuItem fx:id="changelogView" mnemonicParsing="false" onAction="#changelogAction" text="查看更新日志"/>
+            </Menu>
+        </MenuBar>
+        <HBox alignment="CENTER_LEFT" prefHeight="35.0" prefWidth="220.0" spacing="10.0">
+            <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="250.0" spacing="5.0">
+                <Button fx:id="backButton" disable="true" mnemonicParsing="false" onAction="#backAction"
+                        text="&lt;&lt;"/>
+                <Button fx:id="refreshButton" disable="true" mnemonicParsing="false" onAction="#refreshAction"
+                        text="♋"/>
+                <Button fx:id="compressButton" disable="true" mnemonicParsing="false" onAction="#compressMode"
+                        text="压缩">
+                </Button>
+                <Button fx:id="uncompressButton" disable="true" mnemonicParsing="false" onAction="#openAction"
+                        text="打开"/>
+            </HBox>
+            <!--<HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="620.0">-->
+                <!--<children>-->
+                    <ScrollPane fx:id="currentDirPane" prefHeight="30.0" prefWidth="720.0">
+                        <content>
+                            <HBox fx:id="currentDirBox" prefHeight="30.0" alignment="CENTER_LEFT"/>
+                        </content>
+                    </ScrollPane>
+                <!--</children>-->
+            <!--</HBox>-->
+        </HBox>
+
+        <HBox spacing="5.0">
+            <TreeView fx:id="rootTree" prefWidth="260.0"/>
+            <VBox>
+                <TableView fx:id="table" prefHeight="480.0" prefWidth="700.0">
+                    <columns>
+                        <TableColumn fx:id="nameCol" prefWidth="300.0" text="name"/>
+                        <TableColumn fx:id="typeCol" prefWidth="100.0" text="type"/>
+                        <TableColumn fx:id="sizeCol" prefWidth="100.0" text="size"/>
+                        <TableColumn fx:id="timeCol" prefWidth="120.0" text="modified"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </HBox>
+    </VBox>
+</AnchorPane>

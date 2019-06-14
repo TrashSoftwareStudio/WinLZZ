@@ -2,6 +2,7 @@ package trashsoftware.win_bwz.LZZ3;
 
 import trashsoftware.win_bwz.Interface.Compressor;
 import trashsoftware.win_bwz.Packer.Packer;
+import trashsoftware.win_bwz.Utility.FileInputBufferArray;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,10 +15,17 @@ public class LZZ3Compressor implements Compressor {
 
     private int windowSize;
 
-    public LZZ3Compressor(InputStream inputStream, long streamLength, int windowSize) {
+    private int labSize;
+
+    public LZZ3Compressor(InputStream inputStream, long streamLength, int windowSize, int labSize) {
         this.inputStream = inputStream;
         this.streamLength = streamLength;
         this.windowSize = windowSize;
+        this.labSize = labSize;
+    }
+
+    private void compressText() {
+        FileInputBufferArray fba = new FileInputBufferArray(inputStream, streamLength, windowSize);
     }
 
     @Override

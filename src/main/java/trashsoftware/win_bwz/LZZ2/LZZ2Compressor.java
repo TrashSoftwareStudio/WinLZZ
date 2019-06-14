@@ -225,7 +225,9 @@ public class LZZ2Compressor implements Compressor {
                                 LinkedHashSet<Long> omitSet) {
         for (long i = front; i < front + newLoad; i++) {
             if (i > fba.length() - 3) break;
-            HashNode hn = new HashNode(fba.getByte(i), fba.getByte(i + 1), fba.getByte(i + 2));
+//            HashNode hn = new HashNode(fba.getByte(i), fba.getByte(i + 1), fba.getByte(i + 2));
+            int hn = LZZ2Util.hashBytes(fba.getByte(i), fba.getByte(i + 1), fba.getByte(i + 2));
+            byte lastByteHn = fba.getByte(i + 2);
             ArrayDeque<Long> indices = slider.get(hn);
             if (indices != null) {
                 if (getCompressionParam()[1] == 0) {
@@ -233,7 +235,7 @@ public class LZZ2Compressor implements Compressor {
                         slider.addIndex(hn, i);
                     } else {
                         int j1 = 0;
-                        while (j1 + i < fba.length() - 3 && j1 + i < front + newLoad && hn.getByte(2) == fba.getByte(j1 + i + 3)) {
+                        while (j1 + i < fba.length() - 3 && j1 + i < front + newLoad && lastByteHn == fba.getByte(j1 + i + 3)) {
                             slider.addVoid();
                             omitSet.add(i + j1);
                             j1 += 1;
@@ -286,8 +288,8 @@ public class LZZ2Compressor implements Compressor {
         if (bufferSize < 3) return new int[]{0, 0};
         long sliderStart = pos - sliderSize;
 
-        HashNode hn = new HashNode(fba.getByte(pos), fba.getByte(pos + 1), fba.getByte(pos + 2));
-
+//        HashNode hn = new HashNode(fba.getByte(pos), fba.getByte(pos + 1), fba.getByte(pos + 2));
+        int hn = LZZ2Util.hashBytes(fba.getByte(pos), fba.getByte(pos + 1), fba.getByte(pos + 2));
         ArrayDeque<Long> indices = slider.get(hn);
         if (indices != null) {
             ArrayList<Integer> list = new ArrayList<>();
@@ -296,6 +298,7 @@ public class LZZ2Compressor implements Compressor {
 
             int indexInSlider = list.get(list.size() - 1);
             int finalLen = 3;
+//            System.out.println(list.size());
             for (int i = list.size() - 1; i >= 0; i--) {
                 int index = list.get(i);
                 int len = 3;

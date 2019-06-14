@@ -1,7 +1,5 @@
 package trashsoftware.win_bwz.Utility;
 
-import trashsoftware.win_bwz.LZZ2.Util.HashNodeBase;
-
 import java.util.ArrayDeque;
 
 public class ArrayHashTable {
@@ -13,16 +11,16 @@ public class ArrayHashTable {
         table = new ArrayDeque[fixedWidth];
     }
 
-    public ArrayDeque<Long> put(HashNodeBase key, ArrayDeque<Long> value) {
-        table[key.hashCode()] = value;
+    public ArrayDeque<Long> put(int key, ArrayDeque<Long> value) {
+        table[key] = value;
         return value;
     }
 
-    public ArrayDeque<Long> get(HashNodeBase key) {
-        return table[key.hashCode()];
+    public ArrayDeque<Long> get(int key) {
+        return table[key];
     }
 
-    protected void remove(HashNodeBase key) {
-        table[key.hashCode()] = null;
+    protected void remove(int key) {
+        table[key] = null;
     }
 }

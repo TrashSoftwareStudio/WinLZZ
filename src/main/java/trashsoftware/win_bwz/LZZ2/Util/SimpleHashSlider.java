@@ -7,21 +7,21 @@ import java.util.ArrayDeque;
 //public class SimpleHashSlider extends HashMap<HashNodeBase, ArrayDeque<Long>> {
 public class SimpleHashSlider extends ArrayHashTable {
 
-    private ArrayDeque<HashNodeBase> trackQueue = new ArrayDeque<>();
+    private ArrayDeque<Integer> trackQueue = new ArrayDeque<>();
 
-    private HashNodeBase nullRep = new HashNodeBase();
+    private final static int nullRep = -1;
 
     public SimpleHashSlider() {
         super(16777216);
     }
 
     @Override
-    public ArrayDeque<Long> put(HashNodeBase key, ArrayDeque<Long> value) {
+    public ArrayDeque<Long> put(int key, ArrayDeque<Long> value) {
         trackQueue.addLast(key);
         return super.put(key, value);
     }
 
-    public void addIndex(HashNode key, long index) {
+    public void addIndex(int key, long index) {
         get(key).addLast(index);
         trackQueue.addLast(key);
     }
@@ -32,8 +32,8 @@ public class SimpleHashSlider extends ArrayHashTable {
 
     public void clearOutRanged(int dictSize) {
         while (trackQueue.size() > dictSize) {
-            HashNodeBase first = trackQueue.removeFirst();
-            if (first instanceof HashNode) {
+            int first = trackQueue.removeFirst();
+            if (first >= 0) {
                 ArrayDeque<Long> ll = get(first);
                 if (ll.size() > 1) {
                     ll.removeFirst();

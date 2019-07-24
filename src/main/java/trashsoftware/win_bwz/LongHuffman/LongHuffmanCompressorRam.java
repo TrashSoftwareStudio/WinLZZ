@@ -36,7 +36,7 @@ public class LongHuffmanCompressorRam {
      * This compressor works completely in random access memory.
      *
      * @param text         the text to be compressed.
-     * @param alphabetSize the alphabet size.
+     * @param alphabetSize the alphabet size, with endSig and other included
      * @param endSig       the mark of the end of stream.
      */
     public LongHuffmanCompressorRam(int[] text, int alphabetSize, int endSig) {
@@ -99,7 +99,7 @@ public class LongHuffmanCompressorRam {
      *
      * @return the compressed text.
      */
-    public byte[] Compress() {
+    public byte[] compress() {
         return compressText();
     }
 
@@ -109,7 +109,7 @@ public class LongHuffmanCompressorRam {
      * @param anotherMap the canonical huffman code uses for creating another huffman map for compressing.
      * @return the compressed text.
      */
-    public byte[] Compress(byte[] anotherMap) {
+    public byte[] compress(byte[] anotherMap) {
         HashMap<Integer, Integer> lengthCode = LongHuffmanUtil.generateLengthCode(anotherMap);
         huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
         return compressText();

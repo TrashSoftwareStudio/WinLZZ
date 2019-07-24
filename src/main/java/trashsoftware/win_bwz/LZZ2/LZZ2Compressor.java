@@ -17,7 +17,7 @@ import java.util.*;
 /**
  * LZZ2 (Lempel-Ziv-ZBH 2) compressor, implements {@code Compressor} interface.
  * <p>
- * An improved version of LZ77 algorithm, implemented by Bohan Zhang.
+ * An improved version of LZ77 algorithm, implemented by Bohan Zhang (zbh).
  *
  * @author zbh
  * @see trashsoftware.win_bwz.Interface.Compressor
@@ -27,7 +27,7 @@ public class LZZ2Compressor implements Compressor {
 
     private InputStream sis;
 
-    private long totalLength;
+    protected long totalLength;
 
     private int windowSize;  // Size of sliding window.
 
@@ -37,13 +37,13 @@ public class LZZ2Compressor implements Compressor {
 
     final static int minimumMatchLen = 3;
 
-    private String mainTempName, lenHeadTempName, disHeadTempName, flagTempName, dlBodyTempName;
+    protected String mainTempName, lenHeadTempName, disHeadTempName, flagTempName, dlBodyTempName;
 
-    private long cmpSize;
+    protected long cmpSize;
 
-    private int itemCount;
+    protected int itemCount;
 
-    private Packer parent;
+    protected Packer parent;
 
     private int timeAccumulator;
 
@@ -98,7 +98,7 @@ public class LZZ2Compressor implements Compressor {
         this.dlBodyTempName = inFile + ".dlb.temp";
     }
 
-    private void compressText() throws IOException {
+    protected void compressText() throws IOException {
         FileInputBufferArray fba = new FileInputBufferArray(sis, totalLength, windowSize);
 
         if (totalLength <= bufferMaxSize) {
@@ -334,7 +334,7 @@ public class LZZ2Compressor implements Compressor {
         return -1;
     }
 
-    private void deleteTemp() {
+    protected void deleteTemp() {
         Util.deleteFile(mainTempName);
         Util.deleteFile(disHeadTempName);
         Util.deleteFile(lenHeadTempName);
@@ -370,8 +370,25 @@ public class LZZ2Compressor implements Compressor {
         }
     }
 
+    protected boolean isNotCompressible(OutputStream outFile) throws IOException {
+        if (itemCount == 0) {
+            Util.fileConcatenate(outFile, new String[]{mainTempName}, 8192);
+            outFile.write((byte) 0);
+            cmpSize = (int) totalLength + 1;
+            deleteTemp();
+            return true;
+        }
+
+        if (parent != null && parent.isInterrupted) {
+            deleteTemp();
+            return true;
+        }
+
+        return false;
+    }
+
     /**
-     * Compress file into output stream.
+     * compress file into output stream.
      *
      * @param outFile the target output stream.
      * @throws IOException if io error occurs during compression.
@@ -380,18 +397,7 @@ public class LZZ2Compressor implements Compressor {
     public void compress(OutputStream outFile) throws IOException {
         compressText();
 
-        if (itemCount == 0) {
-            Util.fileConcatenate(outFile, new String[]{mainTempName}, 8192);
-            outFile.write((byte) 0);
-            cmpSize = (int) totalLength + 1;
-            deleteTemp();
-            return;
-        }
-
-        if (parent != null && parent.isInterrupted) {
-            deleteTemp();
-            return;
-        }
+        if (isNotCompressible(outFile)) return;
 
         HuffmanCompressor dhc = new HuffmanCompressor(disHeadTempName);
         byte[] dhcMap = dhc.getMap(64);

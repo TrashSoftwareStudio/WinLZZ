@@ -43,8 +43,8 @@ public class CompressUI implements Initializable {
     private AnnotationNode annotation;
 
     private int encryptLevel = 0;
-    private String[] algNames = new String[]{"BWZ", "LZZ2"};
-    private String[] algValues = new String[]{"bwz", "lzz2"};
+    private String[] algNames = new String[]{"BWZ", "LZZ2", "LZZ2+"};
+    private String[] algValues = new String[]{"bwz", "lzz2", "lzz2p"};
     private String[] compressionLevels = new String[6];
     private String[] windowsSizeNames = new String[]{"4KB", "16KB", "32KB", "64KB", "128KB", "256KB", "1MB"};
     private String[] windowsSizeNames2 = new String[]{"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
@@ -149,7 +149,8 @@ public class CompressUI implements Initializable {
     }
 
     private boolean isLevelAble() {
-        return algBox.getSelectionModel().getSelectedItem().equals("LZZ2");
+        return algBox.getSelectionModel().getSelectedItem().equals("LZZ2") ||
+                algBox.getSelectionModel().getSelectedItem().equals("LZZ2+");
     }
 
     private void setSizeUnitListener() {
@@ -199,6 +200,8 @@ public class CompressUI implements Initializable {
     private void setAlgBoxListener() {
         algBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             switch (newValue) {
+                case "LZZ2+":
+
                 case "LZZ2":
                     levelBox.setDisable(false);
                     windowNameBox.setDisable(false);
@@ -289,6 +292,7 @@ public class CompressUI implements Initializable {
                     buffer = 0;
                     cmpLevel = modeBox.getSelectionModel().getSelectedIndex();
                     break;
+                case "lzz2p":
                 case "lzz2":
                     window = windowSizes[windowNameBox.getSelectionModel().getSelectedIndex()];
                     buffer = bufferBox.getSelectionModel().getSelectedItem();

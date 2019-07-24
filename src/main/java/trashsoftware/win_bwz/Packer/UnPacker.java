@@ -852,6 +852,18 @@ public class UnPacker {
         return origSize;
     }
 
+    public long getContextLength() {
+        return cmpMapLen;
+    }
+
+    public long getCmpMainLength() {
+        return cmpMainLength;
+    }
+
+    public long getOtherInfoLength() {
+        return extraField.length;
+    }
+
     /**
      * Sets the {@code languageLoader} language loader.
      * <p>

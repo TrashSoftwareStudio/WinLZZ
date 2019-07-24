@@ -44,7 +44,7 @@ public class LZZ2Test {
 
         long mid = System.currentTimeMillis();
         long t1 = mid - start;
-        System.out.println("Compress Time: " + t1 + " ms");
+        System.out.println("compress Time: " + t1 + " ms");
 
         String cpyName = Util.getOriginalCopyName(cmpName);
         LZZ2DeCompressor d = new LZZ2DeCompressor(cmpName, ws);

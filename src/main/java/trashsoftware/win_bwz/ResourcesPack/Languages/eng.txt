@@ -213,6 +213,11 @@ English
 614=Does not exist
 615=Encryption
 616=Secret key
+617=Net Compression Ratio
+618=Head
+619=Extra Info
+620=Context
+621=Compressed Files
 
 650=Split
 651=Archive

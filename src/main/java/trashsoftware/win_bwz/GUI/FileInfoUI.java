@@ -1,5 +1,10 @@
 package trashsoftware.win_bwz.GUI;
 
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.Rectangle;
 import trashsoftware.win_bwz.Packer.*;
 import trashsoftware.win_bwz.ResourcesPack.Languages.LanguageLoader;
 import trashsoftware.win_bwz.Utility.Bytes;
@@ -23,16 +28,61 @@ public class FileInfoUI implements Initializable {
 
     @FXML
     private Label typeLabel, algLabel, versionLabel, versionNeededLabel, fileCountLabel, dirCountLabel, windowSizeLabel,
-            compressRateLabel, origSizeLabel, compressSizeLabel, annotationLabel, timeLabel, crcChecksumLabel,
-            encryptionLabel, secretKeyLabel;
+            compressRateLabel, netRateLabel, origSizeLabel, compressSizeLabel, annotationLabel, timeLabel,
+            crcChecksumLabel, encryptionLabel, secretKeyLabel, headLabel, otherInfoLabel, contextLabel, mainLabel;
 
     @FXML
-    private ProgressBar compressRateBar;
+    private Canvas progressBarCanvas;
+
+//    @FXML
+//    private ProgressBar compressRateBar;
 
     private LanguageLoader lanLoader;
 
+    private static Color headColor = Color.GREEN;
+    private static Color otherInfoColor = Color.GOLD;
+    private static Color contextColor = Color.ORANGERED;
+    private static Color mainColor = Color.DODGERBLUE;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        drawProgressCanvas();
+    }
+
+    private void drawProgressCanvas() {
+        GraphicsContext graphicsContext = progressBarCanvas.getGraphicsContext2D();
+        graphicsContext.setStroke(Color.BLACK);
+        graphicsContext.setLineWidth(4);
+        graphicsContext.strokeRect(0, 0, 400, 30);
+    }
+
+    private void drawCompressRate(long lengthBeforeCmp, long otherInfoLen, long contextLen, long mainLen) {
+        double headRatio = (double) Packer.FIXED_HEAD_LENGTH / lengthBeforeCmp;
+        double otherInfoRatio = (double) otherInfoLen / lengthBeforeCmp;
+        double contextRatio = (double) contextLen / lengthBeforeCmp;
+        double mainRatio = (double) mainLen / lengthBeforeCmp;
+
+        double totalPixelLen = 390;
+
+        double healPixel = headRatio * totalPixelLen;
+        double otherInfoPixel = otherInfoRatio * totalPixelLen;
+        double contextPixel = contextRatio * totalPixelLen;
+        double mainPixel = mainRatio * totalPixelLen;
+
+        double current = 5;
+
+        GraphicsContext graphicsContext = progressBarCanvas.getGraphicsContext2D();
+        graphicsContext.setFill(headColor);
+        graphicsContext.fillRect(current, 5, healPixel, 20);
+        current += healPixel;
+        graphicsContext.setFill(otherInfoColor);
+        graphicsContext.fillRect(current, 5, otherInfoPixel, 20);
+        current += otherInfoPixel;
+        graphicsContext.setFill(contextColor);
+        graphicsContext.fillRect(current, 5, contextPixel, 20);
+        current += contextPixel;
+        graphicsContext.setFill(mainColor);
+        graphicsContext.fillRect(current, 5, mainPixel, 20);
     }
 
     void setLanLoader(LanguageLoader lanLoader) {
@@ -48,8 +98,6 @@ public class FileInfoUI implements Initializable {
     void setItems() {
         String prefix = unPacker.isSeparated() ? lanLoader.get(650) + " " : "";
         typeLabel.setText(prefix + "WinLZZ " + lanLoader.get(651));
-        double rate = unPacker.getTotalOrigSize() == 0 ? 0 : (double) unPacker.getDisplayArchiveLength() /
-                unPacker.getTotalOrigSize();
 
         String alg;
         switch (unPacker.getAlg()) {
@@ -64,8 +112,15 @@ public class FileInfoUI implements Initializable {
                 break;
         }
 
-        compressRateBar.setProgress(rate);
+//        compressRateBar.setProgress(rate);
+        drawCompressRate(unPacker.getTotalOrigSize(), unPacker.getOtherInfoLength(), unPacker.getContextLength(),
+                unPacker.getCmpMainLength());
+
+        double rate = unPacker.getTotalOrigSize() == 0 ? 0 : (double) unPacker.getDisplayArchiveLength() /
+                unPacker.getTotalOrigSize();
         double roundedRate = ((double) Math.round(rate * 10000)) / 100.0;
+        double netRate = (double) unPacker.getCmpMainLength() / unPacker.getTotalOrigSize();
+        double roundedNetRate = ((double) Math.round(netRate * 10000)) / 100.0;
         Date date = new Date(unPacker.getCreationTime());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -73,12 +128,18 @@ public class FileInfoUI implements Initializable {
         versionLabel.setText(String.format("%s: %d.%d", lanLoader.get(611), unPacker.getPrimaryVersionInt(),
                 unPacker.getSecondaryVersionInt()));
         versionNeededLabel.setText(lanLoader.get(602) + ": " + translateVersion(unPacker.versionNeeded()));
-        compressRateLabel.setText(lanLoader.get(603) + ": " + String.valueOf(roundedRate) + " %");
+        compressRateLabel.setText(lanLoader.get(603) + ": " + roundedRate + " %");
+        netRateLabel.setText(lanLoader.get(617) + ": " + roundedNetRate + " %");
         windowSizeLabel.setText(lanLoader.get(604) + ": " + sizeToString3Digit(unPacker.getWindowSize()));
         origSizeLabel.setText(lanLoader.get(605) + ": " + Util.sizeToReadable(unPacker.getTotalOrigSize()));
         compressSizeLabel.setText(lanLoader.get(606) + ": " + Util.sizeToReadable(unPacker.getDisplayArchiveLength()));
         fileCountLabel.setText(lanLoader.get(607) + ": " + Util.splitNumber(String.valueOf(unPacker.getFileCount())));
         dirCountLabel.setText(lanLoader.get(608) + ": " + Util.splitNumber(String.valueOf(unPacker.getDirCount() - 1)));
+
+        headLabel.setText(lanLoader.get(618));
+        otherInfoLabel.setText(lanLoader.get(619));
+        contextLabel.setText(lanLoader.get(620));
+        mainLabel.setText(lanLoader.get(621));
 
         String ann = lanLoader.get(612) + ": ";
         if (unPacker.getAnnotation() != null) ann += lanLoader.get(613);

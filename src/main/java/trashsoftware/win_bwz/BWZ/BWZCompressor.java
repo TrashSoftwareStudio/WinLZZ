@@ -382,10 +382,10 @@ class EncodeThread implements Runnable {
             flags[i] = (byte) x;
             if (x > 0) {  // If found.
                 maps[i] = new byte[0];
-                results[i] = hcr.Compress(maps[i - x]);
+                results[i] = hcr.compress(maps[i - x]);
             } else {  // If not found.
                 maps[i] = map;
-                results[i] = hcr.Compress();
+                results[i] = hcr.compress();
             }
         }
 
@@ -401,10 +401,10 @@ class EncodeThread implements Runnable {
         flags[i] = (byte) x;
         if (x > 0) {
             maps[i] = new byte[0];
-            results[i] = hcr.Compress(maps[i - x]);
+            results[i] = hcr.compress(maps[i - x]);
         } else {
             maps[i] = map;
-            results[i] = hcr.Compress();
+            results[i] = hcr.compress();
         }
         parent.pos += buffer.length * 0.4;  // Update progress again
     }

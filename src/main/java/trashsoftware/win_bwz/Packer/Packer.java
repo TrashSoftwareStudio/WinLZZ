@@ -27,6 +27,7 @@ import trashsoftware.win_bwz.ResourcesPack.Languages.LanguageLoader;
 import trashsoftware.win_bwz.Utility.*;
 import trashsoftware.win_bwz.Encrypters.ZSE.ZSEFileEncoder;
 import javafx.beans.property.*;
+import trashsoftware.win_bwz.lzz2_plus.Lzz2PlusCompressor;
 
 import java.io.*;
 import java.security.NoSuchAlgorithmException;
@@ -53,6 +54,8 @@ public class Packer {
      * The secondary core version.
      */
     public final static byte secondaryVersion = 0;
+
+    public static final int FIXED_HEAD_LENGTH = 27;
 
     /**
      * The signature for a WinLZZ archive (*.pz) file.
@@ -285,6 +288,9 @@ public class Packer {
             case "bwz":
                 inf = (byte) (inf | 0b00100000);  // 10
                 break;
+            case "lzz2p":
+                inf = (byte) (inf | 0b00110000);  // 11
+                break;
         }
 
         if (partSize != 0) inf = (byte) (inf | 0b00001000);  // If compress separately
@@ -372,6 +378,8 @@ public class Packer {
                 case "lzz2":
                     headCompressor = new LZZ2Compressor(tempHeadName, defaultWindowSize, 64);
                     break;
+                case "lzz2p":
+                    headCompressor = new Lzz2PlusCompressor(tempHeadName, defaultWindowSize, 64);
 //                case "qlz":
 //                    headCompressor = new QuickLZZCompressor(tempHeadName, 16384, 256);
 //                    break;
@@ -385,6 +393,10 @@ public class Packer {
             switch (alg) {
                 case "lzz2":
                     headCompressor = new LZZ2Compressor(tempHeadName, windowSize, bufferSize);
+                    headCompressor.setCompressionLevel(cmpLevel);
+                    break;
+                case "lzz2p":
+                    headCompressor = new Lzz2PlusCompressor(tempHeadName, windowSize, bufferSize);
                     headCompressor.setCompressionLevel(cmpLevel);
                     break;
 //                case "qlz":
@@ -467,6 +479,9 @@ public class Packer {
             switch (alg) {
                 case "lzz2":
                     mainCompressor = new LZZ2Compressor(mis, windowSize, bufferSize, totalLength);
+                    break;
+                case "lzz2p":
+                    mainCompressor = new Lzz2PlusCompressor(mis, windowSize, bufferSize, totalLength);
                     break;
 //                case "qlz":
 //                    mainCompressor = new QuickLZZCompressor(mis, windowSize, 256, totalLength);

@@ -1,7 +1,7 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.Utility.FileBitInputStream;
-import trashsoftware.win_bwz.Utility.Bytes;
+import trashsoftware.win_bwz.utility.FileBitInputStream;
+import trashsoftware.win_bwz.utility.Bytes;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;

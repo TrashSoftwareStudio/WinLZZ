@@ -1,13 +1,13 @@
 package trashsoftware.win_bwz.lzz2_plus;
 
-import trashsoftware.win_bwz.BWZ.BWT.BWTEncoderByte;
-import trashsoftware.win_bwz.BWZ.MTFTransformByte;
-import trashsoftware.win_bwz.Huffman.HuffmanCompressor;
-import trashsoftware.win_bwz.Huffman.MapCompressor.MapCompressor;
-import trashsoftware.win_bwz.LZZ2.LZZ2Compressor;
-import trashsoftware.win_bwz.LongHuffman.LongHuffmanCompressorRam;
-import trashsoftware.win_bwz.Utility.MultipleInputStream;
-import trashsoftware.win_bwz.Utility.Util;
+import trashsoftware.win_bwz.bwz.bwt.BWTEncoderByte;
+import trashsoftware.win_bwz.bwz.MTFTransformByte;
+import trashsoftware.win_bwz.huffman.HuffmanCompressor;
+import trashsoftware.win_bwz.huffman.MapCompressor.MapCompressor;
+import trashsoftware.win_bwz.lzz2.LZZ2Compressor;
+import trashsoftware.win_bwz.longHuffman.LongHuffmanCompressorRam;
+import trashsoftware.win_bwz.utility.MultipleInputStream;
+import trashsoftware.win_bwz.utility.Util;
 
 import java.io.*;
 import java.util.ArrayList;

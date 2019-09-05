@@ -14,7 +14,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <AnchorPane xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="trashsoftware.win_bwz.GUI.MainUI">
+            fx:controller="trashsoftware.win_bwz.gui.MainUI">
     <VBox prefHeight="540.0" prefWidth="960.0">
         <padding>
             <Insets bottom="10.0" left="5.0" right="5.0"/>

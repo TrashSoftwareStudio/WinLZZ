@@ -1,6 +1,6 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.Utility.FileOutputBufferArray;
+import trashsoftware.win_bwz.utility.FileOutputBufferArray;
 
 import java.io.IOException;
 import java.util.Arrays;

@@ -1,8 +1,8 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.Encrypters.BZSE.BZSEStreamDecoder;
-import trashsoftware.win_bwz.Encrypters.BZSE.BZSEStreamEncoder;
-import trashsoftware.win_bwz.Utility.Util;
+import trashsoftware.win_bwz.encrypters.bzse.BZSEStreamDecoder;
+import trashsoftware.win_bwz.encrypters.bzse.BZSEStreamEncoder;
+import trashsoftware.win_bwz.utility.Util;
 
 import java.io.*;
 

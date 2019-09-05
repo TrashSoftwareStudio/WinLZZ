@@ -1,6 +1,6 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.Utility.MultipleInputStream;
+import trashsoftware.win_bwz.utility.MultipleInputStream;
 
 import java.io.File;
 import java.io.IOException;

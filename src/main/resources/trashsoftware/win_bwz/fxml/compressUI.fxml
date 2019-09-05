@@ -14,7 +14,7 @@
 <?import javafx.scene.text.Font?>
 
 <AnchorPane prefHeight="420.0" prefWidth="450.0" xmlns="http://javafx.com/javafx/8.0.121"
-            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.GUI.CompressUI">
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.gui.CompressUI">
     <VBox alignment="CENTER" prefHeight="400.0" prefWidth="450.0" spacing="5.0">
         <HBox alignment="CENTER" prefHeight="50.0" prefWidth="150.0" spacing="10.0">
             <Label fx:id="nameLabel" text="压缩文件名称:">

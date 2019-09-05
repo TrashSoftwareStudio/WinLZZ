@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <AnchorPane prefHeight="480.0" prefWidth="720.0" xmlns="http://javafx.com/javafx/8.0.121"
-            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.GUI.UncompressUI">
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.gui.UncompressUI">
     <VBox prefHeight="480.0" prefWidth="720.0">
         <HBox alignment="CENTER_LEFT" prefHeight="40.0" prefWidth="720.0" spacing="10.0">
             <VBox.margin>

@@ -1,7 +1,7 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.Console.Console;
-import trashsoftware.win_bwz.GUI.GUIClient;
+import trashsoftware.win_bwz.console.Console;
+import trashsoftware.win_bwz.gui.GUIClient;
 
 /**
  * main program of WinLZZ.

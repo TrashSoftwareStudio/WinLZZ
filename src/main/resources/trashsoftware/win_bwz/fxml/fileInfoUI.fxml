@@ -9,7 +9,7 @@
 <?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.text.Font?>
 
-<VBox alignment="CENTER" prefHeight="480.0" prefWidth="480.0" spacing="8.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.GUI.FileInfoUI">
+<VBox alignment="CENTER" prefHeight="480.0" prefWidth="480.0" spacing="8.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.gui.FileInfoUI">
     <Label fx:id="typeLabel" text="类型">
         <font>
             <Font size="18.0" />

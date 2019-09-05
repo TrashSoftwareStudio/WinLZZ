@@ -12,7 +12,7 @@
 <?import javafx.scene.text.Font?>
 
 <AnchorPane prefHeight="300.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8.0.121"
-            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.GUI.ReplaceUI">
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.gui.ReplaceUI">
     <VBox alignment="CENTER_LEFT" prefHeight="300.0" prefWidth="400.0" spacing="10.0">
         <padding>
             <Insets left="20.0"/>

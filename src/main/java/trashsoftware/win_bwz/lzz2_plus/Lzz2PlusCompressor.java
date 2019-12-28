@@ -1,15 +1,10 @@
 package trashsoftware.win_bwz.lzz2_plus;
 
-import trashsoftware.win_bwz.bwz.MTFTransformByte;
-import trashsoftware.win_bwz.huffman.HuffmanCompressor;
-import trashsoftware.win_bwz.huffman.MapCompressor.MapCompressor;
 import trashsoftware.win_bwz.interfaces.Compressor;
-import trashsoftware.win_bwz.lzz2.util.LZZ2Util;
 import trashsoftware.win_bwz.packer.Packer;
 import trashsoftware.win_bwz.utility.*;
 
 import java.io.*;
-import java.util.*;
 
 /**
  * LZZ2 (Lempel-Ziv-ZBH 2) compressor, implements {@code Compressor} interface.
@@ -33,8 +28,6 @@ public class Lzz2PlusCompressor implements Compressor {
 
     private long remainingLength;
 
-//    private int windowSize;  // Size of sliding window.
-
     private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
 
     private int dictSize;
@@ -42,8 +35,6 @@ public class Lzz2PlusCompressor implements Compressor {
     final static int minimumMatchLen = 3;
 
     protected long cmpSize;
-
-//    protected int itemCount;
 
     protected Packer parent;
 
@@ -54,8 +45,6 @@ public class Lzz2PlusCompressor implements Compressor {
     private long startTime;
 
     private long timeOffset;
-
-    private int compressionLevel;
 
     private int dis, len;
 
@@ -70,7 +59,6 @@ public class Lzz2PlusCompressor implements Compressor {
      * @throws IOException if error occurs during file reading or writing.
      */
     public Lzz2PlusCompressor(String inFile, int windowSize, int bufferSize) throws IOException {
-//        this.windowSize = windowSize;
         this.bufferMaxSize = bufferSize;
         this.dictSize = windowSize - bufferMaxSize - 1;
 
@@ -88,7 +76,6 @@ public class Lzz2PlusCompressor implements Compressor {
      * @param totalLength the total length of the files to be compressed
      */
     public Lzz2PlusCompressor(MultipleInputStream mis, int windowSize, int bufferSize, long totalLength) {
-//        this.windowSize = windowSize;
         this.bufferMaxSize = bufferSize;
         this.dictSize = windowSize - bufferMaxSize - 1;
         this.totalLength = totalLength;
@@ -128,14 +115,8 @@ public class Lzz2PlusCompressor implements Compressor {
                     i++;
                 } else {
                     fos.write(1);
-//                itemCount++;
-                    fos.writeByte((byte) len);  // length first
-                    if (dis >= 128) {
-                        fos.writeByte((byte) ((dis >> 8) | 0x80));
-                    }
-                    fos.writeByte((byte) dis);
-
-//                System.out.print(dis + " " + len + ", ");
+                    Lzz2pUtil.writeLengthToStream(len, fos);
+                    Lzz2pUtil.writeDistanceToStream(dis, fos);
 
                     i += len;
                 }
@@ -280,18 +261,5 @@ public class Lzz2PlusCompressor implements Compressor {
 
     @Override
     public void setCompressionLevel(int compressionLevel) {
-        this.compressionLevel = compressionLevel;
-    }
-
-    /**
-     * @return [lazy evaluation delay, skip repeat]
-     */
-    private int[] getCompressionParam() {
-        if (compressionLevel == 0) return new int[]{0, 0};
-        else if (compressionLevel == 1) return new int[]{1, 0};
-        else if (compressionLevel == 2) return new int[]{2, 0};
-        else if (compressionLevel == 3) return new int[]{1, 1};
-        else if (compressionLevel == 4) return new int[]{2, 1};
-        else throw new IndexOutOfBoundsException("Unknown level");
     }
 }

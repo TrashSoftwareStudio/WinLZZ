@@ -17,12 +17,16 @@ public class FileBitInputStream {
     /**
      * The current reading byte.
      */
-    private int current;
+    private int bits;
 
     /**
      * The current operating position in {@code current}, from left to right.
      */
-    private int pointer;
+    private int bitPos;
+
+    private byte[] buffer1 = new byte[1];
+
+    private boolean streamEnds = false;
 
     /**
      * Creates a new instance of {@code FileBitInputStream}.
@@ -42,14 +46,15 @@ public class FileBitInputStream {
      * @throws IOException if the stream is not readable
      */
     public int read(int length) throws IOException {
-        int number = 0;
-        for (int i = 0; i < length; i++) {
-            number = number << 1;
-            int r = read();
-            if (r == 2) throw new IOException();
-            number = number | r;
-        }
-        return number;
+//        int number = 0;
+//        for (int i = 0; i < length; i++) {
+//            number = number << 1;
+//            int r = read();
+//            if (r == 2) throw new IOException();
+//            number = number | r;
+//        }
+//        return number;
+        return readBits(length);
     }
 
     /**
@@ -59,22 +64,41 @@ public class FileBitInputStream {
      * @throws IOException if the input stream is not readable
      */
     public int read() throws IOException {
-        int i;
-        if (pointer == 0) {
-            byte[] b = new byte[1];
-            if (bis.read(b) != 1) return 2;
-            current = b[0];
-            i = (current >> 7) & 1;
-        } else {
-            i = (current >> (7 - pointer)) & 1;
-        }
-        if (pointer == 7) pointer = 0;
-        else pointer += 1;
-        return i;
+//        int i;
+//        if (bitPos == 0) {
+//            byte[] b = new byte[1];
+//            if (bis.read(b) != 1) return 2;
+//            bits = b[0];
+//            i = (bits >> 7) & 1;
+//        } else {
+//            i = (bits >> (7 - bitPos)) & 1;
+//        }
+//        if (bitPos == 7) bitPos = 0;
+//        else bitPos += 1;
+//        return i;
+        int i = readBits(1);
+        return streamEnds ? 2 : i;
     }
 
     public byte readByte() throws IOException {
-        return (byte) read(8);
+        return (byte) readBits(8);
+    }
+
+    private void loadBits(int leastBitsCount) throws IOException {
+        while (bitPos < leastBitsCount) {
+            bitPos += 8;
+            bits <<= 8;
+            if (bis.read(buffer1) != 1) streamEnds = true;
+            bits |= (buffer1[0] & 0xff);
+        }
+    }
+
+    private int readBits(int bitsCount) throws IOException {
+        loadBits(bitsCount);
+        int andEr = Bytes.getAndEr(bitsCount);
+        int res = (bits >> (bitPos - bitsCount)) & andEr;
+        bitPos -= bitsCount;
+        return res;
     }
 
     /**

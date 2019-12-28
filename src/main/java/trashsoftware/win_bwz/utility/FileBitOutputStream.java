@@ -47,9 +47,10 @@ public class FileBitOutputStream {
      * @throws IOException if the output stream is not writable
      */
     public void write(int bits, int numberOfBits) throws IOException {
-        for (int i = 0; i < numberOfBits; i++) {
-            write(bits >> (numberOfBits - i - 1));
-        }
+//        for (int i = 0; i < numberOfBits; i++) {
+//            write(bits >> (numberOfBits - i - 1));
+//        }
+        writeBits(bits, numberOfBits);
     }
 
     /**
@@ -90,7 +91,7 @@ public class FileBitOutputStream {
     private void writeBits(int bits, int bitsCount) throws IOException {
         bitPos += bitsCount;
         this.bits <<= bitsCount;
-        this.bits |= (bits & getAndEr(bitsCount));
+        this.bits |= (bits & Bytes.getAndEr(bitsCount));
         flushBits();
     }
 
@@ -100,45 +101,6 @@ public class FileBitOutputStream {
             int temp = (bits >> bitPos) & 0xff;
             bos.write(temp);
             length++;
-        }
-    }
-
-    private int getAndEr(int bitCount) {
-        switch (bitCount) {
-            case 1:
-                return 1;
-            case 2:
-                return 3;
-            case 3:
-                return 7;
-            case 4:
-                return 15;
-            case 5:
-                return 31;
-            case 6:
-                return 63;
-            case 7:
-                return 127;
-            case 8:
-                return 255;
-            case 9:
-                return 511;
-            case 10:
-                return 1023;
-            case 11:
-                return 2047;
-            case 12:
-                return 4095;
-            case 13:
-                return 8191;
-            case 14:
-                return 16383;
-            case 15:
-                return 32767;
-            case 16:
-                return 65535;
-            default:
-                throw new RuntimeException("Can't");
         }
     }
 

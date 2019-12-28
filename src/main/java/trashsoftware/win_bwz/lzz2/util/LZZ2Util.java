@@ -773,4 +773,8 @@ public abstract class LZZ2Util {
     public static int hashBytes(byte b1, byte b2, byte b3) {
         return ((b1 & 0xff) << 16) | ((b2 & 0xff) << 8) | (b3 & 0xff);
     }
+
+    public static int hashBytes(byte b1, byte b2) {
+        return ((b1 & 0xff) << 8) | (b2 & 0xff);
+    }
 }

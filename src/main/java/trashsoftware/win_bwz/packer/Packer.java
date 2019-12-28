@@ -282,9 +282,9 @@ public class Packer {
         switch (alg) {
             case "lzz2":  // 00
                 break;
-            case "huf":
-                inf = (byte) (inf | 0b00010000);  // 01
-                break;
+//            case "huf":
+//                inf = (byte) (inf | 0b00010000);  // 01
+//                break;
             case "bwz":
                 inf = (byte) (inf | 0b00100000);  // 10
                 break;

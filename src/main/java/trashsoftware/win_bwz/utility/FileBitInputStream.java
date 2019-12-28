@@ -1,5 +1,6 @@
 package trashsoftware.win_bwz.utility;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -11,7 +12,7 @@ import java.io.InputStream;
  */
 public class FileBitInputStream {
 
-    private InputStream bis;
+    private BufferedInputStream bis;
 
     /**
      * The current reading byte.
@@ -26,10 +27,11 @@ public class FileBitInputStream {
     /**
      * Creates a new instance of {@code FileBitInputStream}.
      *
-     * @param bis the {@code BufferedInputStream} which this {@code FileBitInputStream} reads data from
+     * @param fis the {@code InputStream} which this {@code FileBitInputStream} reads data from
      */
-    public FileBitInputStream(InputStream bis) {
-        this.bis = bis;
+    public FileBitInputStream(InputStream fis) {
+        if (fis instanceof BufferedInputStream) this.bis = (BufferedInputStream) fis;
+        else this.bis = new BufferedInputStream(fis);
     }
 
     /**
@@ -69,6 +71,10 @@ public class FileBitInputStream {
         if (pointer == 7) pointer = 0;
         else pointer += 1;
         return i;
+    }
+
+    public byte readByte() throws IOException {
+        return (byte) read(8);
     }
 
     /**

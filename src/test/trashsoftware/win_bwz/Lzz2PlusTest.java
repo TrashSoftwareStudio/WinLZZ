@@ -2,13 +2,14 @@ package trashsoftware.win_bwz;
 
 import trashsoftware.win_bwz.lzz2.LZZ2Compressor;
 import trashsoftware.win_bwz.lzz2.LZZ2DeCompressor;
-import trashsoftware.win_bwz.utility.ArrayHashTable;
+import trashsoftware.win_bwz.lzz2_plus.Lzz2PlusCompressor;
+import trashsoftware.win_bwz.lzz2_plus.Lzz2PlusDecompressor;
 import trashsoftware.win_bwz.utility.Util;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 
-public class LZZ2Test {
+public class Lzz2PlusTest {
 
     public static void main(String[] args) throws Exception {
         long start = System.currentTimeMillis();
@@ -21,19 +22,19 @@ public class LZZ2Test {
 //        name = "allCodes.zip";
 //        name = "ep.head";
 //        name = "t0.txt";
-        String cmpName = Util.getCompressFileName(name, "lzz2");
+        String cmpName = Util.getCompressFileName(name, "lzz2p");
 //        Vector<FileInputStream> v = new Vector<>();
 //        v.add(new FileInputStream(name));
 //        SequenceInputStream sis = new SequenceInputStream(v.elements());
         int ws = 32768;
-        LZZ2Compressor c = new LZZ2Compressor(name, ws, 255);
-        c.setCompressionLevel(2);
+        Lzz2PlusCompressor c = new Lzz2PlusCompressor(name, ws, 255);
+        c.setCompressionLevel(1);
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
             c.compress(fos);
             System.out.println(c.getCompressedSize());
         } catch (Exception e) {
-            //
+            e.printStackTrace();
         }
         fos.flush();
         fos.close();
@@ -43,7 +44,7 @@ public class LZZ2Test {
         System.out.println("compress Time: " + t1 + " ms");
 
         String cpyName = Util.getOriginalCopyName(cmpName);
-        LZZ2DeCompressor d = new LZZ2DeCompressor(cmpName, ws);
+        Lzz2PlusDecompressor d = new Lzz2PlusDecompressor(cmpName, ws);
         FileOutputStream bos = new FileOutputStream(cpyName);
         d.uncompress(bos);
         bos.close();

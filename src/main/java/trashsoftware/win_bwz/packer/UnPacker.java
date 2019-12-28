@@ -5,6 +5,7 @@ import trashsoftware.win_bwz.encrypters.bzse.BZSEStreamDecoder;
 import trashsoftware.win_bwz.interfaces.DeCompressor;
 import trashsoftware.win_bwz.interfaces.Decipher;
 import trashsoftware.win_bwz.lzz2.LZZ2DeCompressor;
+import trashsoftware.win_bwz.lzz2_plus.Lzz2PlusDecompressor;
 import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.*;
 import trashsoftware.win_bwz.encrypters.WrongPasswordException;
@@ -214,6 +215,11 @@ public class UnPacker {
             case "10":
                 alg = "bwz";
                 break;
+            case "11":
+                alg = "lzz2p";
+                break;
+            default:
+                throw new RuntimeException("Unknown algorithm");
         }
 
         char sepRep = info.charAt(4);
@@ -364,6 +370,9 @@ public class UnPacker {
                 case "lzz2":
                     mapDec = new LZZ2DeCompressor(cmpMapName, Packer.defaultWindowSize);
                     break;
+                case "lzz2p":
+                    mapDec = new Lzz2PlusDecompressor(cmpMapName, Packer.defaultWindowSize);
+                    break;
                 case "bwz":
                     mapDec = new BWZDeCompressor(cmpMapName, Packer.defaultWindowSize, 0);
                     break;
@@ -374,6 +383,9 @@ public class UnPacker {
             switch (alg) {
                 case "lzz2":
                     mapDec = new LZZ2DeCompressor(cmpMapName, windowSize);
+                    break;
+                case "lzz2p":
+                    mapDec = new Lzz2PlusDecompressor(cmpMapName, windowSize);
                     break;
                 case "bwz":
                     mapDec = new BWZDeCompressor(cmpMapName, windowSize, 0);
@@ -650,6 +662,9 @@ public class UnPacker {
                 switch (alg) {
                     case "lzz2":
                         mainDec = new LZZ2DeCompressor(cmpTempName, windowSize);
+                        break;
+                    case "lzz2p":
+                        mainDec = new Lzz2PlusDecompressor(cmpTempName, windowSize);
                         break;
                     case "bwz":
                         mainDec = new BWZDeCompressor(cmpTempName, windowSize, 0);

@@ -30,7 +30,7 @@ public class FileOutputBufferArray {
      */
     private boolean array2Init = false;
 
-    private long index, front = 0;
+    private long index, front;
 
     /**
      * Creates a new instance of {@code FileOutputBufferArray}.
@@ -82,7 +82,7 @@ public class FileOutputBufferArray {
             if (activeArray2) array2[(int) (index % bufferSize)] = b;
             else array1[(int) (index % bufferSize)] = b;
         }
-        index += 1;
+        index++;
     }
 
     /**

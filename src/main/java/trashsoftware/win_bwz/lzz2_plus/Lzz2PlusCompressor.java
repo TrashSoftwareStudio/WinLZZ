@@ -1,22 +1,65 @@
 package trashsoftware.win_bwz.lzz2_plus;
 
-import trashsoftware.win_bwz.bwz.bwt.BWTEncoderByte;
 import trashsoftware.win_bwz.bwz.MTFTransformByte;
 import trashsoftware.win_bwz.huffman.HuffmanCompressor;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapCompressor;
-import trashsoftware.win_bwz.lzz2.LZZ2Compressor;
-import trashsoftware.win_bwz.longHuffman.LongHuffmanCompressorRam;
-import trashsoftware.win_bwz.utility.MultipleInputStream;
-import trashsoftware.win_bwz.utility.Util;
+import trashsoftware.win_bwz.interfaces.Compressor;
+import trashsoftware.win_bwz.lzz2.util.LZZ2Util;
+import trashsoftware.win_bwz.packer.Packer;
+import trashsoftware.win_bwz.utility.*;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
-public class Lzz2PlusCompressor extends LZZ2Compressor {
+/**
+ * LZZ2 (Lempel-Ziv-ZBH 2) compressor, implements {@code Compressor} interface.
+ * <p>
+ * An improved version of LZ77 algorithm, implemented by Bohan Zhang (zbh).
+ *
+ * @author zbh
+ * @see Compressor
+ * @since 0.4
+ */
+public class Lzz2PlusCompressor implements Compressor {
 
-    private static final int PART_LENGTH = 65536;
+    /**
+     * Load this size and process every time.
+     */
+    final static int MEMORY_BUFFER_SIZE = 16777216;  // 16 MB
+
+    private InputStream sis;
+
+    protected long totalLength;
+
+    private long remainingLength;
+
+//    private int windowSize;  // Size of sliding window.
+
+    private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
+
+    private int dictSize;
+
+    final static int minimumMatchLen = 3;
+
+    protected long cmpSize;
+
+//    protected int itemCount;
+
+    protected Packer parent;
+
+    private int timeAccumulator;
+
+    private long lastUpdateProgress;
+
+    private long startTime;
+
+    private long timeOffset;
+
+    private int compressionLevel;
+
+    private int dis, len;
+
+    private byte[] buffer = new byte[MEMORY_BUFFER_SIZE];
 
     /**
      * Constructor of a new {@code LZZ2Compressor} instance.
@@ -27,7 +70,13 @@ public class Lzz2PlusCompressor extends LZZ2Compressor {
      * @throws IOException if error occurs during file reading or writing.
      */
     public Lzz2PlusCompressor(String inFile, int windowSize, int bufferSize) throws IOException {
-        super(inFile, windowSize, bufferSize);
+//        this.windowSize = windowSize;
+        this.bufferMaxSize = bufferSize;
+        this.dictSize = windowSize - bufferMaxSize - 1;
+
+        this.totalLength = new File(inFile).length();
+        this.remainingLength = totalLength;
+        this.sis = new FileInputStream(inFile);
     }
 
     /**
@@ -39,93 +88,210 @@ public class Lzz2PlusCompressor extends LZZ2Compressor {
      * @param totalLength the total length of the files to be compressed
      */
     public Lzz2PlusCompressor(MultipleInputStream mis, int windowSize, int bufferSize, long totalLength) {
-        super(mis, windowSize, bufferSize, totalLength);
+//        this.windowSize = windowSize;
+        this.bufferMaxSize = bufferSize;
+        this.dictSize = windowSize - bufferMaxSize - 1;
+        this.totalLength = totalLength;
+        this.remainingLength = totalLength;
+        this.sis = mis;
+    }
+
+    private void compressContent(OutputStream outFile) throws IOException {
+        if (totalLength <= bufferMaxSize) {
+            dictSize = (int) totalLength - 1;
+            bufferMaxSize = (int) totalLength - 1;
+        }
+
+        long lastCheckTime = System.currentTimeMillis();
+        startTime = lastCheckTime;
+        if (parent != null) timeOffset = lastCheckTime - parent.startTime;
+        long currentTime;
+
+        int read;
+
+        FileBitOutputStream fos = new FileBitOutputStream(outFile);
+
+        byte[] lengthBytes = Bytes.intToBytes32((int) totalLength);
+        for (byte b : lengthBytes) fos.writeByte(b);
+
+        Slider slider = new Slider();
+        while ((read = sis.read(buffer)) > 0) {
+            slider.clear();
+            int i = 0;
+            while (i < read - 3) {
+                calculateLongestMatch(slider, i);
+                int prevI = i;
+
+                if (len < minimumMatchLen) {
+                    fos.write(0);
+                    fos.writeByte(buffer[i]);
+                    i++;
+                } else {
+                    fos.write(1);
+//                itemCount++;
+                    fos.writeByte((byte) len);  // length first
+                    if (dis >= 128) {
+                        fos.writeByte((byte) ((dis >> 8) | 0x80));
+                    }
+                    fos.writeByte((byte) dis);
+
+//                System.out.print(dis + " " + len + ", ");
+
+                    i += len;
+                }
+
+                if (i >= read) break;
+                fillSlider(prevI, i, slider);
+
+                if (parent != null && parent.isInterrupted) break;
+                if (parent != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
+                    updateInfo(totalLength - remainingLength + i, currentTime);
+                    lastCheckTime = currentTime;
+                }
+            }
+            for (; i < read; i++) {
+                fos.write(0);
+                fos.writeByte(buffer[i]);
+            }
+            remainingLength -= read;
+        }
+
+        sis.close();
+        fos.flush();
+        cmpSize = fos.getLength();
+//        fos.close();
+    }
+
+    private void fillSlider(int from, int to, Slider slider) {
+        int lastHash = -1;
+        int repeatCount = 0;
+        for (int j = from; j < to; j++) {
+            byte b0 = buffer[j];
+            byte b1 = buffer[j + 1];
+            int hash = hash(b0, b1);
+            if (hash == lastHash) {
+                repeatCount++;
+            } else {
+                if (repeatCount > 0) {
+                    repeatCount = 0;
+                    slider.addIndex(lastHash, j - 1);
+                }
+                lastHash = hash;
+                slider.addIndex(hash, j);
+            }
+        }
+    }
+
+    private void calculateLongestMatch(Slider slider, int index) {
+        byte b0 = buffer[index];
+        byte b1 = buffer[index + 1];
+        int hash = hash(b0, b1);
+        FixedArrayDeque positions = slider.get(hash);
+        if (positions == null) {  // not a match
+            len = 0;
+            return;
+        }
+
+        int maxLookAhead = (int) Math.min(remainingLength, MEMORY_BUFFER_SIZE);
+        int windowBegin = Math.max(index - dictSize, 0);
+//        System.out.println(windowBegin);
+
+        int longest = 2;  // at least 2
+        final int beginPos = positions.beginPos();
+        int indexOfLongest = positions.tail;
+        for (int i = positions.tail - 1; i >= beginPos; i--) {
+            int pos = positions.array[i & FixedArrayDeque.RANGE];
+
+            if (pos <= windowBegin) break;
+
+            int len = 2;
+            while (len < bufferMaxSize &&
+                    index + len < maxLookAhead &&
+                    buffer[pos + len] == buffer[index + len]) {
+                len++;
+            }
+            if (len > longest) {  // Later match is preferred
+                longest = len;
+                indexOfLongest = pos;
+            }
+        }
+
+        dis = index - indexOfLongest;
+        len = longest;
+    }
+
+    private static int hash(byte b0, byte b1) {
+        return (b0 & 0xff) << 8 | (b1 & 0xff);
+    }
+
+    private void updateInfo(long current, long updateTime) {
+        parent.progress.set(current);
+        if (timeAccumulator == 19) {
+            timeAccumulator = 0;
+            double finished = ((double) current) / totalLength;
+            double rounded = (double) Math.round(finished * 1000) / 10;
+            parent.percentage.set(String.valueOf(rounded));
+            int newUpdated = (int) (current - lastUpdateProgress);
+            lastUpdateProgress = parent.progress.get();
+            int ratio = newUpdated / 1024;
+            parent.ratio.set(String.valueOf(ratio));
+
+            long timeUsed = updateTime - startTime;
+            parent.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
+            long expectTime = (totalLength - current) / ratio / 1024;
+            parent.timeExpected.set(Util.secondToString(expectTime));
+
+            parent.passedLength.set(Util.sizeToReadable(current));
+        } else {
+            timeAccumulator += 1;
+        }
+    }
+
+    /**
+     * compress file into output stream.
+     *
+     * @param outFile the target output stream.
+     * @throws IOException if io error occurs during compression.
+     */
+    @Override
+    public void compress(OutputStream outFile) throws IOException {
+        compressContent(outFile);
+    }
+
+
+    /**
+     * Returns the total output size after compressing.
+     *
+     * @return size after compressed.
+     */
+    @Override
+    public long getCompressedSize() {
+        return cmpSize;
     }
 
     @Override
-    public void compress(OutputStream outFile) throws IOException {
-        compressText();
-
-        if (isNotCompressible(outFile)) return;
-
-        HuffmanCompressor dhc = new HuffmanCompressor(disHeadTempName);
-        byte[] dhcMap = dhc.getMap(64);
-
-        HuffmanCompressor lhc = new HuffmanCompressor(lenHeadTempName);
-        byte[] lhcMap = lhc.getMap(32);
-
-        HuffmanCompressor fc = new HuffmanCompressor(flagTempName);
-        byte[] fcMap = fc.getMap(256);
-
-        byte[] totalMap = new byte[352];
-        System.arraycopy(dhcMap, 0, totalMap, 0, 64);
-        System.arraycopy(lhcMap, 0, totalMap, 64, 32);
-        System.arraycopy(fcMap, 0, totalMap, 96, 256);
-
-        byte[] rlcMain = new MTFTransformByte(totalMap).Transform(18);
-
-        MapCompressor mc = new MapCompressor(rlcMain);
-        byte[] csq = mc.Compress(false);
-
-        outFile.write(csq);
-
-        dhc.SepCompress(outFile);
-        int disHeadLen = dhc.getCompressedLength();
-        lhc.SepCompress(outFile);
-        int lenHeadLen = lhc.getCompressedLength();
-        fc.SepCompress(outFile);
-        int flagLen = fc.getCompressedLength();
-
-        long dlbLen = Util.fileConcatenate(outFile, new String[]{dlBodyTempName}, 8192);
-
-        BufferedInputStream mis = new BufferedInputStream(new FileInputStream(mainTempName));
-        long mainLen = separateHuffmanCompress(mis, outFile);
-        mis.close();
-
-        deleteTemp();
-
-        long[] sizes = new long[]{disHeadLen, lenHeadLen, flagLen, dlbLen};
-        byte[] sizeBlock = Util.generateSizeBlock(sizes);
-        outFile.write(sizeBlock);
-        cmpSize = disHeadLen + lenHeadLen + flagLen + dlbLen + mainLen + sizeBlock.length;
+    public void setParent(Packer parent) {
+        this.parent = parent;
     }
 
-    private long separateHuffmanCompress(InputStream inFile, OutputStream outFile) throws IOException {
-        byte[] buffer = new byte[PART_LENGTH];
-        long length = 0;
-        int read;
-        List<byte[]> heads = new ArrayList<>();
-        while ((read = inFile.read(buffer)) != -1) {
-            int[] intBuffer = new int[read];
-            for (int i = 0; i < read; i++) {
-                intBuffer[i] = buffer[i] & 0xff;
-            }
-            LongHuffmanCompressorRam hc = new LongHuffmanCompressorRam(intBuffer, 257, 256);
-            byte[] map = hc.getMap(257);
-//            System.out.println(Arrays.toString(map));
-            heads.add(map);
+    @Override
+    public void setThreads(int threads) {
+    }
 
-//            System.out.println(Arrays.toString(cmpMap));
-            byte[] result = hc.compress();
-//            int mapLen = cmpMap.length;
+    @Override
+    public void setCompressionLevel(int compressionLevel) {
+        this.compressionLevel = compressionLevel;
+    }
 
-            length += result.length;
-
-            outFile.write(result);
-        }
-        byte[] totalMap = new byte[heads.size() * 257];
-        for (int i = 0; i < heads.size(); i++) {
-            byte[] block = heads.get(i);
-            System.arraycopy(block, 0, totalMap, i * 257, 257);
-        }
-        System.out.println(Arrays.toString(totalMap));
-        BWTEncoderByte beb = new BWTEncoderByte(totalMap);
-        byte[] bebMap = beb.Transform();
-        byte[] mapMtf = new MTFTransformByte(bebMap).Transform(18);
-        byte[] cmpMap = new MapCompressor(mapMtf).Compress(false);
-        outFile.write(cmpMap);
-        length += cmpMap.length;
-
-        return length;
+    /**
+     * @return [lazy evaluation delay, skip repeat]
+     */
+    private int[] getCompressionParam() {
+        if (compressionLevel == 0) return new int[]{0, 0};
+        else if (compressionLevel == 1) return new int[]{1, 0};
+        else if (compressionLevel == 2) return new int[]{2, 0};
+        else if (compressionLevel == 3) return new int[]{1, 1};
+        else if (compressionLevel == 4) return new int[]{2, 1};
+        else throw new IndexOutOfBoundsException("Unknown level");
     }
 }

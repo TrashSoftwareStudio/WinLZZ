@@ -2,6 +2,7 @@ package trashsoftware.win_bwz.utility;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * An output stream which writes to a file in bit level.
@@ -14,22 +15,28 @@ public class FileBitOutputStream {
     private BufferedOutputStream bos;
 
     /**
+     * The length written.
+     */
+    private long length;
+
+    /**
      * The current operating byte.
      */
-    private int current;
+    private int bits;
 
     /**
      * The current writing position of the byte {@code current}.
      */
-    private int pointer;
+    private int bitPos;
 
     /**
      * Creates a new {@code FileBitOutputStream} instance.
      *
-     * @param bos the {@code BufferedOutputStream} to write data in.
+     * @param fos the {@code OutputStream} to write data in.
      */
-    public FileBitOutputStream(BufferedOutputStream bos) {
-        this.bos = bos;
+    public FileBitOutputStream(OutputStream fos) {
+        if (fos instanceof BufferedOutputStream) bos = (BufferedOutputStream) fos;
+        else bos = new BufferedOutputStream(fos);
     }
 
     /**
@@ -55,14 +62,16 @@ public class FileBitOutputStream {
      * @throws IOException if the output stream is not writable
      */
     public void write(int bit) throws IOException {
-        current = current << 1;
-        current = current | bit;
-        if (pointer != 7) {
-            pointer += 1;
-        } else {
-            bos.write((byte) current);
-            pointer = 0;
-        }
+//        bits = bits << 1;
+//        bits = bits | bit;
+//        if (bitPos != 7) {
+//            bitPos += 1;
+//        } else {
+//            length++;
+//            bos.write((byte) bits);
+//            bitPos = 0;
+//        }
+        writeBits(bit, 1);
     }
 
     /**
@@ -72,9 +81,69 @@ public class FileBitOutputStream {
      * @throws IOException if the output stream is not writable
      */
     public void writeByte(byte b) throws IOException {
-        for (int i = 0; i < 8; i++) {
-            write(b >> (7 - i) & 1);
+//        for (int i = 0; i < 8; i++) {
+//            write(b >> (7 - i) & 1);
+//        }
+        writeBits(b, 8);
+    }
+
+    private void writeBits(int bits, int bitsCount) throws IOException {
+        bitPos += bitsCount;
+        this.bits <<= bitsCount;
+        this.bits |= (bits & getAndEr(bitsCount));
+        flushBits();
+    }
+
+    private void flushBits() throws IOException {
+        while (bitPos >= 8) {
+            bitPos -= 8;
+            int temp = (bits >> bitPos) & 0xff;
+            bos.write(temp);
+            length++;
         }
+    }
+
+    private int getAndEr(int bitCount) {
+        switch (bitCount) {
+            case 1:
+                return 1;
+            case 2:
+                return 3;
+            case 3:
+                return 7;
+            case 4:
+                return 15;
+            case 5:
+                return 31;
+            case 6:
+                return 63;
+            case 7:
+                return 127;
+            case 8:
+                return 255;
+            case 9:
+                return 511;
+            case 10:
+                return 1023;
+            case 11:
+                return 2047;
+            case 12:
+                return 4095;
+            case 13:
+                return 8191;
+            case 14:
+                return 16383;
+            case 15:
+                return 32767;
+            case 16:
+                return 65535;
+            default:
+                throw new RuntimeException("Can't");
+        }
+    }
+
+    public long getLength() {
+        return length;
     }
 
     /**
@@ -83,9 +152,16 @@ public class FileBitOutputStream {
      * @throws IOException if the {@code bos} cannot be flushed
      */
     public void flush() throws IOException {
-        if (pointer != 0) {
-            current = current << (8 - pointer);
-            bos.write((byte) current);
+//        if (bitPos != 0) {
+//            bits = bits << (8 - bitPos);
+//            bos.write((byte) bits);
+//            length++;
+//        }
+        if (bitPos > 0) {
+            bits <<= (8 - bitPos);
+            bitPos = 0;
+            bos.write(bits);
+            length++;
         }
         bos.flush();
     }

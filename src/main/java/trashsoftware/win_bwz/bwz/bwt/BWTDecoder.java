@@ -72,15 +72,11 @@ public class BWTDecoder {
     }
 
     public byte[] Decode() {
-//        long begin = System.currentTimeMillis();
         byte[] inv = mtl_sa();
-//        System.out.println(Arrays.toString(inv));
         byte[] rev = new byte[inv.length - 1];
         for (int i = 1; i < inv.length; i++) {
             rev[inv.length - i - 1] = inv[i];
         }
-//        timeAcc += System.currentTimeMillis() - begin;
-//        System.out.println(timeAcc);
         return rev;
     }
 
@@ -138,7 +134,6 @@ public class BWTDecoder {
         return ll;
     }
 
-    @Contract(pure = true)
     private int[] computeLF2(int[] lf) {
         int[] lf2 = new int[cmpText.length];
         for (int i = 0; i < cmpText.length; ++i) {

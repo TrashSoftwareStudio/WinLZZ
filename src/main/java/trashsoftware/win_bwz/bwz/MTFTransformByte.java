@@ -43,17 +43,15 @@ public class MTFTransformByte {
                 count += 1;  // If the MTF result is 0, add one to the run-length.
             } else {
                 if (count != 0) {
-                    byte[] runLength = BWZUtil.runLengthByte(count);
-                    for (byte rl : runLength)
-                        result[index++] = rl;  // Record the run-length of 0's and reset the counter.
+                    index += BWZUtil.runLengthByte(count, result, index);
+//                        result[index++] = rl;  // Record the run-length of 0's and reset the counter.
                     count = 0;
                 }
                 result[index++] = (byte) (s + 1);
             }
         }
         if (count != 0) {  // Add last few 0's
-            byte[] runLength = BWZUtil.runLengthByte(count);
-            for (byte rl : runLength) result[index++] = rl;
+            index += BWZUtil.runLengthByte(count, result, index);
         }
         byte[] rtn = new byte[index];
         System.arraycopy(result, 0, rtn, 0, index);

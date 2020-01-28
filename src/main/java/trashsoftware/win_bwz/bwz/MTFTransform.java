@@ -3,6 +3,8 @@ package trashsoftware.win_bwz.bwz;
 import trashsoftware.win_bwz.bwz.util.BWZUtil;
 import trashsoftware.win_bwz.bwz.util.LinkedDictionary;
 
+import java.util.Arrays;
+
 /**
  * A Move-To-Front transformer, a Zero-Run-Length-Coder is integrated.
  * <p>
@@ -30,8 +32,7 @@ class MTFTransform {
      * @return the text after mtf transformation and zero run length coding..
      */
     int[] Transform() {
-        LinkedDictionary ld = new LinkedDictionary();
-        ld.initialize(257);
+        ArrayDictionary ld = new ArrayDictionary(257);
         int[] result = new int[origText.length];
         int index = 0;
         int i = 0;
@@ -59,4 +60,44 @@ class MTFTransform {
     }
 }
 
+class ArrayDictionary {
 
+    private int[] array;
+
+    ArrayDictionary(int alphabetSize) {
+        array = new int[alphabetSize];
+        for (int i = 0; i < alphabetSize; ++i) {
+            array[i] = i;
+        }
+    }
+
+    int findAndMove(int value) {
+        if (array[0] == value) return 0;
+        int loopSize = array.length;
+        int last = array[0];
+        for (int i = 1; i < loopSize; ++i) {
+            int v = array[i];
+            array[i] = last;
+            last = v;
+            if (v == value) {
+                array[0] = v;
+                return i;
+            }
+        }
+        throw new RuntimeException("Cannot find symbol");
+    }
+
+    public static void main(String[] args) {
+        int[] eee = {3, 3, 3, 4, 7, 2, 5, 1, 2, 0, 7, 3, 2, 2, 3, 1, 2};
+        ArrayDictionary ad = new ArrayDictionary(8);
+//        System.out.println(Arrays.toString(ad.array));
+//        System.out.println(ad.findAndMove(3));
+//        System.out.println(Arrays.toString(ad.array));
+        int[] rrr = new int[eee.length];
+        for (int i = 0; i < eee.length; ++i) {
+            int f = ad.findAndMove(eee[i]);
+            rrr[i] = f;
+        }
+        System.out.println(Arrays.toString(rrr));
+    }
+}

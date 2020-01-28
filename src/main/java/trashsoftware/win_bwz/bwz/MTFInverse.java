@@ -30,16 +30,17 @@ class MTFInverse {
      *
      * @return the text after the inverse transform.
      */
-    @Deprecated
-    int[] decode2() {
+    int[] decode() {
         int[] dictionary = new int[257];
         for (int i = 0; i < 257; i++) dictionary[i] = i;
         int[] result = new int[text.length];
         int index = 0;
         for (int b : text) {
             int s = dictionary[b];
-            System.arraycopy(dictionary, 0, dictionary, 1, b);
-            dictionary[0] = s;
+            if (b > 0) {
+                System.arraycopy(dictionary, 0, dictionary, 1, b);
+                dictionary[0] = s;
+            }
             result[index++] = s;
         }
         return result;
@@ -53,7 +54,8 @@ class MTFInverse {
      *
      * @return the text after the inverse transform.
      */
-    int[] decode() {
+    @Deprecated
+    int[] decode2() {
         SplitLinkedList sll = new SplitLinkedList();
         int[] result = new int[text.length];
         int index = 0;

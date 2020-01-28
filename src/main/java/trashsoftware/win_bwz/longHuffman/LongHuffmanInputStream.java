@@ -291,12 +291,7 @@ public class LongHuffmanInputStream {
     }
 
     private int getAndEr(int len) {
-        int andEr = 1;
-        for (int j = 1; j < len; ++j) {
-            andEr <<= 1;
-            andEr |= 1;
-        }
-        return andEr;
+        return (1 << len) - 1;
     }
 
     private void unCompress() throws IOException {

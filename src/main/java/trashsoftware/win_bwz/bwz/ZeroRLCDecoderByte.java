@@ -33,16 +33,17 @@ public class ZeroRLCDecoderByte {
      */
     public byte[] Decode() {
         ArrayList<Byte> temp = new ArrayList<>();
-        ArrayList<Byte> runLengths = new ArrayList<>();
+        int[] buffer = new int[100];
+        int bufferIndex = 0;
         int i = 0;
         while (i < text.length) {
             byte b = text[i];
             if (b == 0 || b == 1) {
-                runLengths.add(b);
+                buffer[bufferIndex++] = b;
             } else {
-                if (!runLengths.isEmpty()) {
-                    int length = BWZUtil.runLengthInverse(Util.collectionToArray(runLengths));
-                    runLengths.clear();
+                if (bufferIndex > 0) {
+                    int length = BWZUtil.runLengthInverse(buffer, bufferIndex);
+                    bufferIndex = 0;
                     for (int j = 0; j < length; j++) {
                         temp.add((byte) 0);
                     }
@@ -52,11 +53,10 @@ public class ZeroRLCDecoderByte {
             i += 1;
 
         }
-        if (!runLengths.isEmpty()) {  // Last few 0's
-            int length = BWZUtil.runLengthInverse(Util.collectionToArray(runLengths));
-            for (int j = 0; j < length; j++) {
-                temp.add((byte) 0);
-            }
+        if (bufferIndex > 0) {
+            int length = BWZUtil.runLengthInverse(buffer, bufferIndex);
+//            bufferIndex = 0;
+            for (int j = 0; j < length; j++) temp.add((byte) 0);
         }
         return Util.collectionToArray(temp);
     }

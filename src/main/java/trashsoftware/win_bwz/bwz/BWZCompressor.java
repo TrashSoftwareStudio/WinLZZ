@@ -366,6 +366,8 @@ class EncodeThread implements Runnable {
         this.parent = parent;
     }
 
+    static long bwtTime, mtfTime;
+
     private void start() {
         boolean isDc3 = partSize >= BWZCompressor.dc3DecisionSize;
         int huffmanBlockNumber;  // The number of huffman blocks needed for this BWT trunk.
@@ -380,14 +382,19 @@ class EncodeThread implements Runnable {
         results = new byte[huffmanBlockNumber][];
         flags = new byte[huffmanBlockNumber];
 
+        long t1 = System.currentTimeMillis();
         BWTEncoder be = new BWTEncoder(buffer, beginIndex, partSize, isDc3);
         int[] bwtResult = be.Transform();
+        long t2 = System.currentTimeMillis();
+        bwtTime += t2 - t1;
 
-        parent.pos += partSize * 0.6;
+        parent.pos += partSize * 0.75;
         if (parent.parent != null) parent.parent.progress.set(parent.pos);  // Update progress
 
         MTFTransform mtf = new MTFTransform(bwtResult);
         int[] array = mtf.Transform();  // Also contains RLC Result.
+        mtfTime += System.currentTimeMillis() - t2;
+//        System.out.println(String.format("bwt: %d, mtf: %d", bwtTime, mtfTime));
 
         int eachLength = array.length / huffmanBlockNumber;
         int pos = 0;
@@ -426,7 +433,7 @@ class EncodeThread implements Runnable {
             maps[i] = map;
             results[i] = hcr.compress();
         }
-        parent.pos += partSize * 0.4;  // Update progress again
+        parent.pos += partSize * 0.25;  // Update progress again
     }
 
     /**

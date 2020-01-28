@@ -151,8 +151,8 @@ public class BWZCompressor implements Compressor {
 //                    buffer = new byte[len];
 //                    System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
 //                }
-                int size = Math.min(begin + windowSize, read);
-                EncodeThread et = new EncodeThread(block, begin, size, windowSize, this);
+                int end = Math.min(begin + windowSize, read);
+                EncodeThread et = new EncodeThread(block, begin, end - begin, windowSize, this);
                 threads[i] = et;
                 es.execute(et);
 
@@ -212,8 +212,8 @@ public class BWZCompressor implements Compressor {
 //                    buffer = new byte[len];
 //                    System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
 //                }
-                int size = Math.min(begin + windowSize, read);
-                EncodeThread et = new EncodeThread(buffer, begin, size, windowSize, this);
+                int end = Math.min(begin + windowSize, read);
+                EncodeThread et = new EncodeThread(buffer, begin, end - begin, windowSize, this);
                 threads[i] = et;
                 es.execute(et);
 
@@ -323,6 +323,10 @@ public class BWZCompressor implements Compressor {
     public void setThreads(int threads) {
         this.threadNumber = threads;
     }
+
+    public int getThreadNumber() {
+        return threadNumber;
+    }
 }
 
 
@@ -363,13 +367,13 @@ class EncodeThread implements Runnable {
     }
 
     private void start() {
-        boolean isDc3 = buffer.length >= BWZCompressor.dc3DecisionSize;
+        boolean isDc3 = partSize >= BWZCompressor.dc3DecisionSize;
         int huffmanBlockNumber;  // The number of huffman blocks needed for this BWT trunk.
-        if (buffer.length <= parent.maxHuffmanSize) {
+        if (partSize <= parent.maxHuffmanSize) {
             huffmanBlockNumber = 1;
         } else {
-            huffmanBlockNumber = buffer.length / parent.maxHuffmanSize;
-            if (buffer.length < windowSize) huffmanBlockNumber += 1;
+            huffmanBlockNumber = partSize / parent.maxHuffmanSize;
+            if (partSize < windowSize) huffmanBlockNumber += 1;
         }
 
         maps = new byte[huffmanBlockNumber][];
@@ -379,7 +383,7 @@ class EncodeThread implements Runnable {
         BWTEncoder be = new BWTEncoder(buffer, beginIndex, partSize, isDc3);
         int[] bwtResult = be.Transform();
 
-        parent.pos += buffer.length * 0.6;
+        parent.pos += partSize * 0.6;
         if (parent.parent != null) parent.parent.progress.set(parent.pos);  // Update progress
 
         MTFTransform mtf = new MTFTransform(bwtResult);
@@ -422,7 +426,7 @@ class EncodeThread implements Runnable {
             maps[i] = map;
             results[i] = hcr.compress();
         }
-        parent.pos += buffer.length * 0.4;  // Update progress again
+        parent.pos += partSize * 0.4;  // Update progress again
     }
 
     /**

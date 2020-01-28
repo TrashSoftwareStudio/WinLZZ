@@ -141,27 +141,17 @@ public class BWZDeCompressor implements DeCompressor {
                 int origRow = Bytes.bytesToInt24(origRowBytes);
 //                System.out.format("%d %d %d\n", flagLen, mapLen, origRow);
                 blockBytes = his.read(mapLen + flagLen);
-//                byte[] bb2;
-//                if (!Arrays.equals(blockBytes, bb2 = his.read(mapLen + flagLen))) {
-//                    System.out.println(222);
-//                }
-//                System.out.println(Arrays.toString(Util.byteArrayToStringArray(blockBytes)) +
-//                        "\n" + Arrays.toString(Util.byteArrayToStringArray(bb2)));
+                if (blockBytes == null) {
+                    throw new RuntimeException("Cannot read block");
+                }
 
                 fillMaps(blockBytes, flagLen, mapLen, origRow);
             }
             byte[] map = huffmanMaps.removeFirst();
-            long t1 = System.currentTimeMillis();
+//            long t1 = System.currentTimeMillis();
             huffmanResult = his.read(map, BWZCompressor.huffmanEndSig);
-            hufTotal += System.currentTimeMillis() - t1;
-            System.out.println("huf :" + hufTotal);
-//            System.out.println(Arrays.toString(huffmanResult));
-//            short[] hr2 = his.read(map, BWZCompressor.huffmanEndSig);
-////            System.out.println(Arrays.toString(hr2));
-//            if (!Arrays.equals(huffmanResult, hr2)) {
-//                System.out.println(Arrays.toString(huffmanResult));
-//                System.out.println(Arrays.toString(hr2));
-//            }
+//            hufTotal += System.currentTimeMillis() - t1;
+//            System.out.println("huf :" + hufTotal);
 
             huffmanBlockList.add(huffmanResult);
 
@@ -326,7 +316,7 @@ class DecodeThread implements Runnable {
         rldTotal += t2 - t1;
         mtfTotal += t3 - t2;
         bwtTotal += t4 - t3;
-        System.out.println(String.format("rld: %d, mtf: %d, bwt: %d", rldTotal, mtfTotal, bwtTotal));
+//        System.out.println(String.format("rld: %d, mtf: %d, bwt: %d", rldTotal, mtfTotal, bwtTotal));
         parent.pos = parent.pos - rld.length / 2 + result.length;
     }
 

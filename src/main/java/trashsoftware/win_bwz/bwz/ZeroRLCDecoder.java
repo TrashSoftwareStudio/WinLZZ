@@ -37,27 +37,27 @@ class ZeroRLCDecoder {
     int[] Decode() {
         int[] temp = new int[maxBlockLength];
         int index = 0;
-        ArrayList<Integer> runLengths = new ArrayList<>();
+        int[] buffer = new int[100];
+        int bufferIndex = 0;
         int i = 0;
         while (i < text.length) {
             int b = text[i];
             if (b < 2) {
-                runLengths.add(b);
+                buffer[bufferIndex++] = b;
             } else {
-                if (!runLengths.isEmpty()) {
-                    int length = BWZUtil.runLengthInverse(runLengths);
-                    runLengths.clear();
+                if (bufferIndex > 0) {
+                    int length = BWZUtil.runLengthInverse(buffer, bufferIndex);
+                    bufferIndex = 0;
                     for (int j = 0; j < length; j++) temp[index++] = 0;
                 }
                 temp[index++] = b - 1;
             }
             i += 1;
         }
-        if (!runLengths.isEmpty()) {  // Last few 0's
-            int length = BWZUtil.runLengthInverse(Util.collectionToIntArray(runLengths));
-            for (int j = 0; j < length; j++) {
-                temp[index++] = 0;
-            }
+        if (bufferIndex > 0) {
+            int length = BWZUtil.runLengthInverse(buffer, bufferIndex);
+//            bufferIndex = 0;
+            for (int j = 0; j < length; j++) temp[index++] = 0;
         }
         if (index == maxBlockLength) return temp;
         else {

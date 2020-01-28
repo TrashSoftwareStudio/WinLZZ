@@ -126,13 +126,13 @@ public class BWZCompressor implements Compressor {
         int read;
         byte[] block = new byte[windowSize * threadNumber];
         while ((read = sis.read(block)) > 0) {
-            byte[] validBlock;
-            if (read == windowSize * threadNumber) {
-                validBlock = block;
-            } else {
-                validBlock = new byte[read];
-                System.arraycopy(block, 0, validBlock, 0, read);
-            }
+//            byte[] validBlock;
+//            if (read == windowSize * threadNumber) {
+//                validBlock = block;
+//            } else {
+//                validBlock = new byte[read];
+//                System.arraycopy(block, 0, validBlock, 0, read);
+//            }
 
             int threadsNeed;
             if (read % windowSize == 0) threadsNeed = read / windowSize;
@@ -140,19 +140,23 @@ public class BWZCompressor implements Compressor {
 
             EncodeThread[] threads = new EncodeThread[threadsNeed];
             ExecutorService es = Executors.newCachedThreadPool();
+            int begin = 0;
             for (int i = 0; i < threads.length; i++) {
-                byte[] buffer;
-                if ((i + 1) * windowSize <= validBlock.length) {
-                    buffer = new byte[windowSize];
-                    System.arraycopy(validBlock, i * windowSize, buffer, 0, windowSize);
-                } else {
-                    int len = validBlock.length % windowSize;
-                    buffer = new byte[len];
-                    System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
-                }
-                EncodeThread et = new EncodeThread(buffer, windowSize, this);
+//                byte[] buffer;
+//                if ((i + 1) * windowSize <= validBlock.length) {
+//                    buffer = new byte[windowSize];
+//                    System.arraycopy(validBlock, i * windowSize, buffer, 0, windowSize);
+//                } else {
+//                    int len = validBlock.length % windowSize;
+//                    buffer = new byte[len];
+//                    System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
+//                }
+                int size = Math.min(begin + windowSize, read);
+                EncodeThread et = new EncodeThread(block, begin, size, windowSize, this);
                 threads[i] = et;
                 es.execute(et);
+
+                begin += windowSize;
             }
             es.shutdown();
             es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
@@ -182,13 +186,14 @@ public class BWZCompressor implements Compressor {
         ByteBuffer block = ByteBuffer.allocate(windowSize * threadNumber);
         while ((read = fis.read(block)) > 0) {
             block.flip();
-            byte[] validBlock;
-            if (read == windowSize * threadNumber) {
-                validBlock = block.array();
-            } else {
-                validBlock = new byte[read];
-                System.arraycopy(block.array(), 0, validBlock, 0, read);
-            }
+            byte[] buffer = block.array();
+//            byte[] validBlock;
+//            if (read == windowSize * threadNumber) {
+//                validBlock = block.array();
+//            } else {
+//                validBlock = new byte[read];
+//                System.arraycopy(block.array(), 0, validBlock, 0, read);
+//            }
 
             int threadsNeed;
             if (read % windowSize == 0) threadsNeed = read / windowSize;
@@ -196,19 +201,23 @@ public class BWZCompressor implements Compressor {
 
             EncodeThread[] threads = new EncodeThread[threadsNeed];
             ExecutorService es = Executors.newCachedThreadPool();
+            int begin = 0;
             for (int i = 0; i < threads.length; i++) {
-                byte[] buffer;
-                if ((i + 1) * windowSize <= validBlock.length) {
-                    buffer = new byte[windowSize];
-                    System.arraycopy(validBlock, i * windowSize, buffer, 0, windowSize);
-                } else {
-                    int len = validBlock.length % windowSize;
-                    buffer = new byte[len];
-                    System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
-                }
-                EncodeThread et = new EncodeThread(buffer, windowSize, this);
+//                byte[] buffer;
+//                if ((i + 1) * windowSize <= validBlock.length) {
+//                    buffer = new byte[windowSize];
+//                    System.arraycopy(validBlock, i * windowSize, buffer, 0, windowSize);
+//                } else {
+//                    int len = validBlock.length % windowSize;
+//                    buffer = new byte[len];
+//                    System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
+//                }
+                int size = Math.min(begin + windowSize, read);
+                EncodeThread et = new EncodeThread(buffer, begin, size, windowSize, this);
                 threads[i] = et;
                 es.execute(et);
+
+                begin += windowSize;
             }
             es.shutdown();
             es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
@@ -327,6 +336,9 @@ public class BWZCompressor implements Compressor {
 class EncodeThread implements Runnable {
 
     private byte[] buffer;
+    private int beginIndex;
+    private int partSize;
+
     private byte[][] results;
     private byte[][] maps;
     private byte[] flags;
@@ -336,12 +348,16 @@ class EncodeThread implements Runnable {
     /**
      * Creates a new {@code EncodeThread} instance.
      *
-     * @param partData   the data to be compressed.
+     * @param data       the whole data
      * @param windowSize the block size.
+     * @param beginIndex the index in <code>data</code> to be compressed
+     * @param partSize   the number of byte to be compressed
      * @param parent     the parent {@code BWZCompressor} which has launched this {@code EncodeThread}.
      */
-    EncodeThread(byte[] partData, int windowSize, BWZCompressor parent) {
-        this.buffer = partData;
+    EncodeThread(byte[] data, int beginIndex, int partSize, int windowSize, BWZCompressor parent) {
+        this.buffer = data;
+        this.beginIndex = beginIndex;
+        this.partSize = partSize;
         this.windowSize = windowSize;
         this.parent = parent;
     }
@@ -360,7 +376,7 @@ class EncodeThread implements Runnable {
         results = new byte[huffmanBlockNumber][];
         flags = new byte[huffmanBlockNumber];
 
-        BWTEncoder be = new BWTEncoder(buffer, isDc3);
+        BWTEncoder be = new BWTEncoder(buffer, beginIndex, partSize, isDc3);
         int[] bwtResult = be.Transform();
 
         parent.pos += buffer.length * 0.6;

@@ -235,6 +235,12 @@ public abstract class Bytes {
         return new byte[]{(byte) ((i >> 16) & 0xff), (byte) ((i >> 8) & 0xff), (byte) (i & 0xff)};
     }
 
+    public static void intToByte24(int i, int[] dst, int dstIndex) {
+        dst[dstIndex] = (i >> 16) & 0xff;
+        dst[dstIndex + 1] = (i >> 8) & 0xff;
+        dst[dstIndex + 2] = i & 0xff;
+    }
+
     /**
      * Convert a long into a 8-byte array in big-endian.
      *

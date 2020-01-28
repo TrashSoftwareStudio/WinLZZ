@@ -35,13 +35,13 @@ public class BWTEncoder {
     /**
      * Creates a new {@code BWTEncoder} instance.
      *
-     * @param text  The text being transformed.
-     * @param isDc3 Whether to use dc3 or doubling algorithm.
+     * @param fullText The total text, part being transformed.
+     * @param isDc3    Whether to use dc3 or doubling algorithm.
      */
-    public BWTEncoder(byte[] text, boolean isDc3) {
+    public BWTEncoder(byte[] fullText, int begin, int size, boolean isDc3) {
         this.isDc3 = isDc3;
-        this.text = new int[text.length + 1];
-        for (int i = 0; i < text.length; i++) this.text[i] = (text[i] & 0xff) + 1;  // Transform every byte
+        this.text = new int[size + 1];
+        for (int i = 0; i < size; i++) this.text[i] = (fullText[begin + i] & 0xff) + 1;  // Transform every byte
         // to unsigned and plus one to make sure nothing is smaller than or equal to the EOF character.
         this.text[this.text.length - 1] = 0;  // Add the EOF character (0) at the end of the original text.
         // This is necessary for transforming suffix array into Burrows-Wheeler matrix.
@@ -53,12 +53,7 @@ public class BWTEncoder {
      * @return the text after transformation, including the record of {@code origRowIndex}.
      */
     public int[] Transform() {
-        int[] result = new int[text.length + 3];
-        int[] trans = transform();
-        byte[] indexRep = Bytes.intToBytes24(origRowIndex);
-        for (int i = 0; i < 3; i++) result[i] = indexRep[i] & 0xff;
-        System.arraycopy(trans, 0, result, 3, trans.length);
-        return result;
+        return transform();
     }
 
     private int[] transform() {
@@ -74,12 +69,15 @@ public class BWTEncoder {
 
         int len = suffixArray.length;
         assert len == text.length;
-        int[] result = new int[len];
+        int[] result = new int[len + 3];
         for (int i = 0; i < len; i++) {
             int pos = (suffixArray[i] + len - 1) % len;
-            result[i] = text[pos];
+            result[i + 3] = text[pos];
             if (suffixArray[i] == 0) origRowIndex = i;
         }
+
+        Bytes.intToByte24(origRowIndex, result, 0);
+
         return result;
     }
 }

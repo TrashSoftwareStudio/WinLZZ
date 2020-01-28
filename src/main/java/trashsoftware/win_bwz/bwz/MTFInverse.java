@@ -60,5 +60,5 @@ class MTFInverse {
         for (int i : text) result[index++] = sll.getAndMove(i);
         return result;
     }
-}
 
+}

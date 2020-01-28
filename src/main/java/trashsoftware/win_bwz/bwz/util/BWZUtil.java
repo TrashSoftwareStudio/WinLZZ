@@ -14,25 +14,22 @@ public abstract class BWZUtil {
 
     /**
      * Returns the array of the {0, 1} base-2 bijective enumeration.
-     *
-     * @param length the number to be transformed.
-     * @return the bijective enumeration.
      */
-    public static int[] runLength(int length) {
-        LinkedList<Integer> list = new LinkedList<>();
+    public static int runLength(int length, int[] result, int resultIndex) {
         int remainder = length;
         int base = 1;
+        int index = 0;
         while (remainder > 0) {
-            if (remainder % (base * 2) == 0) {
-                list.addLast(1);
-                remainder -= base * 2;
+            if ((remainder & ((base << 1) - 1)) == 0) {
+                result[resultIndex + index++] = 1;
+                remainder -= (base << 1);
             } else {
-                list.addLast(0);
+                result[resultIndex + index++] = 0;
                 remainder -= base;
             }
-            base *= 2;
+            base <<= 1;
         }
-        return Util.collectionToIntArray(list);
+        return index;
     }
 
     /**
@@ -56,6 +53,14 @@ public abstract class BWZUtil {
     public static int runLengthInverse(List<Integer> s) {
         int result = 0;
         for (int i = 0; i < s.size(); i++) result += (Math.pow(2, i) * (s.get(i) + 1));
+        return result;
+    }
+
+    public static int runLengthInverse(int[] buffer, int bufferLen) {
+        int result = 0;
+        for (int i = 0; i < bufferLen; ++i) {
+            result += buffer[i] == 0 ? (1 << i) : (1 << (i + 1));  // buffer[i] is either 0 or 1
+        }
         return result;
     }
 

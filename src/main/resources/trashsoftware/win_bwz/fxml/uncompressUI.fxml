@@ -38,7 +38,7 @@
                         text="注释"/>
                 <Button fx:id="testButton" mnemonicParsing="false" onAction="#testAction" text="测试"/>
                 <Label fx:id="threadNumberLabel" text="线程数量:"/>
-                <ComboBox fx:id="threadNumberBox" prefWidth="60.0"/>
+                <ComboBox fx:id="threadNumberBox" prefWidth="80.0"/>
             </HBox>
             <HBox alignment="CENTER_RIGHT" prefHeight="40.0" prefWidth="300.0" spacing="10.0">
                 <padding>

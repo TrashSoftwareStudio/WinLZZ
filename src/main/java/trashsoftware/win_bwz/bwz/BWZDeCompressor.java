@@ -34,7 +34,7 @@ public class BWZDeCompressor implements DeCompressor {
     private int huffmanBlockMaxSize, windowSize;
 
     private FileChannel fc;
-//    private InputStream fis;
+    //    private InputStream fis;
     private LinkedList<byte[]> huffmanMaps = new LinkedList<>();
     private int threadNum = 1;  // Default thread number.
     UnPacker parent;
@@ -80,7 +80,8 @@ public class BWZDeCompressor implements DeCompressor {
         byte[] rldFlags = rld.Decode();
         byte[] flags = new MTFInverseByte(rldFlags).Inverse(256);
 
-        byte[] uncMap = new MapDeCompressor(cmpMap).Uncompress((windowSize / huffmanBlockMaxSize + 1) * 259, false);
+        byte[] uncMap = new MapDeCompressor(cmpMap).
+                Uncompress((windowSize / huffmanBlockMaxSize + 1) * 259, false);
         byte[] rldMap = new ZeroRLCDecoderByte(uncMap).Decode();
         byte[] mtfMap = new MTFInverseByte(rldMap).Inverse(18);
         byte[] maps = new BWTDecoderByte(mtfMap, origRow).Decode();
@@ -100,6 +101,8 @@ public class BWZDeCompressor implements DeCompressor {
             huffmanMaps.addLast(map);
         }
     }
+
+    private static long hufTotal;
 
     private void decode(OutputStream out, FileChannel fc) throws Exception {
         long lastCheckTime = System.currentTimeMillis();
@@ -148,7 +151,10 @@ public class BWZDeCompressor implements DeCompressor {
                 fillMaps(blockBytes, flagLen, mapLen, origRow);
             }
             byte[] map = huffmanMaps.removeFirst();
+            long t1 = System.currentTimeMillis();
             huffmanResult = his.read(map, BWZCompressor.huffmanEndSig);
+            hufTotal += System.currentTimeMillis() - t1;
+            System.out.println("huf :" + hufTotal);
 //            System.out.println(Arrays.toString(huffmanResult));
 //            short[] hr2 = his.read(map, BWZCompressor.huffmanEndSig);
 ////            System.out.println(Arrays.toString(hr2));
@@ -175,7 +181,7 @@ public class BWZDeCompressor implements DeCompressor {
                 // Got enough blocks to start multi-threading, or reaches the end of file.
                 if (blockList.size() == threadNum || huffmanMaps.isEmpty()) {
                     ExecutorService es = Executors.newCachedThreadPool();
-                    DecodeThread threads[] = new DecodeThread[blockList.size()];
+                    DecodeThread[] threads = new DecodeThread[blockList.size()];
                     for (int i = 0; i < threads.length; i++) {
                         threads[i] = new DecodeThread(blockList.get(i), windowSize, this);
                         es.execute(threads[i]);
@@ -301,16 +307,26 @@ class DecodeThread implements Runnable {
         this.parent = parent;
     }
 
+    private static long rldTotal, mtfTotal, bwtTotal;
+
     /**
      * Starts this {@code DecodeThread}.
      */
     @Override
     public void run() {
+        long t1 = System.currentTimeMillis();
         int[] rld = new ZeroRLCDecoder(text, windowSize + 4).Decode();
+        long t2 = System.currentTimeMillis();
         parent.pos += rld.length / 2;
         if (parent.parent != null) parent.parent.progress.set(parent.pos);
         int[] mtf = new MTFInverse(rld).decode();
+        long t3 = System.currentTimeMillis();
         result = new BWTDecoder(mtf).Decode();
+        long t4 = System.currentTimeMillis();
+        rldTotal += t2 - t1;
+        mtfTotal += t3 - t2;
+        bwtTotal += t4 - t3;
+        System.out.println(String.format("rld: %d, mtf: %d, bwt: %d", rldTotal, mtfTotal, bwtTotal));
         parent.pos = parent.pos - rld.length / 2 + result.length;
     }
 

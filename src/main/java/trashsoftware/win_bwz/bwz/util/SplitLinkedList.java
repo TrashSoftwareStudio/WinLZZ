@@ -36,8 +36,8 @@ public class SplitLinkedList {
             return front;
         } else {
             int trueIndex = index - 1;
-            int range = (trueIndex) / 16;
-            int split = (trueIndex) % 16;
+            int range = trueIndex >> 4;
+            int split = trueIndex & 0x0f;
             short item = lists[range].remove(split);
             for (int i = range; i > 0; i--) lists[i].addFirst(lists[i - 1].removeLast());
             lists[0].addFirst(front);

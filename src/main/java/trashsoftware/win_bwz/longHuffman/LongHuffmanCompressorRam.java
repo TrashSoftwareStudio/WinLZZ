@@ -1,9 +1,5 @@
 package trashsoftware.win_bwz.longHuffman;
 
-import trashsoftware.win_bwz.utility.Bytes;
-
-import java.util.HashMap;
-
 /**
  * A huffman compression program that all operations take places in the random access memory.
  * <p>
@@ -14,13 +10,13 @@ import java.util.HashMap;
  */
 public class LongHuffmanCompressorRam {
 
-    private int[] text;
+    private int[] fullText;
+    private int textBegin;
+    private int textSize;
     private int alphabetSize;
     private int[] freqTable;
     private int[] codeTable;
     private int[] lengthTable;
-//    private HashMap<Integer, Integer> freqMap = new HashMap<>();
-//    private HashMap<Integer, String> huffmanCode = new HashMap<>();
 
     /**
      * The maximum height (depth) of the huffman tree.
@@ -39,26 +35,31 @@ public class LongHuffmanCompressorRam {
      * This compressor works completely in random access memory.
      *
      * @param text         the text to be compressed.
+     * @param textBegin    the beginning index in <code>text</code> to be compressed
+     * @param textSize     the length of text to be compressed
      * @param alphabetSize the alphabet size, with endSig and other included
      * @param endSig       the mark of the end of stream.
      */
-    public LongHuffmanCompressorRam(int[] text, int alphabetSize, int endSig) {
-        this.text = text;
+    public LongHuffmanCompressorRam(int[] text, int textBegin, int textSize, int alphabetSize, int endSig) {
+        this.fullText = text;
+        this.textBegin = textBegin;
+        this.textSize = textSize;
         this.endSig = endSig;
         this.alphabetSize = alphabetSize;
     }
 
     private void generateFreqMap() {
-        LongHuffmanUtil.addArrayToFreqMap(text, freqTable, text.length);
+        LongHuffmanUtil.addArrayToFreqMap(fullText, freqTable, textBegin, textSize);
         freqTable[endSig] = 1;
     }
 
     private byte[] compressText() {
-        byte[] out = new byte[text.length + 256];  // assume the compression result will not exceed the orig len + 256
+        byte[] out = new byte[textSize + 256];  // assume the compression result will not exceed the orig len + 256
         int bits = 0;
         int bitPos = 0;
         int resIndex = 0;
-        for (int value : text) {
+        for (int i = 0; i < textSize; ++i) {
+            int value = fullText[textBegin + i];
             int codeLen = lengthTable[value];
             int code = codeTable[value];
             if (codeLen == 0) throw new RuntimeException();
@@ -94,18 +95,11 @@ public class LongHuffmanCompressorRam {
         return result;
     }
 
-//    private byte[] compressText2() {
-//        ByteArrayOutputStream os = new ByteArrayOutputStream();
-//        LongHuffmanUtil.addCompressed(text, text.length, os, huffmanCode, endSig);
-//        return os.toByteArray();
-//    }
-
     /**
      * Sets up the {@code maxHeight} value which limits the max depth of the huffman tree.
      *
      * @param height the tree-height limit.
      */
-    @SuppressWarnings("all")
     public void setMaxHeight(int height) {
         this.maxHeight = height;
     }

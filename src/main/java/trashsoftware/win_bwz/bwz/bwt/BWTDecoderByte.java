@@ -1,7 +1,5 @@
 package trashsoftware.win_bwz.bwz.bwt;
 
-import java.util.Arrays;
-
 /**
  * A inverse transformer of Burrows-Wheeler Transform.
  * <p>
@@ -29,29 +27,73 @@ public class BWTDecoderByte {
 
     /**
      * Inverses the BWT.
-     * <p>
-     * Algorithm found in:
-     * https://www.geeksforgeeks.org/inverting-burrows-wheeler-transform/
      *
      * @return The original text.
      */
     public byte[] Decode() {
-        int len = cmpText.length;
-        int[] lShift = new int[len];
-        byte[] sorted = new byte[cmpText.length];
-        System.arraycopy(cmpText, 0, sorted, 0, len);
-        Arrays.sort(sorted);
-
-        IntegerLinkedList[] lists = new IntegerLinkedList[257];
-        for (int i = 0; i < 257; i++) lists[i] = new IntegerLinkedList();
-        for (int i = 0; i < len; i++) lists[cmpText[i]].addLast(i);
-        for (int i = 0; i < len; i++) lShift[i] = lists[sorted[i]].removeFirst();
-
-        byte[] result = new byte[cmpText.length - 1];
-        for (int i = 0; i < result.length; i++) {
-            origIndex = lShift[origIndex];
-            result[i] = (byte) (cmpText[origIndex] - 1);
+        byte[] inv = mtl_sa();
+        byte[] rev = new byte[inv.length - 1];
+        for (int i = 1; i < inv.length; i++) {
+            rev[inv.length - i - 1] = inv[i];
         }
-        return result;
+        return rev;
+    }
+
+    private byte[] mtl_sa() {
+        int[] lf = computeLF();
+        int[] ll = computeLL(lf);
+        int[] lf2 = computeLF2(lf);
+        int p = origIndex;
+        int l = 0;
+        int n = cmpText.length;
+        byte[] tr = new byte[n];
+        while (l < n - 1) {
+            tr[l] = (byte) (ll[p << 1] - 1);
+            tr[l + 1] = (byte) (ll[(p << 1) + 1] - 1);
+            p = lf2[p];
+            l += 2;
+        }
+        if (l == n - 1) {
+            tr[l] = (byte) (ll[p << 1] - 1);
+        }
+        return tr;
+    }
+
+    private int[] computeCounts() {
+        int[] counts = new int[258];
+        for (int value : cmpText) {
+            counts[value + 1] += 1;
+        }
+        for (int j = 1; j < 257; j++) {
+            counts[j] = counts[j] + counts[j - 1];
+        }
+        return counts;
+    }
+
+    private int[] computeLL(int[] lf) {
+        int[] ll = new int[cmpText.length * 2];
+        for (int i = 0; i < cmpText.length; ++i) {
+            ll[i << 1] = cmpText[i];
+            ll[(i << 1) + 1] = cmpText[lf[i]];
+        }
+        return ll;
+    }
+
+    private int[] computeLF2(int[] lf) {
+        int[] lf2 = new int[cmpText.length];
+        for (int i = 0; i < cmpText.length; ++i) {
+            lf2[i] = lf[lf[i]];
+        }
+        return lf2;
+    }
+
+    private int[] computeLF() {
+        int[] counts = computeCounts();
+        int[] lf = new int[cmpText.length];
+        for (int i = 0; i < cmpText.length; i++) {
+            lf[i] = counts[cmpText[i]];
+            counts[cmpText[i]] += 1;
+        }
+        return lf;
     }
 }

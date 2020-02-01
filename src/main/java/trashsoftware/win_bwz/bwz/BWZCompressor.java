@@ -9,6 +9,7 @@
 
 package trashsoftware.win_bwz.bwz;
 
+import javafx.beans.property.ReadOnlyStringWrapper;
 import trashsoftware.win_bwz.bwz.bwt.BWTEncoder;
 import trashsoftware.win_bwz.bwz.bwt.BWTEncoderByte;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapCompressor;
@@ -47,17 +48,17 @@ public class BWZCompressor implements Compressor {
      * Otherwise, doubling algorithm is used (since doubling algorithm takes O(n * log n) while dc3 takes O(n),
      * But doubling algorithm has a much smaller constant).
      */
-    final static int dc3DecisionSize = 1048576;
+    final static int DC_3_DECISION_SIZE = 1048576;
 
     /**
      * The alphabet size of the main huffman table.
      */
-    final static int huffmanTableSize = 259;
+    final static int HUFFMAN_TABLE_SIZE = 259;
 
     /**
      * The signal that marks the end of a huffman stream.
      */
-    public final static int huffmanEndSig = 258;
+    public final static int HUFFMAN_END_SIG = 258;
 
     private OutputStream out;
     private FileChannel fis;
@@ -126,45 +127,8 @@ public class BWZCompressor implements Compressor {
         int read;
         byte[] block = new byte[windowSize * threadNumber];
         while ((read = sis.read(block)) > 0) {
-//            byte[] validBlock;
-//            if (read == windowSize * threadNumber) {
-//                validBlock = block;
-//            } else {
-//                validBlock = new byte[read];
-//                System.arraycopy(block, 0, validBlock, 0, read);
-//            }
 
-            int threadsNeed;
-            if (read % windowSize == 0) threadsNeed = read / windowSize;
-            else threadsNeed = read / windowSize + 1;
-
-            EncodeThread[] threads = new EncodeThread[threadsNeed];
-            ExecutorService es = Executors.newCachedThreadPool();
-            int begin = 0;
-            for (int i = 0; i < threads.length; i++) {
-//                byte[] buffer;
-//                if ((i + 1) * windowSize <= validBlock.length) {
-//                    buffer = new byte[windowSize];
-//                    System.arraycopy(validBlock, i * windowSize, buffer, 0, windowSize);
-//                } else {
-//                    int len = validBlock.length % windowSize;
-//                    buffer = new byte[len];
-//                    System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
-//                }
-                int end = Math.min(begin + windowSize, read);
-                EncodeThread et = new EncodeThread(block, begin, end - begin, windowSize, this);
-                threads[i] = et;
-                es.execute(et);
-
-                begin += windowSize;
-            }
-            es.shutdown();
-            es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
-
-            for (EncodeThread et : threads) {
-                et.writeCompressedMap(out);
-                et.writeTo(out);
-            }
+            compressOneLoop(read, block);
 
             if (parent != null) {
                 if (parent.isInterrupted) {
@@ -187,45 +151,8 @@ public class BWZCompressor implements Compressor {
         while ((read = fis.read(block)) > 0) {
             block.flip();
             byte[] buffer = block.array();
-//            byte[] validBlock;
-//            if (read == windowSize * threadNumber) {
-//                validBlock = block.array();
-//            } else {
-//                validBlock = new byte[read];
-//                System.arraycopy(block.array(), 0, validBlock, 0, read);
-//            }
 
-            int threadsNeed;
-            if (read % windowSize == 0) threadsNeed = read / windowSize;
-            else threadsNeed = read / windowSize + 1;
-
-            EncodeThread[] threads = new EncodeThread[threadsNeed];
-            ExecutorService es = Executors.newCachedThreadPool();
-            int begin = 0;
-            for (int i = 0; i < threads.length; i++) {
-//                byte[] buffer;
-//                if ((i + 1) * windowSize <= validBlock.length) {
-//                    buffer = new byte[windowSize];
-//                    System.arraycopy(validBlock, i * windowSize, buffer, 0, windowSize);
-//                } else {
-//                    int len = validBlock.length % windowSize;
-//                    buffer = new byte[len];
-//                    System.arraycopy(validBlock, i * windowSize, buffer, 0, len);
-//                }
-                int end = Math.min(begin + windowSize, read);
-                EncodeThread et = new EncodeThread(buffer, begin, end - begin, windowSize, this);
-                threads[i] = et;
-                es.execute(et);
-
-                begin += windowSize;
-            }
-            es.shutdown();
-            es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
-
-            for (EncodeThread et : threads) {
-                et.writeCompressedMap(out);
-                et.writeTo(out);
-            }
+            compressOneLoop(read, buffer);
             block.clear();
 
             if (parent != null) {
@@ -237,6 +164,42 @@ public class BWZCompressor implements Compressor {
                     lastCheckTime = currentTime;
                 }
             }
+        }
+    }
+
+    private void compressOneLoop(int read, byte[] buffer) throws Exception {
+        int threadsNeed;
+        if (read % windowSize == 0) threadsNeed = read / windowSize;
+        else threadsNeed = read / windowSize + 1;
+
+        EncodeThread[] threads = new EncodeThread[threadsNeed];
+        ExecutorService es = Executors.newCachedThreadPool();
+        int begin = 0;
+        for (int i = 0; i < threads.length; i++) {  // sets up threads
+            int end = Math.min(begin + windowSize, read);
+            int partSize = end - begin;
+            boolean usdDc3 = partSize >= BWZCompressor.DC_3_DECISION_SIZE;
+
+//            if (!usdDc3) SuffixArrayDoubling.allocateArraysIfNot(windowSize, threadNumber);
+
+            EncodeThread et = new EncodeThread(
+                    buffer, begin, partSize, windowSize, this, i, usdDc3
+            );
+            threads[i] = et;
+
+            begin += windowSize;
+        }
+
+        for (EncodeThread et : threads) {
+            es.execute(et);
+        }
+
+        es.shutdown();
+        es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
+
+        for (EncodeThread et : threads) {
+            et.writeCompressedMap(out);
+            et.writeTo(out);
         }
     }
 
@@ -323,10 +286,6 @@ public class BWZCompressor implements Compressor {
     public void setThreads(int threads) {
         this.threadNumber = threads;
     }
-
-    public int getThreadNumber() {
-        return threadNumber;
-    }
 }
 
 
@@ -342,6 +301,8 @@ class EncodeThread implements Runnable {
     private byte[] buffer;
     private int beginIndex;
     private int partSize;
+    private int threadId;
+    private boolean useDc3;
 
     private byte[][] results;
     private byte[][] maps;
@@ -357,19 +318,29 @@ class EncodeThread implements Runnable {
      * @param beginIndex the index in <code>data</code> to be compressed
      * @param partSize   the number of byte to be compressed
      * @param parent     the parent {@code BWZCompressor} which has launched this {@code EncodeThread}.
+     * @param threadId   the id of this thread
+     * @param useDc3     whether to use dc3 algorithm to construct suffix array
      */
-    EncodeThread(byte[] data, int beginIndex, int partSize, int windowSize, BWZCompressor parent) {
+    EncodeThread(byte[] data,
+                 int beginIndex,
+                 int partSize,
+                 int windowSize,
+                 BWZCompressor parent,
+                 int threadId,
+                 boolean useDc3) {
+
         this.buffer = data;
         this.beginIndex = beginIndex;
         this.partSize = partSize;
         this.windowSize = windowSize;
         this.parent = parent;
+        this.threadId = threadId;
+        this.useDc3 = useDc3;
     }
 
-    static long bwtTime, mtfTime;
+    static long bwtTime, mtfTime, mapTime, hufTime;
 
     private void start() {
-        boolean isDc3 = partSize >= BWZCompressor.dc3DecisionSize;
         int huffmanBlockNumber;  // The number of huffman blocks needed for this BWT trunk.
         if (partSize <= parent.maxHuffmanSize) {
             huffmanBlockNumber = 1;
@@ -383,7 +354,7 @@ class EncodeThread implements Runnable {
         flags = new byte[huffmanBlockNumber];
 
         long t1 = System.currentTimeMillis();
-        BWTEncoder be = new BWTEncoder(buffer, beginIndex, partSize, isDc3);
+        BWTEncoder be = new BWTEncoder(buffer, beginIndex, partSize, useDc3, threadId);
         int[] bwtResult = be.Transform();
         long t2 = System.currentTimeMillis();
         bwtTime += t2 - t1;
@@ -393,37 +364,41 @@ class EncodeThread implements Runnable {
 
         MTFTransform mtf = new MTFTransform(bwtResult);
         int[] array = mtf.Transform();  // Also contains RLC Result.
-        mtfTime += System.currentTimeMillis() - t2;
-//        System.out.println(String.format("bwt: %d, mtf: %d", bwtTime, mtfTime));
+        long t3 = System.currentTimeMillis();
+        mtfTime += t3 - t2;
 
         int eachLength = array.length / huffmanBlockNumber;
         int pos = 0;
         for (int i = 0; i < huffmanBlockNumber - 1; i++) {
-            int[] part = new int[eachLength];
-            System.arraycopy(array, pos, part, 0, eachLength);
+//            int[] part = new int[eachLength];
+//            System.arraycopy(array, pos, part, 0, eachLength);
+            compressOneHufPart(i, array, pos, eachLength);
             pos += eachLength;
-            LongHuffmanCompressorRam hcr =
-                    new LongHuffmanCompressorRam(part, BWZCompressor.huffmanTableSize, BWZCompressor.huffmanEndSig);
-            byte[] map = hcr.getMap(BWZCompressor.huffmanTableSize);
-            int x = findAvailableOldMap(hcr, map, i);  // Look for an old map that suites the current need.
-            flags[i] = (byte) x;
-            if (x > 0) {  // If found.
-                maps[i] = new byte[0];
-                results[i] = hcr.compress(maps[i - x]);
-            } else {  // If not found.
-                maps[i] = map;
-                results[i] = hcr.compress();
-            }
         }
 
         // The last huffman block.
         int i = huffmanBlockNumber - 1;
-        int[] lastPart = new int[array.length - pos];  // Since we need to put everything remaining inside
-        // the last block.
-        System.arraycopy(array, pos, lastPart, 0, lastPart.length);
-        LongHuffmanCompressorRam hcr =
-                new LongHuffmanCompressorRam(lastPart, BWZCompressor.huffmanTableSize, BWZCompressor.huffmanEndSig);
-        byte[] map = hcr.getMap(BWZCompressor.huffmanTableSize);
+//        int[] lastPart = new int[array.length - pos];  // Since we need to put everything remaining inside
+//        // the last block.
+//        System.arraycopy(array, pos, lastPart, 0, lastPart.length);
+        compressOneHufPart(i, array, pos, array.length - pos);  // Since we need to put everything
+        // remaining inside the last block.
+        parent.pos += partSize * 0.25;  // Update progress again
+
+        hufTime += System.currentTimeMillis() - t3;
+        System.out.println(String.format("bwt: %d, mtf: %d, huf: %d", bwtTime, mtfTime, hufTime));
+    }
+
+    private void compressOneHufPart(int i, int[] fullText, int textBegin, int textSize) {
+        System.out.println(textBegin + ", " + textSize);
+        LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(
+                fullText,
+                textBegin,
+                textSize,
+                BWZCompressor.HUFFMAN_TABLE_SIZE,
+                BWZCompressor.HUFFMAN_END_SIG
+        );
+        byte[] map = hcr.getMap(BWZCompressor.HUFFMAN_TABLE_SIZE);
         int x = findAvailableOldMap(hcr, map, i);
         flags[i] = (byte) x;
         if (x > 0) {
@@ -433,7 +408,6 @@ class EncodeThread implements Runnable {
             maps[i] = map;
             results[i] = hcr.compress();
         }
-        parent.pos += partSize * 0.25;  // Update progress again
     }
 
     /**
@@ -456,6 +430,7 @@ class EncodeThread implements Runnable {
      * @throws IOException if the <code>out</code> is not writable.
      */
     void writeCompressedMap(OutputStream out) throws IOException {
+        long t0 = System.currentTimeMillis();
         int mapLength = 0;
         for (byte[] map : maps) mapLength += map.length;
         byte[] totalMap = new byte[mapLength];
@@ -481,9 +456,13 @@ class EncodeThread implements Runnable {
          */
         byte[] numbers = new byte[8];
         // this value will not exceed 32768
-        System.arraycopy(Bytes.shortToBytes((short) flagsMtf.length), 0, numbers, 0, 2);
-        System.arraycopy(Bytes.intToBytes24(cmpMap.length), 0, numbers, 2, 3);
-        System.arraycopy(Bytes.intToBytes24(beb.getOrigRowIndex()), 0, numbers, 5, 3);
+        Bytes.shortToBytes(flagsMtf.length, numbers, 0);
+        Bytes.intToBytes24(cmpMap.length, numbers, 2);
+        Bytes.intToBytes24(beb.getOrigRowIndex(), numbers, 5);
+
+        mapTime += System.currentTimeMillis() - t0;
+//        System.out.println(String.format("map time %d, nl %d, flags %d, map %d",
+//                mapTime, numbers.length, flagsMtf.length, cmpMap.length));
 
         out.write(numbers);
         out.write(flagsMtf);
@@ -516,7 +495,11 @@ class EncodeThread implements Runnable {
      */
     @Override
     public void run() {
-        start();
+        try {
+            start();
+        } catch (OutOfMemoryError e) {
+            parent.parent.setError("Out of memory", 1);
+        }
     }
 }
 
@@ -554,23 +537,18 @@ class Timer implements Runnable {
         while (compressor.isRunning) {
             packer.timeUsed.setValue(Util.secondToString(timeUsed));
             if (compressor.pos != 0) {
-                double finished = (double) compressor.pos / packer.getTotalOrigSize();
-                double rounded = (double) Math.round(finished * 1000) / 10;
-                packer.percentage.set(String.valueOf(rounded));
-
-                packer.ratio.set(String.valueOf(compressor.ratio));
-
-                if (compressor.ratio != 0) {
-                    long expectTime = (packer.getTotalOrigSize() - compressor.pos) / compressor.ratio / 1024;
-                    packer.timeExpected.set(Util.secondToString(expectTime));
-                }
-
-                packer.passedLength.set(Util.sizeToReadable(compressor.pos));
+                updateBwzProgress(compressor.pos,
+                        packer.getTotalOrigSize(),
+                        packer.percentage,
+                        packer.ratio,
+                        compressor.ratio,
+                        packer.timeExpected,
+                        packer.passedLength);
                 packer.cmpLength.set(Util.sizeToReadable(compressor.mainLen));
 
                 double cmpRatio = (double) compressor.mainLen / compressor.pos;
                 double roundedRatio = (double) Math.round(cmpRatio * 1000) / 10;
-                packer.currentCmpRatio.set(String.valueOf(roundedRatio) + "%");
+                packer.currentCmpRatio.set(roundedRatio + "%");
             }
 
             timeUsed += 1;
@@ -581,5 +559,26 @@ class Timer implements Runnable {
                 ie.printStackTrace();
             }
         }
+    }
+
+    static void updateBwzProgress(long pos,
+                                  long totalOrigSize,
+                                  ReadOnlyStringWrapper percentage,
+                                  ReadOnlyStringWrapper ratio,
+                                  long ratio2,
+                                  ReadOnlyStringWrapper timeExpected,
+                                  ReadOnlyStringWrapper passedLength) {
+        double finished = (double) pos / totalOrigSize;
+        double rounded = (double) Math.round(finished * 1000) / 10;
+        percentage.set(String.valueOf(rounded));
+
+        ratio.set(String.valueOf(ratio2));
+
+        if (ratio2 != 0) {
+            long expectTime = (totalOrigSize - pos) / ratio2 / 1024;
+            timeExpected.set(Util.secondToString(expectTime));
+        }
+
+        passedLength.set(Util.sizeToReadable(pos));
     }
 }

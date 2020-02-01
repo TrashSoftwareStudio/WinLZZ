@@ -1,7 +1,5 @@
 package trashsoftware.win_bwz.bwz;
 
-import java.util.LinkedList;
-
 /**
  * The inverse transformer of Move-To-Front transformation.
  * <p>
@@ -30,20 +28,19 @@ public class MTFInverseByte {
      * @return the text after the inverse transform.
      */
     public byte[] Inverse(int alphabetSize) {
-        LinkedList<Byte> ll = new LinkedList<>();
-        for (int i = 0; i < alphabetSize; i++) ll.addLast((byte) i);
+        byte[] dictionary = new byte[alphabetSize];
+        for (int i = 0; i < alphabetSize; ++i) dictionary[i] = (byte) i;
+
         byte[] result = new byte[text.length];
         int index = 0;
         for (byte b : text) {
-            int i = b & 0xff;
-            Byte s;
-            if (i == 0) s = ll.getFirst();
-            else {
-                s = ll.remove(i);
-                ll.addFirst(s);
+            int ib = b & 0xff;
+            byte s = dictionary[ib];
+            if (ib > 0) {
+                System.arraycopy(dictionary, 0, dictionary, 1, ib);
+                dictionary[0] = s;
             }
-            result[index] = s;
-            index += 1;
+            result[index++] = s;
         }
         return result;
     }

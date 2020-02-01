@@ -32,7 +32,7 @@ public class CompressingUI implements Initializable {
 
     private CompressService service;
 
-    private ChangeListener<Number> progressListener;
+    private ChangeListener<Number> progressListener, exitStatusListener;
 
     private ChangeListener<String> percentageListener, stepListener, fileListener, speedRatioListener, timeUsedListener,
             timeExpectedListener, passedLengthListener, cmpSizeListener, currentCmpRatioListener;
@@ -154,6 +154,13 @@ public class CompressingUI implements Initializable {
         service.setOnCancelled(e -> {
             if (packer != null) packer.interrupt();
             unbindListeners();
+            if (packer.exitStatus.intValue() != 0) {
+                Alert info = new Alert(Alert.AlertType.ERROR);
+                info.setTitle("WinLZZ");
+                info.setHeaderText(packer.errorMsg);
+
+                info.show();
+            }
             progressBar.setProgress(0.0);
             System.gc();
             stage.close();
@@ -175,6 +182,7 @@ public class CompressingUI implements Initializable {
         packer.timeUsedProperty().removeListener(timeUsedListener);
         packer.timeExpectedProperty().removeListener(timeExpectedListener);
         packer.passedLengthProperty().removeListener(passedLengthListener);
+        packer.exitStatusProperty().removeListener(exitStatusListener);
 
         packer.compressedSizeProperty().removeListener(cmpSizeListener);
         packer.currentCmpRatioProperty().removeListener(currentCmpRatioListener);
@@ -213,16 +221,27 @@ public class CompressingUI implements Initializable {
                     if (annotation != null) packer.setAnnotation(annotation);
 
                     stepListener = (observable, oldValue, newValue) -> updateTitle(newValue);
-                    fileListener = (observable, oldValue, newValue) -> Platform.runLater(() -> fileLabel.setText(newValue));
+                    fileListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> fileLabel.setText(newValue));
                     speedRatioListener = (observable, oldValue, newValue) -> updateMessage(newValue);
-                    percentageListener = (observable, oldValue, newValue) -> Platform.runLater(() -> percentageLabel.setText(newValue));
-                    timeUsedListener = (observable, oldValue, newValue) -> Platform.runLater(() -> timeUsedLabel.setText(newValue));
-                    timeExpectedListener = (observable, oldValue, newValue) -> Platform.runLater(() -> expectTimeLabel.setText(newValue));
-                    passedLengthListener = (observable, oldValue, newValue) -> Platform.runLater(() -> passedSizeLabel.setText(newValue));
+                    percentageListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> percentageLabel.setText(newValue));
+                    timeUsedListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> timeUsedLabel.setText(newValue));
+                    timeExpectedListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> expectTimeLabel.setText(newValue));
+                    passedLengthListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> passedSizeLabel.setText(newValue));
+                    exitStatusListener = (observable, oldValue, newValue) -> {
+                        Platform.runLater(() -> fileLabel.setText(packer.errorMsg));
+                        if (newValue.intValue() != 0) this.cancel();
+                    };
 
                     // Listeners only work under BWT.
-                    cmpSizeListener = (observable, oldValue, newValue) -> Platform.runLater(() -> compressedSizeLabel.setText(newValue));
-                    currentCmpRatioListener = (observable, oldValue, newValue) -> Platform.runLater(() -> currentCmpRatioLabel.setText(newValue));
+                    cmpSizeListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> compressedSizeLabel.setText(newValue));
+                    currentCmpRatioListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> currentCmpRatioLabel.setText(newValue));
 
                     packer.stepProperty().addListener(stepListener);
                     packer.fileProperty().addListener(fileListener);
@@ -234,6 +253,7 @@ public class CompressingUI implements Initializable {
 
                     packer.compressedSizeProperty().addListener(cmpSizeListener);
                     packer.currentCmpRatioProperty().addListener(currentCmpRatioListener);
+                    packer.exitStatusProperty().addListener(exitStatusListener);
 
                     updateTitle(lanLoader.get(208));
                     Platform.runLater(() -> percentageLabel.setText("0.0"));
@@ -242,7 +262,8 @@ public class CompressingUI implements Initializable {
                     // Add progress bar
                     long totalLength = packer.getTotalOrigSize();
                     Platform.runLater(() -> totalSizeLabel.setText(Util.sizeToReadable(totalLength)));
-                    progressListener = (observable, oldValue, newValue) -> updateProgress(newValue.longValue(), totalLength);
+                    progressListener = (observable, oldValue, newValue) ->
+                            updateProgress(newValue.longValue(), totalLength);
                     packer.progressProperty().addListener(progressListener);
 
                     packer.Pack(path[0].getParent() + File.separator + name, windowSize, bufferSize);

@@ -18,9 +18,9 @@ abstract class LongHuffmanUtil {
         }
     }
 
-    static void addArrayToFreqMap(int[] array, int[] freqMap, int range) {
-        for (int i = 0; i < range; i++) {
-            freqMap[array[i]] += 1;
+    static void addArrayToFreqMap(int[] array, int[] freqMap, int textBegin, int textLength) {
+        for (int i = 0; i < textLength; i++) {
+            freqMap[array[textBegin + i]] += 1;
         }
     }
 

@@ -226,6 +226,17 @@ public abstract class Bytes {
     }
 
     /**
+     * Convert a 3-byte array into signed integer in big-endian.
+     *
+     * @param b     byte array.
+     * @param index the index of the number located in the byte array
+     * @return signed integer.
+     */
+    public static int bytesToInt24(byte[] b, int index) {
+        return (b[index] & 0xff) << 16 | (b[index + 1] & 0xff) << 8 | (b[index + 2] & 0xff);
+    }
+
+    /**
      * Convert an integer into a 3-byte array in big-endian.
      *
      * @param i the integer.
@@ -235,10 +246,30 @@ public abstract class Bytes {
         return new byte[]{(byte) ((i >> 16) & 0xff), (byte) ((i >> 8) & 0xff), (byte) (i & 0xff)};
     }
 
+    /**
+     * Convert an integer into a 3-byte array in big-endian.
+     *
+     * @param i        the integer.
+     * @param dst      the destination array to be written
+     * @param dstIndex the begin index in the dst array
+     */
     public static void intToByte24(int i, int[] dst, int dstIndex) {
         dst[dstIndex] = (i >> 16) & 0xff;
         dst[dstIndex + 1] = (i >> 8) & 0xff;
         dst[dstIndex + 2] = i & 0xff;
+    }
+
+    /**
+     * Convert an integer into a 3-byte array in big-endian.
+     *
+     * @param i        the integer.
+     * @param dst      the destination array to be written
+     * @param dstIndex the begin index in the dst array
+     */
+    public static void intToBytes24(int i, byte[] dst, int dstIndex) {
+        dst[dstIndex] = (byte) (i >> 16);
+        dst[dstIndex + 1] = (byte) (i >> 8);
+        dst[dstIndex + 2] = (byte) i;
     }
 
     /**
@@ -276,6 +307,17 @@ public abstract class Bytes {
     }
 
     /**
+     * Convert a 2-byte array into signed short in big-endian.
+     *
+     * @param b     byte array.
+     * @param index the index of the number located in the byte array
+     * @return signed short.
+     */
+    public static short bytesToShort(byte[] b, int index) {
+        return (short) ((b[index] & 0xff) << 8 | (b[index + 1] & 0xff));
+    }
+
+    /**
      * Convert a 2-byte array into signed short in little-endian.
      *
      * @param b byte array.
@@ -293,6 +335,18 @@ public abstract class Bytes {
      */
     public static byte[] shortToBytes(short i) {
         return new byte[]{(byte) ((i >> 8) & 0xff), (byte) (i & 0xff)};
+    }
+
+    /**
+     * Writes a short into a byte array in big-endian, returns the written length, 2.
+     *
+     * @param i     the short.
+     * @param array the array to be written
+     * @param index the begin index in array to be written
+     */
+    public static void shortToBytes(int i, byte[] array, int index) {
+        array[index] = (byte) (i >> 8);
+        array[index + 1] = (byte) i;
     }
 
     /**

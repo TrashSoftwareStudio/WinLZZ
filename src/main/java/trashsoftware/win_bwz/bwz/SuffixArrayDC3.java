@@ -32,11 +32,9 @@ public class SuffixArrayDC3 {
         int n = text.length;
         this.n = n;
         int[] r = new int[n * 3];
-//        for (int i = 0; i < n; i++) r[i] = text[i];
         System.arraycopy(text, 0, r, 0, n);
         sa = new int[n * 3];
         dc3(new ArrayWrapper(r, 0), new ArrayWrapper(sa, 0), n, alphabetSize);
-        clearUnused();
     }
 
     /**
@@ -48,13 +46,6 @@ public class SuffixArrayDC3 {
         int[] result = new int[n];
         System.arraycopy(sa, 0, result, 0, n);
         return result;
-    }
-
-    private void clearUnused() {
-        wa = null;
-        wb = null;
-        ws = null;
-        wv = null;
     }
 
     private int F(int x, int tb) {

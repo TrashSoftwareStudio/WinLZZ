@@ -86,18 +86,4 @@ class ArrayDictionary {
         }
         throw new RuntimeException("Cannot find symbol");
     }
-
-    public static void main(String[] args) {
-        int[] eee = {3, 3, 3, 4, 7, 2, 5, 1, 2, 0, 7, 3, 2, 2, 3, 1, 2};
-        ArrayDictionary ad = new ArrayDictionary(8);
-//        System.out.println(Arrays.toString(ad.array));
-//        System.out.println(ad.findAndMove(3));
-//        System.out.println(Arrays.toString(ad.array));
-        int[] rrr = new int[eee.length];
-        for (int i = 0; i < eee.length; ++i) {
-            int f = ad.findAndMove(eee[i]);
-            rrr[i] = f;
-        }
-        System.out.println(Arrays.toString(rrr));
-    }
 }

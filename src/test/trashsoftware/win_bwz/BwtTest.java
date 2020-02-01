@@ -1,5 +1,6 @@
 package trashsoftware.win_bwz;
 
+import trashsoftware.win_bwz.bwz.SuffixArrayDoubling;
 import trashsoftware.win_bwz.bwz.bwt.BWTDecoder;
 import trashsoftware.win_bwz.bwz.bwt.BWTEncoder;
 
@@ -12,7 +13,8 @@ public class BwtTest {
         byte[] b = s.getBytes();
 //        b[0] = (byte) 255;
 
-        BWTEncoder bwtEncoder = new BWTEncoder(b, 0, b.length, false);
+//        SuffixArrayDoubling.allocateArrays(s.length(), 1);
+        BWTEncoder bwtEncoder = new BWTEncoder(b, 0, b.length, false, 0);
         int[] trans = bwtEncoder.Transform();
         System.out.println(Arrays.toString(trans));
 

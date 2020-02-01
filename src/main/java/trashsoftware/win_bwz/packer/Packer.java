@@ -167,6 +167,9 @@ public class Packer {
     public boolean isInterrupted;
     private LanguageLoader lanLoader;
 
+    public final ReadOnlyIntegerWrapper exitStatus = new ReadOnlyIntegerWrapper();
+    public String errorMsg;
+
     /**
      * Creates a new {@code Packer} instance.
      * <p>
@@ -684,6 +687,12 @@ public class Packer {
         this.lanLoader = lanLoader;
     }
 
+    public void setError(String msg, int status) {
+//        interrupt();
+        exitStatus.set(status);
+        errorMsg = msg;
+    }
+
     public ReadOnlyLongProperty progressProperty() {
         return progress;
     }
@@ -722,6 +731,10 @@ public class Packer {
 
     public ReadOnlyStringProperty currentCmpRatioProperty() {
         return currentCmpRatio;
+    }
+
+    public ReadOnlyIntegerWrapper exitStatusProperty() {
+        return exitStatus;
     }
 }
 

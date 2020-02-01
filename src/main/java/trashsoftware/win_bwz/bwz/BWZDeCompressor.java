@@ -90,13 +90,13 @@ public class BWZDeCompressor implements DeCompressor {
         int i = 0;
         while (fIndex < flags.length) {
             int flag = flags[fIndex++] & 0xff;
-            byte[] map = new byte[BWZCompressor.huffmanTableSize];
+            byte[] map = new byte[BWZCompressor.HUFFMAN_TABLE_SIZE];
             if (flag == 0) {
-                System.arraycopy(maps, i, map, 0, BWZCompressor.huffmanTableSize);
-                i += BWZCompressor.huffmanTableSize;
+                System.arraycopy(maps, i, map, 0, BWZCompressor.HUFFMAN_TABLE_SIZE);
+                i += BWZCompressor.HUFFMAN_TABLE_SIZE;
             } else {
                 int x = huffmanMaps.size() - flag;
-                System.arraycopy(huffmanMaps.get(x), 0, map, 0, BWZCompressor.huffmanTableSize);
+                System.arraycopy(huffmanMaps.get(x), 0, map, 0, BWZCompressor.HUFFMAN_TABLE_SIZE);
             }
             huffmanMaps.addLast(map);
         }
@@ -116,16 +116,10 @@ public class BWZDeCompressor implements DeCompressor {
         ArrayList<int[]> huffmanBlockList = new ArrayList<>();
 
         LongHuffmanInputStream his =
-                new LongHuffmanInputStream(fc, BWZCompressor.huffmanTableSize, huffmanBlockMaxSize + 256);
-//        LongHuffmanInputStreamBit his2 =
-//                new LongHuffmanInputStreamBit(fis, initBytePos + 1, BWZCompressor.huffmanTableSize, huffmanBlockMaxSize + 256);
-//        his.pushCompressedBitLength(8);  // Skip the first byte
+                new LongHuffmanInputStream(fc, BWZCompressor.HUFFMAN_TABLE_SIZE, huffmanBlockMaxSize + 256);
         int[] huffmanResult;
         byte[] headBytes;
         byte[] blockBytes;
-        byte[] flagLenBytes = new byte[2];
-        byte[] mapLenBytes = new byte[3];
-        byte[] origRowBytes = new byte[3];
 
         while (true) {
             if (huffmanMaps.isEmpty()) {
@@ -133,12 +127,9 @@ public class BWZDeCompressor implements DeCompressor {
 //                if (!Arrays.equals(headBytes, his.read(8))) System.out.println(111);
                 if (headBytes == null) break;  // Reach the end of the stream.
 
-                System.arraycopy(headBytes, 0, flagLenBytes, 0, 2);
-                System.arraycopy(headBytes, 2, mapLenBytes, 0, 3);
-                System.arraycopy(headBytes, 5, origRowBytes, 0, 3);
-                int flagLen = Bytes.bytesToShort(flagLenBytes);
-                int mapLen = Bytes.bytesToInt24(mapLenBytes);
-                int origRow = Bytes.bytesToInt24(origRowBytes);
+                int flagLen = Bytes.bytesToShort(headBytes, 0);
+                int mapLen = Bytes.bytesToInt24(headBytes, 2);
+                int origRow = Bytes.bytesToInt24(headBytes, 5);
 //                System.out.format("%d %d %d\n", flagLen, mapLen, origRow);
                 blockBytes = his.read(mapLen + flagLen);
                 if (blockBytes == null) {
@@ -149,7 +140,7 @@ public class BWZDeCompressor implements DeCompressor {
             }
             byte[] map = huffmanMaps.removeFirst();
 //            long t1 = System.currentTimeMillis();
-            huffmanResult = his.read(map, BWZCompressor.huffmanEndSig);
+            huffmanResult = his.read(map, BWZCompressor.HUFFMAN_END_SIG);
 //            hufTotal += System.currentTimeMillis() - t1;
 //            System.out.println("huf :" + hufTotal);
 
@@ -365,18 +356,14 @@ class DTimer implements Runnable {
             unPacker.timeUsed.setValue(Util.secondToString(timeUsed));
 
             if (dec.pos != 0) {
-                double finished = (double) dec.pos / unPacker.getTotalOrigSize();
-                double rounded = (double) Math.round(finished * 1000) / 10;
-                unPacker.percentage.set(String.valueOf(rounded));
-
-                unPacker.ratio.set(String.valueOf(dec.ratio));
-
-                if (dec.ratio != 0) {
-                    long expectTime = (unPacker.getTotalOrigSize() - dec.pos) / dec.ratio / 1024;
-                    unPacker.timeExpected.set(Util.secondToString(expectTime));
-                }
-
-                unPacker.passedLength.set(Util.sizeToReadable(dec.pos));
+                Timer.updateBwzProgress(
+                        dec.pos,
+                        unPacker.getTotalOrigSize(),
+                        unPacker.percentage,
+                        unPacker.ratio,
+                        dec.ratio,
+                        unPacker.timeExpected,
+                        unPacker.passedLength);
             }
             timeUsed += 1;
             try {

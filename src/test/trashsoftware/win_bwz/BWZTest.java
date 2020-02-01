@@ -15,11 +15,11 @@ public class BWZTest {
         String name;
         name = "dsCtrl.txt";
 //        name = "allCodes.zip";
-        name = "p1.png";
+//        name = "p1.png";
 //        name = "t1.bmp";
 //        name = "cmpFiles.tar";
-        name = "BWZ.zip";
-        int ws = 32768;
+//        name = "BWZ.zip";
+        int ws = 65536;
         String cmpName = Util.getCompressFileName(name, "bwz");
         long crc32 = Security.generateCRC32(name);
         long start = System.currentTimeMillis();

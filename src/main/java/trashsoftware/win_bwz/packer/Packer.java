@@ -383,6 +383,7 @@ public class Packer {
                     break;
                 case "lzz2p":
                     headCompressor = new Lzz2PlusCompressor(tempHeadName, defaultWindowSize, 64);
+                    break;
 //                case "qlz":
 //                    headCompressor = new QuickLZZCompressor(tempHeadName, 16384, 256);
 //                    break;

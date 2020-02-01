@@ -2,51 +2,16 @@ package trashsoftware.win_bwz.longHuffman;
 
 import trashsoftware.win_bwz.utility.Bytes;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
 abstract class LongHuffmanUtil {
 
-    static void addArrayToFreqMap(int[] array, HashMap<Integer, Integer> freqMap, int range) {
-        for (int i = 0; i < range; i++) {
-            int b = array[i];
-            if (freqMap.containsKey(b)) freqMap.put(b, freqMap.get(b) + 1);
-            else freqMap.put(b, 1);
-        }
-    }
-
     static void addArrayToFreqMap(int[] array, int[] freqMap, int textBegin, int textLength) {
         for (int i = 0; i < textLength; i++) {
             freqMap[array[textBegin + i]] += 1;
         }
-    }
-
-    static HuffmanNode generateHuffmanTree(HashMap<Integer, Integer> freqMap) {
-        ArrayList<HuffmanNode> list = new ArrayList<>();
-        for (int key : freqMap.keySet()) {
-            HuffmanNode hn = new HuffmanNode(freqMap.get(key));
-            hn.setValue(key);
-            list.add(hn);
-        }
-        if (list.size() == 1) {
-            HuffmanNode root = new HuffmanNode(0);
-            root.setLeft(list.remove(0));
-            return root;
-        }
-        while (list.size() > 1) {
-            Collections.sort(list);
-            // Pop out two nodes with smallest frequency.
-            HuffmanNode left = list.remove(list.size() - 1);
-            HuffmanNode right = list.remove(list.size() - 1);
-            HuffmanNode parent = new HuffmanNode(left.getFreq() + right.getFreq());
-            parent.setLeft(left);
-            parent.setRight(right);
-            list.add(parent);
-        }
-        return list.get(0);
     }
 
     static HuffmanNode generateHuffmanTree(int[] freqMap) {
@@ -77,56 +42,10 @@ abstract class LongHuffmanUtil {
         return list.get(0);
     }
 
-    static HuffmanNode generateHuffmanTree(HashMap<Integer, Integer> freqMap, int endSig) {
-        ArrayList<HuffmanNode> list = new ArrayList<>();
-        HuffmanNode last = new HuffmanNode(freqMap.get(endSig));
-        last.setValue(endSig);
-        for (int key : freqMap.keySet()) {
-            if (key != endSig) {
-                HuffmanNode hn = new HuffmanNode(freqMap.get(key));
-                hn.setValue(key);
-                list.add(hn);
-            }
-        }
-//        if (list.size() == 1) {
-//            HuffmanNode root = new HuffmanNode(0);
-//            root.setLeft(list.remove(0));
-//            return root;
-//        }
-        Collections.sort(list);
-        HuffmanNode sLast = list.remove(list.size() - 1);
-        HuffmanNode lastParent = new HuffmanNode(sLast.getFreq() + last.getFreq());
-        lastParent.setLeft(sLast);
-        lastParent.setRight(last);
-        list.add(lastParent);
-        while (list.size() > 1) {
-            Collections.sort(list);
-            // Pop out two nodes with smallest frequency.
-            HuffmanNode left = list.remove(list.size() - 1);
-            HuffmanNode right = list.remove(list.size() - 1);
-            HuffmanNode parent = new HuffmanNode(left.getFreq() + right.getFreq());
-            parent.setLeft(left);
-            parent.setRight(right);
-            list.add(parent);
-        }
-        return list.get(0);
-    }
-
     static void generateCodeLengthMap(int[] lengthMap, HuffmanNode node, int length) {
         if (node != null) {
             if (node.isLeaf()) {
                 lengthMap[node.getValue()] = length;
-            } else {
-                generateCodeLengthMap(lengthMap, node.getLeft(), length + 1);
-                generateCodeLengthMap(lengthMap, node.getRight(), length + 1);
-            }
-        }
-    }
-
-    static void generateCodeLengthMap(HashMap<Integer, Integer> lengthMap, HuffmanNode node, int length) {
-        if (node != null) {
-            if (node.isLeaf()) {
-                lengthMap.put(node.getValue(), length);
             } else {
                 generateCodeLengthMap(lengthMap, node.getLeft(), length + 1);
                 generateCodeLengthMap(lengthMap, node.getRight(), length + 1);
@@ -187,65 +106,7 @@ abstract class LongHuffmanUtil {
         byte[] result = new byte[alphabetSize];
         for (int i = 0; i < alphabetSize; i++)
             result[i] = (byte) lengthCode[i];
-//            if (lengthCode.containsKey(i)) result[i] = (byte) (int) lengthCode.get(i);
-//            else result[i] = (byte) 0;
         return result;
-    }
-
-    static byte[] generateCanonicalCodeBlock(HashMap<Integer, Integer> lengthCode, int alphabetSize) {
-        byte[] result = new byte[alphabetSize];
-        for (int i = 0; i < alphabetSize; i++)
-            if (lengthCode.containsKey(i)) result[i] = (byte) (int) lengthCode.get(i);
-            else result[i] = (byte) 0;
-        return result;
-    }
-
-    static void addCompressed(int[] buffer, int range, StringBuilder builder, HashMap<Integer, String> huffmanCode) {
-        for (int i = 0; i < range; i++) {
-            int b = buffer[i];
-            builder.append(huffmanCode.get(b));
-        }
-    }
-
-    @Deprecated
-    static void addCompressed(int[] buffer, int range, OutputStream out, HashMap<Integer, String> huffmanCode,
-                              int endSig) {
-        try {
-            StringBuilder charBuf = new StringBuilder();
-            int temp;
-            for (int i = 0; i < range + 1; i++) {
-                int s;
-                if (i == range) s = endSig;
-                else s = buffer[i];
-                charBuf.append(huffmanCode.get(s));
-                while (charBuf.length() >= 8) {
-                    temp = 0;
-                    for (int j = 0; j < 8; j++) {
-                        temp = temp << 1;
-                        if (charBuf.charAt(j) == '1') temp = temp | 1;
-                    }
-                    out.write((byte) temp);
-                    charBuf = new StringBuilder(charBuf.substring(8));
-                }
-            }
-            if (charBuf.length() > 0) {
-                // Fills the last text
-                temp = 0;
-                for (int i = 0; i < charBuf.length(); i++) {
-                    temp = temp << 1;
-                    if (charBuf.charAt(i) == '1')
-                        temp = temp | 1;
-                }
-                temp = temp << (8 - charBuf.length());
-                out.write((byte) temp);
-            }
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe.getMessage());
-        }
-    }
-
-    static void swapEndSig(HuffmanNode root, short endSig) {
-
     }
 
     static void generateLengthCode(byte[] canonicalMap, int[] dstTable) {
@@ -254,40 +115,21 @@ abstract class LongHuffmanUtil {
         }
     }
 
-    static HashMap<Integer, Integer> generateLengthCode(byte[] canonicalMap) {
-        HashMap<Integer, Integer> lengthCode = new HashMap<>();
-        for (int i = 0; i < canonicalMap.length; i++) {
-            int len = canonicalMap[i] & 0xff;
-            if (len != 0) {
-                lengthCode.put(i, len);
-            }
-        }
-        return lengthCode;
-    }
-
     static void heightControl(int[] lengthMap, int[] freqMap, int maxHeight) {
         ArrayList<LengthTuple> list = new ArrayList<>();
+        int max = 0;
         for (int k = 0; k < lengthMap.length; ++k) {
             int len = lengthMap[k];
+            if (len > max) {
+                max = len;
+            }
             if (len > 0) list.add(new LengthTuple(k, len, freqMap[k]));
         }
-//        for (int key : codeLength.keySet()) list.add(new LengthTuple(key, codeLength.get(key), freqMap.get(key)));
         Collections.sort(list);
 
         int debt = getTotalDebt(list, maxHeight);
         repay(list, debt, maxHeight);
-//        for (LengthTuple lt : list) codeLength.put(lt.getByte(), lt.length);
         for (LengthTuple lt: list) lengthMap[lt.getByte()] = lt.length;
-    }
-
-    static void heightControl(HashMap<Integer, Integer> codeLength, HashMap<Integer, Integer> freqMap, int maxHeight) {
-        ArrayList<LengthTuple> list = new ArrayList<>();
-        for (int key : codeLength.keySet()) list.add(new LengthTuple(key, codeLength.get(key), freqMap.get(key)));
-        Collections.sort(list);
-
-        int debt = getTotalDebt(list, maxHeight);
-        repay(list, debt, maxHeight);
-        for (LengthTuple lt : list) codeLength.put(lt.getByte(), lt.length);
     }
 
     private static int getTotalDebt(ArrayList<LengthTuple> list, int maxHeight) {

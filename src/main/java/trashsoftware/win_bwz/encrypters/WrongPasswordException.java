@@ -5,7 +5,7 @@ package trashsoftware.win_bwz.encrypters;
  * encoding.
  *
  * @author zbh
- * @see java.lang.Exception
+ * @see Exception
  * @since 0.4
  */
 public class WrongPasswordException extends Exception {

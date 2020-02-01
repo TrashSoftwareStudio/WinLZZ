@@ -3,6 +3,7 @@ package trashsoftware.win_bwz.resourcesPack.languages;
 import trashsoftware.win_bwz.resourcesPack.configLoader.GeneralLoaders;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 /**
@@ -64,8 +65,8 @@ public class LanguageLoader {
 
     private void load() throws IOException {
         if (!containsLanguage(currentLanguage)) throw new RuntimeException("No Such Language");
-        InputStream is = getClass().getResourceAsStream(currentLanguage + ".txt");
-        BufferedReader br = new BufferedReader(new InputStreamReader(is, "utf-8"));
+        InputStream is = new FileInputStream(currentLanguage + ".txt");
+        BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
         String line;
         while ((line = br.readLine()) != null) if (line.length() > 0 && line.charAt(0) != '#' && line.contains("=")) {
             String[] split = line.split("=");

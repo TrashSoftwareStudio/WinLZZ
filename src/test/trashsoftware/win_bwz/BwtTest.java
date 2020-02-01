@@ -1,8 +1,7 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.bwz.SuffixArrayDoubling;
-import trashsoftware.win_bwz.bwz.bwt.BWTDecoder;
-import trashsoftware.win_bwz.bwz.bwt.BWTEncoder;
+import trashsoftware.win_bwz.core.bwz.bwt.BWTDecoder;
+import trashsoftware.win_bwz.core.bwz.bwt.BWTEncoder;
 
 import java.util.Arrays;
 

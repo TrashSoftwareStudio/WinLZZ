@@ -1,9 +1,7 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.lzz2.LZZ2Compressor;
-import trashsoftware.win_bwz.lzz2.LZZ2DeCompressor;
-import trashsoftware.win_bwz.lzz2_plus.Lzz2PlusCompressor;
-import trashsoftware.win_bwz.lzz2_plus.Lzz2PlusDecompressor;
+import trashsoftware.win_bwz.core.lzz2_plus.Lzz2PlusCompressor;
+import trashsoftware.win_bwz.core.lzz2_plus.Lzz2PlusDecompressor;
 import trashsoftware.win_bwz.utility.Util;
 
 import java.io.BufferedOutputStream;

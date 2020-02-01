@@ -1,7 +1,7 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.bwz.BWZCompressor;
-import trashsoftware.win_bwz.bwz.BWZDeCompressor;
+import trashsoftware.win_bwz.core.bwz.BWZCompressor;
+import trashsoftware.win_bwz.core.bwz.BWZDeCompressor;
 import trashsoftware.win_bwz.utility.Security;
 import trashsoftware.win_bwz.utility.Util;
 

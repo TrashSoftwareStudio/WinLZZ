@@ -1,15 +1,17 @@
 package trashsoftware.win_bwz.encrypters.zse;
 
-import trashsoftware.win_bwz.interfaces.Decipher;
+import trashsoftware.win_bwz.encrypters.Decipher;
 import trashsoftware.win_bwz.packer.UnPacker;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * The decoder of a ZSE-encoded file.
  *
  * @author zbh
- * @see trashsoftware.win_bwz.interfaces.Decipher
+ * @see Decipher
  * @see ZSEDecoder
  * @since 0.4
  */

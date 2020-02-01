@@ -1,6 +1,6 @@
 package trashsoftware.win_bwz.encrypters.bzse;
 
-import trashsoftware.win_bwz.interfaces.Encipher;
+import trashsoftware.win_bwz.encrypters.Encipher;
 import trashsoftware.win_bwz.packer.Packer;
 
 import java.io.IOException;
@@ -11,7 +11,7 @@ import java.io.OutputStream;
  * An implementation of interface {@code Encipher} that uses BZSE algorithm.
  *
  * @author zbh
- * @see trashsoftware.win_bwz.interfaces.Encipher
+ * @see Encipher
  * @see BZSEEncoder
  * @since 0.8
  */

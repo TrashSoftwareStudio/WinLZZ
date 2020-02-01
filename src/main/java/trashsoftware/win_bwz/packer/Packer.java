@@ -17,17 +17,17 @@
 
 package trashsoftware.win_bwz.packer;
 
-import trashsoftware.win_bwz.bwz.BWZCompressor;
+import trashsoftware.win_bwz.core.bwz.BWZCompressor;
 import trashsoftware.win_bwz.encrypters.bzse.BZSEStreamEncoder;
-import trashsoftware.win_bwz.graphicUtil.AnnotationNode;
-import trashsoftware.win_bwz.interfaces.Compressor;
-import trashsoftware.win_bwz.interfaces.Encipher;
-import trashsoftware.win_bwz.lzz2.LZZ2Compressor;
+import trashsoftware.win_bwz.gui.graphicUtil.AnnotationNode;
+import trashsoftware.win_bwz.core.Compressor;
+import trashsoftware.win_bwz.encrypters.Encipher;
+import trashsoftware.win_bwz.core.lzz2.LZZ2Compressor;
 import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.*;
 import trashsoftware.win_bwz.encrypters.zse.ZSEFileEncoder;
 import javafx.beans.property.*;
-import trashsoftware.win_bwz.lzz2_plus.Lzz2PlusCompressor;
+import trashsoftware.win_bwz.core.lzz2_plus.Lzz2PlusCompressor;
 
 import java.io.*;
 import java.security.NoSuchAlgorithmException;

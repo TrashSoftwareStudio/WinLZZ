@@ -1,9 +1,11 @@
 package trashsoftware.win_bwz.encrypters.zse;
 
-import trashsoftware.win_bwz.interfaces.Encipher;
+import trashsoftware.win_bwz.encrypters.Encipher;
 import trashsoftware.win_bwz.packer.Packer;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * A ZSE-based encoder that encodes a file.

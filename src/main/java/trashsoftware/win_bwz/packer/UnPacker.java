@@ -1,11 +1,11 @@
 package trashsoftware.win_bwz.packer;
 
-import trashsoftware.win_bwz.bwz.BWZDeCompressor;
+import trashsoftware.win_bwz.core.bwz.BWZDeCompressor;
 import trashsoftware.win_bwz.encrypters.bzse.BZSEStreamDecoder;
-import trashsoftware.win_bwz.interfaces.DeCompressor;
-import trashsoftware.win_bwz.interfaces.Decipher;
-import trashsoftware.win_bwz.lzz2.LZZ2DeCompressor;
-import trashsoftware.win_bwz.lzz2_plus.Lzz2PlusDecompressor;
+import trashsoftware.win_bwz.core.DeCompressor;
+import trashsoftware.win_bwz.encrypters.Decipher;
+import trashsoftware.win_bwz.core.lzz2.LZZ2DeCompressor;
+import trashsoftware.win_bwz.core.lzz2_plus.Lzz2PlusDecompressor;
 import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.*;
 import trashsoftware.win_bwz.encrypters.WrongPasswordException;

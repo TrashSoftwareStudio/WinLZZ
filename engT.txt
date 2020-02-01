@@ -197,6 +197,9 @@ English
 572=Please insert the driver that contains the next archive section, or choose the section file manually
 573=Integrating...
 
+operationInterrupted=Operation interrupted
+fileDamaged2=File damaged
+
 #  File Info UI
 
 600=Type

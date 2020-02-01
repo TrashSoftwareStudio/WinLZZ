@@ -425,20 +425,21 @@ public abstract class Util {
         return builder.toString();
     }
 
-    private static String numToReadable(double num) {
-        if (num >= 1048576) throw new IndexOutOfBoundsException("Number Too large");
-        int decimalNum = (int) num;
-        String decimal = String.valueOf(decimalNum);
-        double fractionalNum = (double) Math.round((num - decimalNum) * 1000) / 1000;
-        String fractional = String.valueOf(fractionalNum);
-        String decimalWithComma;
-        if (decimal.length() <= 3) decimalWithComma = decimal;
-        else {
-            int split = decimal.length() - 3;
-            decimalWithComma = decimal.substring(0, split) + "," + decimal.substring(split);
-        }
-        if (fractionalNum == 0) return decimalWithComma;
-        else return decimalWithComma + "." + fractional.substring(2);
+    public static String numToReadable(double num) {
+        return num == (int) num ? String.format("%,d", (int) num) : String.format("%,.2f", num);
+//        if (num >= 1048576) throw new IndexOutOfBoundsException("Number Too large");
+//        int decimalNum = (int) num;
+//        String decimal = String.valueOf(decimalNum);
+//        double fractionalNum = (double) Math.round((num - decimalNum) * 1000) / 1000;
+//        String fractional = String.valueOf(fractionalNum);
+//        String decimalWithComma;
+//        if (decimal.length() <= 3) decimalWithComma = decimal;
+//        else {
+//            int split = decimal.length() - 3;
+//            decimalWithComma = decimal.substring(0, split) + "," + decimal.substring(split);
+//        }
+//        if (fractionalNum == 0) return decimalWithComma;
+//        else return decimalWithComma + "." + fractional.substring(2);
     }
 
     /**

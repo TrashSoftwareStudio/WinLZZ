@@ -291,6 +291,60 @@ public class BWZCompressor implements Compressor {
     public void setThreads(int threads) {
         this.threadNumber = threads;
     }
+
+    /**
+     * returns the estimated memory usage during compression and decompression
+     *
+     * @param threads    the thread number
+     * @param windowSize the window size
+     * @param modeLevel  the strong level
+     * @return {@code long[2]{memory when compress, memory when uncompress}}
+     */
+    public static long[] estimateMemoryUsage(int threads, int windowSize, int modeLevel) {
+        long cmpMemory = windowSize * threads;  // the read array
+
+        long cmpEachThread = 65536;  // estimated non-array objects
+
+        cmpEachThread += windowSize * 4;  // bwt encoder
+        if (windowSize >= DC_3_DECISION_SIZE) {
+            cmpEachThread += (4 * (windowSize + 257) + windowSize * 7) * 4;  // dc3 algorithm
+        } else {
+            cmpEachThread += (4 * windowSize + 3 * 65536) * 4;  // doubling algorithm arrays. last '*4' for int size
+        }
+        cmpEachThread += (windowSize * 2 + 257) * 4;  // mtf transformation
+        int hufBlocks = modeLevel == 1 ? windowSize / DEFAULT_HUF_SIZE : 1;
+        cmpEachThread += hufBlocks * 24 * 3;
+
+        cmpEachThread = getCmpMapMemoryEachThread(cmpEachThread, hufBlocks);
+
+        cmpMemory += cmpEachThread * threads;
+
+        long uncMemory = windowSize;
+        uncMemory = getCmpMapMemoryEachThread(uncMemory, hufBlocks);
+
+        long uncEachThread = 65536;
+        uncEachThread += (windowSize * 2 + 257 + 100) * 4;  // mtf inverse and zero rlc decoder. Not both added since
+        // one will be freed after use
+
+        uncEachThread += (windowSize + 4) * 4;  // bwt decoder init
+        uncEachThread += (windowSize * 4 + 258) * 4;  // ll, lf, lf2, counts
+        uncEachThread += windowSize * 2;  // two copies in bwt decoder
+
+        uncMemory += uncEachThread;
+
+        return new long[]{cmpMemory, uncMemory};
+    }
+
+    private static long getCmpMapMemoryEachThread(long cmpEachThread, int hufBlocks) {
+        cmpEachThread += hufBlocks * (HUFFMAN_TABLE_SIZE + 24);  // huffman maps
+        cmpEachThread += hufBlocks * (DEFAULT_HUF_SIZE + 24);  // huffman result lengths
+        cmpEachThread += HUFFMAN_TABLE_SIZE * 3 * 4 + 24 * 3;  // huffman tables used in huffman compressor
+        cmpEachThread += DEFAULT_HUF_SIZE + 256 + 24;  // huffman temp array
+
+        cmpEachThread += HUFFMAN_TABLE_SIZE * hufBlocks + 24;  // total map
+        cmpEachThread += HUFFMAN_TABLE_SIZE * hufBlocks * 10;  // map compressor, estimate
+        return cmpEachThread;
+    }
 }
 
 

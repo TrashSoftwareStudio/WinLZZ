@@ -11,6 +11,16 @@ import java.util.*;
  */
 public abstract class GeneralLoaders {
 
+    public static Locale getCurrentLocale() {
+        String localeName = getConfig("locale");
+        if (localeName == null) {
+            return new Locale("zh", "CN");
+        } else {
+            String[] lanCountry = localeName.split("_");
+            return new Locale(lanCountry[0], lanCountry[1]);
+        }
+    }
+
     /**
      * Reads all configs into a {@code HashMap<String, String>}.
      *

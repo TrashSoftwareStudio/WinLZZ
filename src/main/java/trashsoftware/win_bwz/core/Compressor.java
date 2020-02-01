@@ -12,6 +12,7 @@ import java.io.OutputStream;
  * @author zbh
  * @see trashsoftware.win_bwz.core.lzz2.LZZ2Compressor
  * @see trashsoftware.win_bwz.core.bwz.BWZCompressor
+ * @see trashsoftware.win_bwz.core.lzz2_plus.Lzz2PlusCompressor
  * @since 0.5
  */
 public interface Compressor {

@@ -18,7 +18,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
@@ -76,9 +75,6 @@ public class MainUI implements Initializable {
     private Menu settingsMenu, toolMenu, helpMenu;
 
     @FXML
-    private ScrollPane currentDirPane;
-
-    @FXML
     private HBox currentDirBox;
 
     @FXML
@@ -88,7 +84,7 @@ public class MainUI implements Initializable {
 
     private boolean isClickingDirBox;
 
-    private ArrayList<DirButton> dirButtons = new ArrayList<>();
+    private ResourceBundle bundle;
 
     /**
      * {@code MenuItem}'s in right-click popup menu.
@@ -106,6 +102,7 @@ public class MainUI implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        this.bundle = resources;
         setTree();
         setTreeListener();
         rootTree.getRoot().setExpanded(true);
@@ -137,7 +134,8 @@ public class MainUI implements Initializable {
 
     @FXML
     public void aboutAction() throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/aboutUI.fxml"));
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/trashsoftware/win_bwz/fxml/aboutUI.fxml"), bundle);
         Parent root = loader.load();
         AboutUI aui = loader.getController();
         aui.setLanLoader(lanLoader);
@@ -152,7 +150,7 @@ public class MainUI implements Initializable {
         Pane root = new Pane();
         Stage dialog = new Stage();
         Scene scene = new Scene(root);
-        dialog.setTitle(lanLoader.get(17));
+        dialog.setTitle(bundle.getString("license"));
         dialog.setScene(scene);
 
         VBox pane = new VBox();
@@ -171,7 +169,8 @@ public class MainUI implements Initializable {
 
     @FXML
     private void changelogAction() throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/changelogViewer.fxml"));
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/trashsoftware/win_bwz/fxml/changelogViewer.fxml"), bundle);
         Parent root = loader.load();
         ChangelogViewer clv = loader.getController();
         clv.setLanLoader(lanLoader);
@@ -192,7 +191,7 @@ public class MainUI implements Initializable {
         languageBox.getItems().addAll(lanLoader.getAllLanguageNames());
         languageBox.getSelectionModel().select(lanLoader.getCurrentLanguage());
 
-        Button confirm = new Button(lanLoader.get(15));  // Confirm
+        Button confirm = new Button(bundle.getString("confirm"));  // Confirm
         confirm.setOnAction(e -> {
             if (!lanLoader.changeLanguage(languageBox.getSelectionModel().getSelectedItem()))
                 System.out.println("Failed to change language");
@@ -218,7 +217,8 @@ public class MainUI implements Initializable {
         for (int i = 0; i < selections.size(); i++) selected[i] = selections.get(i).getFile();
         if (selected.length > 0) {
             GeneralLoaders.writeLastSelectionDir(selected[0]);
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/compressUI.fxml"));
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/trashsoftware/win_bwz/fxml/compressUI.fxml"), bundle);
 
             Parent root = loader.load();
             Stage stage = new Stage();
@@ -256,18 +256,18 @@ public class MainUI implements Initializable {
                         Desktop.getDesktop().open(rfn.getFile());
                     } catch (IOException ioe) {
                         Alert alert = new Alert(Alert.AlertType.WARNING);
-                        alert.setTitle(lanLoader.get(60));
-                        alert.setHeaderText(lanLoader.get(61));
-                        alert.setContentText(lanLoader.get(62));
+                        alert.setTitle(bundle.getString("error"));
+                        alert.setHeaderText(bundle.getString("cannotOpenThisFile"));
+                        alert.setContentText(bundle.getString("occupiedByOtherApp"));
                         alert.showAndWait();
                     }
                     break;
             }
         } else {
             Alert alert2 = new Alert(Alert.AlertType.WARNING);
-            alert2.setTitle(lanLoader.get(60));
-            alert2.setHeaderText(lanLoader.get(61));
-            alert2.setContentText(lanLoader.get(64));
+            alert2.setTitle(bundle.getString("error"));
+            alert2.setHeaderText(bundle.getString("cannotOpenThisFile"));
+            alert2.setContentText(bundle.getString("fileDoesNotExist"));
             alert2.showAndWait();
             refreshAction();
         }
@@ -321,7 +321,8 @@ public class MainUI implements Initializable {
         if (selected != null) {
             GeneralLoaders.writeLastSelectionDir(selected);
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/uncompressUI.fxml"));
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/trashsoftware/win_bwz/fxml/uncompressUI.fxml"), bundle);
             Parent root = loader.load();
 
             Stage stage = new Stage();
@@ -352,7 +353,8 @@ public class MainUI implements Initializable {
     }
 
     private void showFileProperty() throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/filePropertiesUI.fxml"));
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/trashsoftware/win_bwz/fxml/filePropertiesUI.fxml"), bundle);
 
         Parent root = loader.load();
         Stage stage = new Stage();
@@ -428,7 +430,7 @@ public class MainUI implements Initializable {
         TextField nameField = new TextField(f.getName());
         Label prompt = new Label("\n\n");
         HBox hbox = new HBox();
-        Button confirm = new Button(lanLoader.get(1));
+        Button confirm = new Button(bundle.getString("confirm"));
         confirm.setOnAction(e -> {
             String newName = nameField.getText();
             if (Util.charArrayContains(nameExclusion, newName)) {
@@ -837,20 +839,20 @@ public class MainUI implements Initializable {
     }
 
     private void fillText() {
-        nameCol.setText(lanLoader.get(20));
-        typeCol.setText(lanLoader.get(21));
-        sizeCol.setText(lanLoader.get(22));
-        timeCol.setText(lanLoader.get(23));
-        compressButton.setText(lanLoader.get(10));
-        uncompressButton.setText(lanLoader.get(11));
-        settingsMenu.setText(lanLoader.get(12));
-        helpMenu.setText(lanLoader.get(13));
-        languageSetting.setText(lanLoader.get(14));
-        about.setText(lanLoader.get(16));
-        licence.setText(lanLoader.get(17));
-        changelogView.setText(lanLoader.get(18));
-        toolMenu.setText(lanLoader.get(30));
-        openInDesktop.setText(lanLoader.get(32));
-        pasteHere.setText(lanLoader.get(31));
+//        nameCol.setText(lanLoader.get(20));
+//        typeCol.setText(lanLoader.get(21));
+//        sizeCol.setText(lanLoader.get(22));
+//        timeCol.setText(lanLoader.get(23));
+//        compressButton.setText(lanLoader.get(10));
+//        uncompressButton.setText(lanLoader.get(11));
+//        settingsMenu.setText(lanLoader.get(12));
+//        helpMenu.setText(lanLoader.get(13));
+//        languageSetting.setText(lanLoader.get(14));
+//        about.setText(lanLoader.get(16));
+//        licence.setText(lanLoader.get(17));
+//        changelogView.setText(lanLoader.get(18));
+//        toolMenu.setText(lanLoader.get(30));
+//        openInDesktop.setText(lanLoader.get(32));
+//        pasteHere.setText(lanLoader.get(31));
     }
 }

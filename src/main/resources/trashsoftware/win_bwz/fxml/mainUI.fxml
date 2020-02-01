@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<!--<?xml version="1.0" encoding="UTF-8"?>-->
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
@@ -21,17 +21,19 @@
             <Insets bottom="10.0" left="5.0" right="5.0"/>
         </padding>
         <MenuBar prefHeight="25.0">
-            <Menu fx:id="settingsMenu" mnemonicParsing="false" text="设置">
-                <MenuItem fx:id="languageSetting" mnemonicParsing="false" onAction="#languageSelection" text="语言"/>
+            <Menu fx:id="settingsMenu" mnemonicParsing="false" text="%settings">
+                <MenuItem fx:id="languageSetting" mnemonicParsing="false" onAction="#languageSelection"
+                          text="%language"/>
             </Menu>
-            <Menu fx:id="toolMenu" mnemonicParsing="false" text="编辑">
-                <MenuItem fx:id="openInDesktop" mnemonicParsing="false" onAction="#desktopOpenAction" text="在桌面中打开"/>
-                <MenuItem fx:id="pasteHere" mnemonicParsing="false" onAction="#pasteHereAction" text="粘贴"/>
+            <Menu fx:id="toolMenu" mnemonicParsing="false" text="%edit">
+                <MenuItem fx:id="openInDesktop" mnemonicParsing="false" onAction="#desktopOpenAction"
+                          text="%openInDesktop"/>
+                <MenuItem fx:id="pasteHere" mnemonicParsing="false" onAction="#pasteHereAction" text="%paste"/>
             </Menu>
-            <Menu fx:id="helpMenu" mnemonicParsing="false" text="帮助">
-                <MenuItem fx:id="about" mnemonicParsing="false" onAction="#aboutAction" text="关于"/>
-                <MenuItem fx:id="licence" mnemonicParsing="false" onAction="#licenceAction" text="开源许可证"/>
-                <MenuItem fx:id="changelogView" mnemonicParsing="false" onAction="#changelogAction" text="查看更新日志"/>
+            <Menu fx:id="helpMenu" mnemonicParsing="false" text="%help">
+                <MenuItem fx:id="about" mnemonicParsing="false" onAction="#aboutAction" text="%about"/>
+                <MenuItem fx:id="licence" mnemonicParsing="false" onAction="#licenceAction" text="%license"/>
+                <MenuItem fx:id="changelogView" mnemonicParsing="false" onAction="#changelogAction" text="%changeLog"/>
             </Menu>
         </MenuBar>
         <HBox alignment="CENTER_LEFT" prefHeight="35.0" prefWidth="220.0" spacing="10.0">
@@ -41,20 +43,14 @@
                 <Button fx:id="refreshButton" disable="true" mnemonicParsing="false" onAction="#refreshAction"
                         text="♋"/>
                 <Button fx:id="compressButton" disable="true" mnemonicParsing="false" onAction="#compressMode"
-                        text="压缩">
+                        text="%compress">
                 </Button>
                 <Button fx:id="uncompressButton" disable="true" mnemonicParsing="false" onAction="#openAction"
-                        text="打开"/>
+                        text="%open"/>
             </HBox>
-            <!--<HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="620.0">-->
-                <!--<children>-->
-                    <ScrollPane fx:id="currentDirPane" prefHeight="30.0" prefWidth="720.0">
-                        <content>
-                            <HBox fx:id="currentDirBox" prefHeight="30.0" alignment="CENTER_LEFT"/>
-                        </content>
-                    </ScrollPane>
-                <!--</children>-->
-            <!--</HBox>-->
+            <ScrollPane prefHeight="30.0" prefWidth="720.0">
+                <HBox fx:id="currentDirBox" prefHeight="30.0" alignment="CENTER_LEFT"/>
+            </ScrollPane>
         </HBox>
 
         <HBox spacing="5.0">

@@ -1,5 +1,6 @@
 package trashsoftware.win_bwz.gui.controllers;
 
+import trashsoftware.win_bwz.core.bwz.BWZCompressor;
 import trashsoftware.win_bwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import javafx.fxml.FXML;
@@ -7,11 +8,11 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import trashsoftware.win_bwz.utility.Util;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,10 +31,7 @@ public class CompressUI implements Initializable {
     private ComboBox<Integer> bufferBox, threadBox;
 
     @FXML
-    private Label nameLabel, algLabel, levelLabel, windowLabel, bufferLabel, strongModeLabel, threadLabel, partialLabel;
-
-    @FXML
-    private Button startCompressButton, passwordButton, annotationButton;
+    private Label memoryNeedComLabel, memoryNeedUncLabel;
 
     private File[] rootDir;
     private Stage pStage;
@@ -69,9 +67,11 @@ public class CompressUI implements Initializable {
 
     private MainUI parent;
     private LanguageLoader lanLoader;
+    private ResourceBundle bundle;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        this.bundle = resources;
     }
 
     void setParent(MainUI parent) {
@@ -87,6 +87,8 @@ public class CompressUI implements Initializable {
         setLevelListener();
         setAlgBoxListener();
         setSizeUnitListener();
+        setWindowNameBoxListener();
+        setThreadBoxListener();
         levelBox.getSelectionModel().select(3);
         modeBox.getSelectionModel().select(1);
         algBox.getSelectionModel().select(0);
@@ -159,6 +161,12 @@ public class CompressUI implements Initializable {
         }));
     }
 
+    private void setWindowNameBoxListener() {
+        windowNameBox.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
+            estimateMemoryUsage();
+        }));
+    }
+
     private void setLevelListener() {
         levelBox.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue.intValue() == 0) {
@@ -195,6 +203,12 @@ public class CompressUI implements Initializable {
                 }
             }
         });
+    }
+
+    private void setThreadBoxListener() {
+        threadBox.getSelectionModel().selectedItemProperty().addListener(((observable, oldValue, newValue) -> {
+            estimateMemoryUsage();
+        }));
     }
 
     private void setAlgBoxListener() {
@@ -234,12 +248,38 @@ public class CompressUI implements Initializable {
             setWindowSizeBox();
             levelBox.getSelectionModel().select(3);
             windowNameBox.getSelectionModel().select(2);
+            estimateMemoryUsage();
         });
+    }
+
+    private void estimateMemoryUsage() {
+        String alg = getAlgCode();
+        if (alg.equals("bwz")) {
+            updateMemoryLabels(
+                    BWZCompressor.estimateMemoryUsage(
+                            threadBox.getSelectionModel().getSelectedItem(),
+                            windowSizes2[windowNameBox.getSelectionModel().getSelectedIndex()],
+                            modeBox.getSelectionModel().getSelectedIndex()
+                    )
+            );
+        }
+    }
+
+    private void updateMemoryLabels(long[] memoryUse) {
+        int cmpInMb = (int) Math.ceil((double) memoryUse[0] / 1048576);
+        int uncInMb = (int) Math.ceil((double) memoryUse[1] / 1048576);
+        memoryNeedComLabel.setText(Util.numToReadable(cmpInMb) + " MB");
+        memoryNeedUncLabel.setText(Util.numToReadable(uncInMb) + " MB");
+    }
+
+    private String getAlgCode() {
+        return algValues[algBox.getSelectionModel().getSelectedIndex()];
     }
 
     @FXML
     void showPasswordBox() throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/passwordBox.fxml"));
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/trashsoftware/win_bwz/fxml/passwordBox.fxml"), bundle);
 
         Parent root = loader.load();
         Stage stage = new Stage();
@@ -257,7 +297,8 @@ public class CompressUI implements Initializable {
 
     @FXML
     void showAnnotationWindow() throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/annotationUI.fxml"));
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/trashsoftware/win_bwz/fxml/annotationUI.fxml"), bundle);
 
         Parent root = loader.load();
         Stage stage = new Stage();
@@ -278,7 +319,7 @@ public class CompressUI implements Initializable {
         String name = nameText.getText();
         if (!name.endsWith(".pz")) name += ".pz";
 
-        String alg = algValues[algBox.getSelectionModel().getSelectedIndex()];
+        String alg = getAlgCode();
 
         int window, buffer, cmpLevel;
         if (levelBox.getSelectionModel().getSelectedIndex() == 0) {
@@ -316,12 +357,13 @@ public class CompressUI implements Initializable {
             String partSizeText;
             if (partText.contains(" ")) partSizeText = partText.split(" ")[0];
             else partSizeText = partText;
-            partSize = (long) (Double.valueOf(partSizeText) * unit);
+            partSize = (long) (Double.parseDouble(partSizeText) * unit);
         } else {
             partSize = 0;
         }
 
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/compressingUI.fxml"));
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/trashsoftware/win_bwz/fxml/compressingUI.fxml"), bundle);
 
         Parent root = loader.load();
         Stage stage = new Stage();
@@ -344,19 +386,19 @@ public class CompressUI implements Initializable {
     }
 
     private void fillTexts() {
-        nameLabel.setText(lanLoader.get(100));
-        passwordButton.setText(lanLoader.get(101));
-        algLabel.setText(lanLoader.get(102));
-        levelLabel.setText(lanLoader.get(103));
-        windowLabel.setText(lanLoader.get(104));
-        bufferLabel.setText(lanLoader.get(105));
-        strongModeLabel.setText(lanLoader.get(106));
-        threadLabel.setText(lanLoader.get(107));
-        partialLabel.setText(lanLoader.get(121));
-        startCompressButton.setText(lanLoader.get(108));
-        annotationButton.setText(lanLoader.get(109));
+//        nameLabel.setText(lanLoader.get(100));
+//        passwordButton.setText(lanLoader.get(101));
+//        algLabel.setText(lanLoader.get(102));
+//        levelLabel.setText(lanLoader.get(103));
+//        windowLabel.setText(lanLoader.get(104));
+//        bufferLabel.setText(lanLoader.get(105));
+//        strongModeLabel.setText(lanLoader.get(106));
+//        threadLabel.setText(lanLoader.get(107));
+//        partialLabel.setText(lanLoader.get(121));
+//        startCompressButton.setText(lanLoader.get(108));
+//        annotationButton.setText(lanLoader.get(109));
 
-        for (int i = 0; i < 6; i++) compressionLevels[i] = lanLoader.get(110 + i);
-        for (int i = 0; i < 5; i++) cmpLevels[i] = lanLoader.get(116 + i);
+        for (int i = 0; i < 6; i++) compressionLevels[i] = bundle.getString("compressLv" + i);
+        for (int i = 0; i < 5; i++) cmpLevels[i] = bundle.getString("compressStrongLv" + i);
     }
 }

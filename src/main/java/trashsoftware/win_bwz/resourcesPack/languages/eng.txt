@@ -120,6 +120,9 @@ English
 270=Creating database...
 271=Encrypting...
 
+272=h
+273=h
+
 #  Uncompress UI FXML
 
 300=Name
@@ -193,6 +196,9 @@ English
 571=Browse
 572=Please insert the driver that contains the next archive section, or choose the section file manually
 573=Integrating...
+
+operationInterrupted=操作中断
+fileDamaged2=文件损坏
 
 #  File Info UI
 

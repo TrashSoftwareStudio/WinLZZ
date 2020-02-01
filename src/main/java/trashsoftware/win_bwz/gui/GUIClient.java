@@ -5,6 +5,11 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import trashsoftware.win_bwz.resourcesPack.UTF8Control;
+import trashsoftware.win_bwz.resourcesPack.configLoader.GeneralLoaders;
+
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 /**
  * Graphic User Interface of WinLZZ.
@@ -31,7 +36,10 @@ public class GUIClient extends Application {
      */
     @Override
     public void start(Stage primaryStage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/mainUI.fxml"));
+        ResourceBundle bundle = ResourceBundle.getBundle("trashsoftware.win_bwz.bundles.LangBundle",
+                GeneralLoaders.getCurrentLocale(), new UTF8Control());
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/trashsoftware/win_bwz/fxml/mainUI.fxml"), bundle);
 
         Parent root = loader.load();
         primaryStage.setTitle("WinLZZ");

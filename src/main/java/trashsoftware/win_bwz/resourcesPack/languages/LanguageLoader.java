@@ -90,6 +90,7 @@ public class LanguageLoader {
      * @param code the id of the text to be displayed
      * @return the corresponding text in the current loading language
      */
+    @Deprecated
     public String get(int code) {
         return texts.get(code);
     }

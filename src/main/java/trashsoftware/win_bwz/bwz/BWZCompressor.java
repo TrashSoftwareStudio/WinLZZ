@@ -341,17 +341,6 @@ class EncodeThread implements Runnable {
     static long bwtTime, mtfTime, mapTime, hufTime;
 
     private void start() {
-        int huffmanBlockNumber;  // The number of huffman blocks needed for this BWT trunk.
-        if (partSize <= parent.maxHuffmanSize) {
-            huffmanBlockNumber = 1;
-        } else {
-            huffmanBlockNumber = partSize / parent.maxHuffmanSize;
-            if (partSize < windowSize) huffmanBlockNumber += 1;
-        }
-
-        maps = new byte[huffmanBlockNumber][];
-        results = new byte[huffmanBlockNumber][];
-        flags = new byte[huffmanBlockNumber];
 
         long t1 = System.currentTimeMillis();
         BWTEncoder be = new BWTEncoder(buffer, beginIndex, partSize, useDc3, threadId);
@@ -367,30 +356,34 @@ class EncodeThread implements Runnable {
         long t3 = System.currentTimeMillis();
         mtfTime += t3 - t2;
 
-        int eachLength = array.length / huffmanBlockNumber;
-        int pos = 0;
-        for (int i = 0; i < huffmanBlockNumber - 1; i++) {
-//            int[] part = new int[eachLength];
-//            System.arraycopy(array, pos, part, 0, eachLength);
-            compressOneHufPart(i, array, pos, eachLength);
-            pos += eachLength;
+        int lenAfterMtf = array.length;
+
+        int huffmanBlockNumber = lenAfterMtf % parent.maxHuffmanSize == 0 ?
+                lenAfterMtf / parent.maxHuffmanSize : lenAfterMtf / parent.maxHuffmanSize + 1;
+        // The number of huffman blocks needed for this BWT trunk.
+
+        maps = new byte[huffmanBlockNumber][];
+        results = new byte[huffmanBlockNumber][];
+        flags = new byte[huffmanBlockNumber];
+
+//        int eachLength = array.length / huffmanBlockNumber;
+        int begin = 0;
+        for (int i = 0; i < huffmanBlockNumber; i++) {
+            int end = Math.min(begin + parent.maxHuffmanSize, lenAfterMtf);
+            int partSize = end - begin;
+
+            compressOneHufPart(i, array, begin, partSize);
+            begin += partSize;
         }
 
-        // The last huffman block.
-        int i = huffmanBlockNumber - 1;
-//        int[] lastPart = new int[array.length - pos];  // Since we need to put everything remaining inside
-//        // the last block.
-//        System.arraycopy(array, pos, lastPart, 0, lastPart.length);
-        compressOneHufPart(i, array, pos, array.length - pos);  // Since we need to put everything
-        // remaining inside the last block.
         parent.pos += partSize * 0.25;  // Update progress again
 
         hufTime += System.currentTimeMillis() - t3;
-        System.out.println(String.format("bwt: %d, mtf: %d, huf: %d", bwtTime, mtfTime, hufTime));
+//        System.out.println(String.format("bwt: %d, mtf: %d, huf: %d", bwtTime, mtfTime, hufTime));
     }
 
     private void compressOneHufPart(int i, int[] fullText, int textBegin, int textSize) {
-        System.out.println(textBegin + ", " + textSize);
+//        System.out.println(textBegin + ", " + textSize);
         LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(
                 fullText,
                 textBegin,

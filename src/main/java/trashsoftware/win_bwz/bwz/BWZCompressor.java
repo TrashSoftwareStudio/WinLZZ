@@ -183,7 +183,7 @@ public class BWZCompressor implements Compressor {
 //            if (!usdDc3) SuffixArrayDoubling.allocateArraysIfNot(windowSize, threadNumber);
 
             EncodeThread et = new EncodeThread(
-                    buffer, begin, partSize, windowSize, this, i, usdDc3
+                    buffer, begin, partSize, this, i, usdDc3
             );
             threads[i] = et;
 
@@ -307,14 +307,12 @@ class EncodeThread implements Runnable {
     private byte[][] results;
     private byte[][] maps;
     private byte[] flags;
-    private int windowSize;
     private BWZCompressor parent;
 
     /**
      * Creates a new {@code EncodeThread} instance.
      *
      * @param data       the whole data
-     * @param windowSize the block size.
      * @param beginIndex the index in <code>data</code> to be compressed
      * @param partSize   the number of byte to be compressed
      * @param parent     the parent {@code BWZCompressor} which has launched this {@code EncodeThread}.
@@ -324,7 +322,6 @@ class EncodeThread implements Runnable {
     EncodeThread(byte[] data,
                  int beginIndex,
                  int partSize,
-                 int windowSize,
                  BWZCompressor parent,
                  int threadId,
                  boolean useDc3) {
@@ -332,7 +329,6 @@ class EncodeThread implements Runnable {
         this.buffer = data;
         this.beginIndex = beginIndex;
         this.partSize = partSize;
-        this.windowSize = windowSize;
         this.parent = parent;
         this.threadId = threadId;
         this.useDc3 = useDc3;
@@ -348,7 +344,7 @@ class EncodeThread implements Runnable {
         long t2 = System.currentTimeMillis();
         bwtTime += t2 - t1;
 
-        parent.pos += partSize * 0.75;
+        parent.pos += partSize * 0.8;
         if (parent.parent != null) parent.parent.progress.set(parent.pos);  // Update progress
 
         MTFTransform mtf = new MTFTransform(bwtResult);
@@ -376,7 +372,7 @@ class EncodeThread implements Runnable {
             begin += partSize;
         }
 
-        parent.pos += partSize * 0.25;  // Update progress again
+        parent.pos += partSize * 0.2;  // Update progress again
 
         hufTime += System.currentTimeMillis() - t3;
 //        System.out.println(String.format("bwt: %d, mtf: %d, huf: %d", bwtTime, mtfTime, hufTime));

@@ -23,8 +23,9 @@ public class SuffixArrayDoubling {
      */
     public SuffixArrayDoubling(int[] text, int threadId) {
         n = text.length;
-        int max_n = n + 65536;
         this.text = text;
+
+        int max_n = n + 65536;
         sa = new int[n];
         t = new int[max_n];
         t2 = new int[max_n];

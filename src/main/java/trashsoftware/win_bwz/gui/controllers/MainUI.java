@@ -138,7 +138,7 @@ public class MainUI implements Initializable {
                 getClass().getResource("/trashsoftware/win_bwz/fxml/aboutUI.fxml"), bundle);
         Parent root = loader.load();
         AboutUI aui = loader.getController();
-        aui.setLanLoader(lanLoader);
+//        aui.setLanLoader(lanLoader);
         Stage stage = new Stage();
         stage.setScene(new Scene(root));
         stage.setResizable(false);
@@ -173,7 +173,7 @@ public class MainUI implements Initializable {
                 getClass().getResource("/trashsoftware/win_bwz/fxml/changelogViewer.fxml"), bundle);
         Parent root = loader.load();
         ChangelogViewer clv = loader.getController();
-        clv.setLanLoader(lanLoader);
+//        clv.setLanLoader(lanLoader);
         Stage stage = new Stage();
         stage.setTitle("WinLZZ");
         stage.setScene(new Scene(root));
@@ -231,7 +231,7 @@ public class MainUI implements Initializable {
             cui.setDir(selected);
             cui.setStage(stage);
             cui.setParent(this);
-            cui.load(lanLoader);
+            cui.load();
             stage.show();
         }
     }

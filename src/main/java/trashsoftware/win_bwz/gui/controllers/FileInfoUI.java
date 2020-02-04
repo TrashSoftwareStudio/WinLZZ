@@ -4,7 +4,6 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import trashsoftware.win_bwz.packer.*;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.Bytes;
 import trashsoftware.win_bwz.utility.Util;
 import javafx.fxml.FXML;
@@ -19,19 +18,17 @@ import java.util.ResourceBundle;
 
 public class FileInfoUI implements Initializable {
 
-    private File cmpFile;
-
     private UnPacker unPacker;
 
     @FXML
     private Label typeLabel, algLabel, versionLabel, versionNeededLabel, fileCountLabel, dirCountLabel, windowSizeLabel,
             compressRateLabel, netRateLabel, origSizeLabel, compressSizeLabel, annotationLabel, timeLabel,
-            crcChecksumLabel, encryptionLabel, secretKeyLabel, headLabel, otherInfoLabel, contextLabel, mainLabel;
+            crcChecksumLabel, encryptionLabel, secretKeyLabel;
 
     @FXML
     private Canvas progressBarCanvas;
 
-    private LanguageLoader lanLoader;
+    private ResourceBundle bundle;
 
     private static Color headColor = Color.GREEN;
     private static Color otherInfoColor = Color.GOLD;
@@ -40,6 +37,7 @@ public class FileInfoUI implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        bundle = resources;
         drawProgressCanvas();
     }
 
@@ -79,19 +77,13 @@ public class FileInfoUI implements Initializable {
         graphicsContext.fillRect(current, 5, mainPixel, 20);
     }
 
-    void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
-    }
-
-    void setInfo(File cmpFile, UnPacker unPacker) {
+    void setInfo(UnPacker unPacker) {
         this.unPacker = unPacker;
-        this.cmpFile = cmpFile;
     }
-
 
     void setItems() {
-        String prefix = unPacker.isSeparated() ? lanLoader.get(650) + " " : "";
-        typeLabel.setText(prefix + "WinLZZ " + lanLoader.get(651));
+        String prefix = unPacker.isSeparated() ? bundle.getString("multiSection") + " " : "";
+        typeLabel.setText(prefix + "WinLZZ " + bundle.getString("archive"));
 
         String alg;
         switch (unPacker.getAlg()) {
@@ -105,7 +97,7 @@ public class FileInfoUI implements Initializable {
                 alg = "BWZ";
                 break;
             default:
-                alg = lanLoader.get(652);
+                alg = bundle.getString("unknown");
                 break;
         }
 
@@ -121,33 +113,31 @@ public class FileInfoUI implements Initializable {
         Date date = new Date(unPacker.getCreationTime());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        algLabel.setText(lanLoader.get(601) + ": " + alg);
-        versionLabel.setText(String.format("%s: %d.%d", lanLoader.get(611), unPacker.getPrimaryVersionInt(),
+        algLabel.setText(": " + alg);
+        versionLabel.setText(String.format(": %d.%d", unPacker.getPrimaryVersionInt(),
                 unPacker.getSecondaryVersionInt()));
-        versionNeededLabel.setText(lanLoader.get(602) + ": " + translateVersion(unPacker.versionNeeded()));
-        compressRateLabel.setText(lanLoader.get(603) + ": " + roundedRate + " %");
-        netRateLabel.setText(lanLoader.get(617) + ": " + roundedNetRate + " %");
-        windowSizeLabel.setText(lanLoader.get(604) + ": " + sizeToString3Digit(unPacker.getWindowSize()));
-        origSizeLabel.setText(lanLoader.get(605) + ": " + Util.sizeToReadable(unPacker.getTotalOrigSize()));
-        compressSizeLabel.setText(lanLoader.get(606) + ": " + Util.sizeToReadable(unPacker.getDisplayArchiveLength()));
-        fileCountLabel.setText(lanLoader.get(607) + ": " + Util.splitNumber(String.valueOf(unPacker.getFileCount())));
-        dirCountLabel.setText(lanLoader.get(608) + ": " + Util.splitNumber(String.valueOf(unPacker.getDirCount() - 1)));
+        versionNeededLabel.setText(": " + translateVersion(unPacker.versionNeeded()));
+        compressRateLabel.setText(": " + roundedRate + " %");
+        netRateLabel.setText(": " + roundedNetRate + " %");
+        windowSizeLabel.setText(": " + sizeToString3Digit(unPacker.getWindowSize()));
+        origSizeLabel.setText(": " + Util.sizeToReadable(unPacker.getTotalOrigSize()));
+        compressSizeLabel.setText(": " + Util.sizeToReadable(unPacker.getDisplayArchiveLength()));
+        fileCountLabel.setText(": " + Util.splitNumber(String.valueOf(unPacker.getFileCount())));
+        dirCountLabel.setText(": " + Util.splitNumber(String.valueOf(unPacker.getDirCount() - 1)));
 
-        headLabel.setText(lanLoader.get(618));
-        otherInfoLabel.setText(lanLoader.get(619));
-        contextLabel.setText(lanLoader.get(620));
-        mainLabel.setText(lanLoader.get(621));
+//        headLabel.setText(lanLoader.get(618));
+//        otherInfoLabel.setText(lanLoader.get(619));
+//        contextLabel.setText(lanLoader.get(620));
+//        mainLabel.setText(lanLoader.get(621));
 
-        String ann = lanLoader.get(612) + ": ";
-        if (unPacker.getAnnotation() != null) ann += lanLoader.get(613);
-        else ann += lanLoader.get(614);
-        annotationLabel.setText(ann);
+        annotationLabel.setText(
+                ": " + bundle.getString(unPacker.getAnnotation() == null ? "doesNotExist" : "exist"));
 
-        String enc = lanLoader.get(615) + ": ";
-        String secretKey = lanLoader.get(616) + ": ";
+        String enc = ": ";
+        String secretKey = ": ";
         if (unPacker.getEncryptLevel() == 0) {
-            enc += lanLoader.get(614);
-            secretKey += lanLoader.get(614);
+            enc += bundle.getString("doesNotExist");
+            secretKey += bundle.getString("doesNotExist");
         } else {
             enc += unPacker.getEncryption().toUpperCase();
             secretKey += unPacker.getPasswordAlg().toUpperCase();
@@ -156,8 +146,8 @@ public class FileInfoUI implements Initializable {
         secretKeyLabel.setText(secretKey);
 
         // There is one root directory created by packer.
-        timeLabel.setText(lanLoader.get(609) + ": " + sdf.format(date));
-        crcChecksumLabel.setText(lanLoader.get(610) + ": " + Bytes.longToHex(unPacker.getCrc32Checksum(), false));
+        timeLabel.setText(": " + sdf.format(date));
+        crcChecksumLabel.setText(": " + Bytes.longToHex(unPacker.getCrc32Checksum(), false));
     }
 
 
@@ -185,11 +175,11 @@ public class FileInfoUI implements Initializable {
         else if (versionInt == 23) return "0.7.0 - 0.7.1";
         else if (versionInt == 24) return "0.7.2 - 0.7.3";
         else if (versionInt == 25) return "0.7.4+";
-        else return lanLoader.get(652);
+        else return bundle.getString("unknown");
     }
 
     private String sizeToString3Digit(long src) {
-        if (src < 1024) return src + " " + lanLoader.get(250);
+        if (src < 1024) return src + " " + bundle.getString("byte");
         else if (src < 1048576) return src / 1024 + " KB";
         else return src / 1048576 + " MB";
     }

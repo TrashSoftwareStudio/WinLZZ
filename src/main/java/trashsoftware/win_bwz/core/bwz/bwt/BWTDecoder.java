@@ -83,8 +83,8 @@ public class BWTDecoder {
         int[] ll = computeLL(lf);
         int[] lf2 = computeLF2(lf);
         int p = origIndex;
-        int l = 0;
         int n = cmpText.length;
+        int l = 0;
         byte[] tr = new byte[n];
         while (l < n - 1) {
             tr[l] = (byte) (ll[p << 1] - 1);

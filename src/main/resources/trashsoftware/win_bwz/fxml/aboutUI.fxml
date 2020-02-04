@@ -25,9 +25,9 @@
                         </Label>
                     </children>
                 </HBox>
-                <Label fx:id="trashSoftwareLabel" text="(C) 垃圾软件工作室"/>
+                <Label fx:id="trashSoftwareLabel" text="%trashSoftwareStudio"/>
                 <Label text="2017-2018"/>
-                <Label fx:id="coreVersionTextLabel" text="内核版本号:"/>
+                <Label fx:id="coreVersionTextLabel" text="%coreVersion"/>
                 <Label fx:id="coreVersionLabel"/>
             </children>
         </VBox>

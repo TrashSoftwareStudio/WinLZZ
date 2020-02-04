@@ -16,16 +16,17 @@
         <padding>
             <Insets left="10.0" right="10.0"/>
         </padding>
-        <Label fx:id="fromFile" text="文件注释"/>
+        <Label fx:id="fromFile" text="%loadFromTextFile"/>
         <HBox alignment="CENTER" prefHeight="40.0" prefWidth="400.0" spacing="5.0">
             <ComboBox fx:id="fileBox" prefWidth="300.0"/>
-            <Button fx:id="browseButton" mnemonicParsing="false" onAction="#browseAction" prefWidth="80.0" text="浏览"/>
+            <Button fx:id="browseButton" mnemonicParsing="false" onAction="#browseAction" prefWidth="80.0"
+                    text="%browse"/>
         </HBox>
-        <Label fx:id="fromText" text="手动注释"/>
+        <Label fx:id="fromText" text="%addAnnotation"/>
         <TextArea fx:id="textArea" prefHeight="160.0" prefWidth="200.0"/>
         <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="200.0" spacing="10.0">
-            <Button fx:id="confirmButton" mnemonicParsing="false" onAction="#confirmAction" text="确认"/>
-            <CheckBox fx:id="compressAnnBox" mnemonicParsing="false" text="压缩注释"/>
+            <Button fx:id="confirmButton" mnemonicParsing="false" onAction="#confirmAction" text="%confirm"/>
+            <CheckBox fx:id="compressAnnBox" mnemonicParsing="false" text="%compressAnnotation"/>
             <Label fx:id="warning"/>
         </HBox>
     </VBox>

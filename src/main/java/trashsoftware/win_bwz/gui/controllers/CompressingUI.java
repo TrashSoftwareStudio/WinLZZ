@@ -25,10 +25,7 @@ public class CompressingUI implements Initializable {
     @FXML
     private Label messageLabel, percentageLabel, ratioLabel, timeUsedLabel, expectTimeLabel, totalSizeLabel,
             passedSizeLabel, cmpSizeTextLabel, currentCmpRatioTextLabel, compressedSizeLabel, currentCmpRatioLabel,
-            origSizeTextLabel, timeUsedTextLabel, passedSizeTextLabel, timeRemainTextLabel, speedTextLabel, fileLabel;
-
-    @FXML
-    private Button cancelButton;
+            fileLabel;
 
     private CompressService service;
 
@@ -50,16 +47,19 @@ public class CompressingUI implements Initializable {
 
     private MainUI grandParent;
     private Stage stage;
-    private LanguageLoader lanLoader;
+//    private LanguageLoader lanLoader;
+    private ResourceBundle bundle;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-    }
-
-    void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
+        this.bundle = resources;
         fillText();
     }
+
+//    void setLanLoader(LanguageLoader lanLoader) {
+//        this.lanLoader = lanLoader;
+////        fillText();
+//    }
 
     /**
      * Sets up the parent {@code MainUI} instance of the parent {@code CompressUI} instance which launches this
@@ -118,7 +118,7 @@ public class CompressingUI implements Initializable {
 
             Alert info = new Alert(Alert.AlertType.INFORMATION);
             info.setTitle("WinLZZ");
-            info.setHeaderText(lanLoader.get(251));
+            info.setHeaderText(bundle.getString("compressComplete"));
             double seconds = (double) timeUsed / 1000;
             double rounded;
             if (packer.getTotalOrigSize() == 0) {
@@ -127,8 +127,15 @@ public class CompressingUI implements Initializable {
                 double compressRate = (double) packer.getCompressedLength() / packer.getTotalOrigSize();
                 rounded = (double) Math.round(compressRate * 10000) / 100;
             }
-            info.setContentText(lanLoader.get(252) + seconds + lanLoader.get(253) + " " + lanLoader.get(254)
-                    + ": " + rounded + "%");
+            info.setContentText(String.format("%s %.2f %s, %s: %.2f%%",
+                    bundle.getString("timeUsedTotal"),
+                    seconds,
+                    bundle.getString("second"),
+                    bundle.getString("compressRateTotal"),
+                    rounded
+                    ));
+//            info.setContentText(lanLoader.get(252) + seconds + lanLoader.get(253) + " " + lanLoader.get(254)
+//                    + ": " + rounded + "%");
             info.show();
 
             grandParent.refreshAction();
@@ -141,7 +148,7 @@ public class CompressingUI implements Initializable {
 
             Alert info = new Alert(Alert.AlertType.INFORMATION);
             info.setTitle("WinLZZ");
-            info.setHeaderText(lanLoader.get(255));
+            info.setHeaderText(bundle.getString("compressFailed"));
 
             info.show();
             System.gc();
@@ -196,8 +203,8 @@ public class CompressingUI implements Initializable {
     public void interruptAction() {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("WinLZZ");
-        alert.setHeaderText(lanLoader.get(256));
-        alert.setContentText(lanLoader.get(257));
+        alert.setHeaderText(bundle.getString("cancelCompress"));
+        alert.setContentText(bundle.getString("confirmCancelCompress"));
         alert.showAndWait();
         if (alert.getResult() == ButtonType.OK) service.cancel();
     }
@@ -217,7 +224,7 @@ public class CompressingUI implements Initializable {
                     packer.setAlgorithm(alg);
                     packer.setThreads(threads);
                     packer.setPartSize(partSize);
-                    packer.setLanLoader(lanLoader);
+                    packer.setLanLoader(bundle);
                     if (annotation != null) packer.setAnnotation(annotation);
 
                     stepListener = (observable, oldValue, newValue) -> updateTitle(newValue);
@@ -255,7 +262,7 @@ public class CompressingUI implements Initializable {
                     packer.currentCmpRatioProperty().addListener(currentCmpRatioListener);
                     packer.exitStatusProperty().addListener(exitStatusListener);
 
-                    updateTitle(lanLoader.get(208));
+                    updateTitle(bundle.getString("searching"));
                     Platform.runLater(() -> percentageLabel.setText("0.0"));
                     packer.build();
 
@@ -278,18 +285,18 @@ public class CompressingUI implements Initializable {
     private void fillText() {
         timeUsedLabel.setText("--:--");
         expectTimeLabel.setText("--:--");
-        passedSizeLabel.setText("0 " + lanLoader.get(250));
-        compressedSizeLabel.setText("0 " + lanLoader.get(250));
+        passedSizeLabel.setText("0 " + bundle.getString("byte"));
+        compressedSizeLabel.setText("0 " + bundle.getString("byte"));
         currentCmpRatioLabel.setText("0.0%");
 
-        origSizeTextLabel.setText(lanLoader.get(200));
-        timeUsedTextLabel.setText(lanLoader.get(201));
-        passedSizeTextLabel.setText(lanLoader.get(202));
-        timeRemainTextLabel.setText(lanLoader.get(203));
-        cmpSizeTextLabel.setText(lanLoader.get(204));
-        currentCmpRatioTextLabel.setText(lanLoader.get(205));
-        speedTextLabel.setText(lanLoader.get(207));
-        cancelButton.setText(lanLoader.get(2));
-        messageLabel.setText(lanLoader.get(350));
+//        origSizeTextLabel.setText(lanLoader.get(200));
+//        timeUsedTextLabel.setText(lanLoader.get(201));
+//        passedSizeTextLabel.setText(lanLoader.get(202));
+//        timeRemainTextLabel.setText(lanLoader.get(203));
+//        cmpSizeTextLabel.setText(lanLoader.get(204));
+//        currentCmpRatioTextLabel.setText(lanLoader.get(205));
+//        speedTextLabel.setText(lanLoader.get(207));
+//        cancelButton.setText(lanLoader.get(2));
+//        messageLabel.setText(lanLoader.get(350));
     }
 }

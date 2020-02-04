@@ -2,7 +2,6 @@ package trashsoftware.win_bwz.gui.controllers;
 
 import trashsoftware.win_bwz.core.bwz.BWZCompressor;
 import trashsoftware.win_bwz.gui.graphicUtil.AnnotationNode;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -66,7 +65,7 @@ public class CompressUI implements Initializable {
     private Integer[] threads = new Integer[]{1, 2, 3, 4};
 
     private MainUI parent;
-    private LanguageLoader lanLoader;
+    //    private LanguageLoader lanLoader;
     private ResourceBundle bundle;
 
     @Override
@@ -78,8 +77,8 @@ public class CompressUI implements Initializable {
         this.parent = parent;
     }
 
-    void load(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
+    void load() {
+//        this.lanLoader = lanLoader;
         fillTexts();
         setBoxes();
         algBox.getSelectionModel().select(0);
@@ -162,9 +161,9 @@ public class CompressUI implements Initializable {
     }
 
     private void setWindowNameBoxListener() {
-        windowNameBox.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
-            estimateMemoryUsage();
-        }));
+        windowNameBox.getSelectionModel().selectedIndexProperty().addListener((
+                (observable, oldValue, newValue) -> estimateMemoryUsage()
+        ));
     }
 
     private void setLevelListener() {
@@ -206,9 +205,9 @@ public class CompressUI implements Initializable {
     }
 
     private void setThreadBoxListener() {
-        threadBox.getSelectionModel().selectedItemProperty().addListener(((observable, oldValue, newValue) -> {
-            estimateMemoryUsage();
-        }));
+        threadBox.getSelectionModel().selectedItemProperty().addListener((
+                (observable, oldValue, newValue) -> estimateMemoryUsage()
+        ));
     }
 
     private void setAlgBoxListener() {
@@ -289,7 +288,7 @@ public class CompressUI implements Initializable {
 
         PasswordBox pb = loader.getController();
         pb.setParent(this);
-        pb.setLanLoader(lanLoader);
+//        pb.setLanLoader(lanLoader);
         pb.setStage(stage);
 
         stage.show();
@@ -303,13 +302,13 @@ public class CompressUI implements Initializable {
         Parent root = loader.load();
         Stage stage = new Stage();
 
-        stage.setTitle(lanLoader.get(900));
+        stage.setTitle(bundle.getString("annotations"));
         stage.setScene(new Scene(root));
 
         AnnotationUI au = loader.getController();
         au.setStage(stage);
         au.setParent(this);
-        au.setLanLoader(lanLoader);
+//        au.setLanLoader(lanLoader);
 
         stage.show();
     }
@@ -374,7 +373,7 @@ public class CompressUI implements Initializable {
 
         CompressingUI cui = loader.getController();
         cui.setName(name, rootDir);
-        cui.setLanLoader(lanLoader);
+//        cui.setLanLoader(lanLoader);
         cui.setGrandParent(parent);
         cui.setPref(window, buffer, cmpLevel, alg, threads, annotation, partSize);
         cui.setStage(stage);

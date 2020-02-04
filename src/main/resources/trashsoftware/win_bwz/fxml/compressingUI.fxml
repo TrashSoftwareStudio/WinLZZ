@@ -34,21 +34,21 @@
                 <GridPane.margin>
                     <Insets/>
                 </GridPane.margin>
-                <Label fx:id="origSizeTextLabel" text="原文件大小:"/>
+                <Label fx:id="origSizeTextLabel" text="%origFileSize"/>
                 <Label fx:id="totalSizeLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
                 </padding>
             </HBox>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1">
-                <Label fx:id="timeUsedTextLabel" text="已用时间:"/>
+                <Label fx:id="timeUsedTextLabel" text="%timeUsed"/>
                 <Label fx:id="timeUsedLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
                 </padding>
             </HBox>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.rowIndex="1">
-                <Label fx:id="passedSizeTextLabel" text="已处理大小:"/>
+                <Label fx:id="passedSizeTextLabel" text="%sizeProcessed"/>
                 <Label fx:id="passedSizeLabel" text="Label"/>
                 <GridPane.margin>
                     <Insets/>
@@ -59,14 +59,14 @@
             </HBox>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1"
                   GridPane.rowIndex="1">
-                <Label fx:id="timeRemainTextLabel" text="剩余时间:"/>
+                <Label fx:id="timeRemainTextLabel" text="%timeRem"/>
                 <Label fx:id="expectTimeLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
                 </padding>
             </HBox>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.rowIndex="2">
-                <Label fx:id="cmpSizeTextLabel" text="压缩后大小:"/>
+                <Label fx:id="cmpSizeTextLabel" text="%sizeAfter"/>
                 <Label fx:id="compressedSizeLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
@@ -74,7 +74,7 @@
             </HBox>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1"
                   GridPane.rowIndex="2">
-                <Label fx:id="currentCmpRatioTextLabel" text="压缩率:"/>
+                <Label fx:id="currentCmpRatioTextLabel" text="%compressRate"/>
                 <Label fx:id="currentCmpRatioLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
@@ -85,7 +85,7 @@
             <opaqueInsets>
                 <Insets/>
             </opaqueInsets>
-            <Label fx:id="messageLabel" text="正在压缩..."/>
+            <Label fx:id="messageLabel" text="%compressing"/>
             <Label fx:id="percentageLabel"/>
             <Label text="\%"/>
             <padding>
@@ -102,7 +102,7 @@
             <padding>
                 <Insets bottom="10.0" left="25.0"/>
             </padding>
-            <Label fx:id="speedTextLabel" text="压缩速率:"/>
+            <Label fx:id="speedTextLabel" text="%compressSpeed"/>
             <Label fx:id="ratioLabel"/>
             <Label text=" KB/s"/>
         </HBox>
@@ -111,7 +111,7 @@
             <padding>
                 <Insets right="20.0"/>
             </padding>
-            <Button fx:id="cancelButton" mnemonicParsing="false" onAction="#interruptAction" text="取消"/>
+            <Button fx:id="cancelButton" mnemonicParsing="false" onAction="#interruptAction" text="%cancel"/>
         </HBox>
     </VBox>
 </AnchorPane>

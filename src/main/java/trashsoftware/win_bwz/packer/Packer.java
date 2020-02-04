@@ -23,7 +23,6 @@ import trashsoftware.win_bwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.win_bwz.core.Compressor;
 import trashsoftware.win_bwz.encrypters.Encipher;
 import trashsoftware.win_bwz.core.lzz2.LZZ2Compressor;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.*;
 import trashsoftware.win_bwz.encrypters.zse.ZSEFileEncoder;
 import javafx.beans.property.*;
@@ -165,7 +164,8 @@ public class Packer {
 
     public long startTime = System.currentTimeMillis();
     public boolean isInterrupted;
-    private LanguageLoader lanLoader;
+    //    private LanguageLoader lanLoader;
+    private ResourceBundle bundle;
 
     public final ReadOnlyIntegerWrapper exitStatus = new ReadOnlyIntegerWrapper();
     public String errorMsg;
@@ -244,7 +244,8 @@ public class Packer {
      * @throws Exception if any IO error occurs.
      */
     public void Pack(String outFile, int windowSize, int bufferSize) throws Exception {
-        if (lanLoader != null) step.setValue(lanLoader.get(270));
+//        if (lanLoader != null) step.setValue(lanLoader.get(270));
+        if (bundle != null) step.setValue(bundle.getString("createDatabase"));
         percentage.set("0.0");
         OutputStream bos;
         if (partSize == 0) bos = new BufferedOutputStream(new FileOutputStream(outFile));
@@ -446,7 +447,8 @@ public class Packer {
 
         Util.deleteFile(tempHeadName);
 
-        if (lanLoader != null) step.setValue(lanLoader.get(206));
+//        if (lanLoader != null) step.setValue(lanLoader.get(206));
+        if (bundle != null) step.setValue(bundle.getString("compressing"));
 
         String encMainName = outFile + ".enc";
 
@@ -470,7 +472,8 @@ public class Packer {
                     default:
                         throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
                 }
-                step.setValue(lanLoader.get(271));
+                if (bundle != null) step.setValue(bundle.getString("encrypting"));
+//                step.setValue(lanLoader.get(271));
                 progress.set(1);
                 percentage.setValue("0.0");
                 encipher.setParent(this, totalLength);
@@ -521,7 +524,7 @@ public class Packer {
                     default:
                         throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
                 }
-                step.setValue(lanLoader.get(271));
+                if (bundle != null) step.setValue(bundle.getString("encrypting"));
                 file.setValue(outFile);
                 progress.set(1);
                 percentage.setValue("0.0");
@@ -678,14 +681,14 @@ public class Packer {
     }
 
     /**
-     * Sets the {@code lanLoader} language loader.
+     * Sets the {@code ResourceBundle} language loader.
      * <p>
      * language loader is used for displaying text in different languages on the GUI.
      *
-     * @param lanLoader the language loader.
+     * @param bundle the language loader.
      */
-    public void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
+    public void setLanLoader(ResourceBundle bundle) {
+        this.bundle = bundle;
     }
 
     public void setError(String msg, int status) {

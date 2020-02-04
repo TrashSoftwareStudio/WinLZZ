@@ -24,20 +24,19 @@ public class PasswordBox implements Initializable {
     private ComboBox<String> algorithmBox, passwordAlgBox;
 
     @FXML
-    private Label inputPassword, confirmLabel, promptLabel, algLabel, passAlgLabel;
-
-    @FXML
-    private Button confirmButton;
+    private Label confirmLabel, promptLabel;
 
     private String[] algorithms = new String[]{"BZSE", "ZSE"};
     private String[] passAlgorithms = new String[]{"SHA-256", "SHA-384", "SHA-512"};
 
     private Stage stage;
     private CompressUI parent;
-    private LanguageLoader lanLoader;
+//    private LanguageLoader lanLoader;
+    private ResourceBundle bundle;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        bundle = resources;
         promptLabel.setText("");
         showPasswordListener();
         plainPasswordListener();
@@ -54,10 +53,10 @@ public class PasswordBox implements Initializable {
         this.parent = parent;
     }
 
-    void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
-        fillText();
-    }
+//    void setLanLoader(LanguageLoader lanLoader) {
+//        this.lanLoader = lanLoader;
+//        fillText();
+//    }
 
     void setStage(Stage stage) {
         this.stage = stage;
@@ -86,7 +85,7 @@ public class PasswordBox implements Initializable {
             else parent.setEncryption(1, alg, passAlg);
             stage.close();
         } else {
-            promptLabel.setText(lanLoader.get(404));
+            promptLabel.setText(bundle.getString("inputNotMatch"));
         }
     }
 
@@ -128,13 +127,13 @@ public class PasswordBox implements Initializable {
         });
     }
 
-    private void fillText() {
-        inputPassword.setText(lanLoader.get(400));
-        confirmLabel.setText(lanLoader.get(401));
-        showPasswordBox.setText(lanLoader.get(402));
-        encryptNameBox.setText(lanLoader.get(403));
-        confirmButton.setText(lanLoader.get(1));
-        algLabel.setText(lanLoader.get(405));
-        passAlgLabel.setText(lanLoader.get(406));
-    }
+//    private void fillText() {
+//        inputPassword.setText(lanLoader.get(400));
+//        confirmLabel.setText(lanLoader.get(401));
+//        showPasswordBox.setText(lanLoader.get(402));
+//        encryptNameBox.setText(lanLoader.get(403));
+//        confirmButton.setText(lanLoader.get(1));
+//        algLabel.setText(lanLoader.get(405));
+//        passAlgLabel.setText(lanLoader.get(406));
+//    }
 }

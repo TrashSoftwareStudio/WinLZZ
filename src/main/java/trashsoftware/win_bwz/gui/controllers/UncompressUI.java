@@ -54,8 +54,11 @@ public class UncompressUI implements Initializable {
     private ContextNode currentNode;
     private LanguageLoader lanLoader;
 
+    private ResourceBundle bundle;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        this.bundle = resources;
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("Name"));
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("Type"));
         origSizeColumn.setCellValueFactory(new PropertyValueFactory<>("Size"));
@@ -237,7 +240,8 @@ public class UncompressUI implements Initializable {
 
     @FXML
     public void fileInfoAction() throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/fileInfoUI.fxml"));
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/trashsoftware/win_bwz/fxml/fileInfoUI.fxml"), bundle);
         Parent root = loader.load();
         Stage stage = new Stage();
         stage.setTitle("WinLZZ");
@@ -245,8 +249,7 @@ public class UncompressUI implements Initializable {
         stage.setResizable(false);
 
         FileInfoUI fi = loader.getController();
-        fi.setInfo(packFile, unPacker);
-        fi.setLanLoader(lanLoader);
+        fi.setInfo(unPacker);
         fi.setItems();
         stage.show();
     }

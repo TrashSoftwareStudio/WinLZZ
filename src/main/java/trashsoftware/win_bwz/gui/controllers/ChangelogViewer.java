@@ -13,9 +13,9 @@ import java.util.ResourceBundle;
 public class ChangelogViewer implements Initializable {
 
     @FXML
-    private Label changelogLabel, changelogTextLabel;
+    private Label changelogLabel;
 
-    private LanguageLoader lanLoader;
+//    private LanguageLoader lanLoader;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -26,16 +26,16 @@ public class ChangelogViewer implements Initializable {
         }
     }
 
-    void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
-        fillText();
-    }
+//    void setLanLoader(LanguageLoader lanLoader) {
+//        this.lanLoader = lanLoader;
+//        fillText();
+//    }
 
     private void setLabel() throws IOException {
         changelogLabel.setText(new ChangelogReader().readChangelog());
     }
 
     private void fillText() {
-        changelogTextLabel.setText(lanLoader.get(800));
+//        changelogTextLabel.setText(lanLoader.get(800));
     }
 }

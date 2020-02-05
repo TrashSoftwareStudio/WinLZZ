@@ -16,146 +16,151 @@ public abstract class LZZ2Util {
     /**
      * Writes the length to two output streams in specified format.
      *
-     * @param distance the length
-     * @param minimum  the minimum matching length
-     * @param bos      the head output stream
-     * @param fbo      the extension bits output stream
+     * @param length  the length
+     * @param minimum the minimum matching length
+     * @param bos     the head output stream
+     * @param fbo     the extension bits output stream
      * @throws IOException if any of the two streams is not writable
      */
-    public static void addLength(int distance, int minimum, BufferedOutputStream bos, FileBitOutputStream fbo)
+    public static void addLength(int length, int minimum, BufferedOutputStream bos, FileBitOutputStream fbo)
             throws IOException {
         // In this case, "distance" means length
         int bits = 0;
         int bitLength = 0;
 
-        if (distance == minimum) {
+        int head2;
+
+        if (length == minimum) {
             // 0 bits
-            bos.write((byte) 0);
-        } else if (distance == minimum + 1) {
+            head2 = 1;
+        } else if (length == minimum + 1) {
             // 0 bits
-            bos.write((byte) 1);
-        } else if (distance == minimum + 2) {
+            head2 = 2;
+        } else if (length == minimum + 2) {
             // 0 bits
-            bos.write((byte) 2);
-        } else if (distance == minimum + 3) {
+            head2 = 3;
+        } else if (length == minimum + 3) {
             // 0 bits
-            bos.write((byte) 3);
-        } else if (distance == minimum + 4) {
+            head2 = 4;
+        } else if (length == minimum + 4) {
             // 0 bits
-            bos.write((byte) 4);
-        } else if (distance == minimum + 5) {
+            head2 = 5;
+        } else if (length == minimum + 5) {
             // 0 bits
-            bos.write((byte) 5);
-        } else if (distance < minimum + 8) {
+            head2 = 6;
+        } else if (length < minimum + 8) {
             // 1 bits
-            bos.write((byte) 6);
-            bits = distance - minimum - 6;
+            head2 = 7;
+            bits = length - minimum - 6;
             bitLength = 1;
-        } else if (distance < minimum + 10) {
+        } else if (length < minimum + 10) {
             // 1 bits
-            bos.write((byte) 7);
-            bits = distance - minimum - 8;
+            head2 = 8;
+            bits = length - minimum - 8;
             bitLength = 1;
-        } else if (distance < minimum + 12) {
+        } else if (length < minimum + 12) {
             // 1 bits
-            bos.write((byte) 8);
-            bits = distance - minimum - 10;
+            head2 = 9;
+            bits = length - minimum - 10;
             bitLength = 1;
-        } else if (distance < minimum + 14) {
+        } else if (length < minimum + 14) {
             // 1 bits
-            bos.write((byte) 9);
-            bits = distance - minimum - 12;
+            head2 = 10;
+            bits = length - minimum - 12;
             bitLength = 1;
-        } else if (distance < minimum + 18) {
+        } else if (length < minimum + 18) {
             // 2 bits
-            bos.write((byte) 10);
-            bits = distance - minimum - 14;
+            head2 = 11;
+            bits = length - minimum - 14;
             bitLength = 2;
-        } else if (distance < minimum + 22) {
+        } else if (length < minimum + 22) {
             // 2 bits
-            bos.write((byte) 11);
-            bits = distance - minimum - 18;
+            head2 = 12;
+            bits = length - minimum - 18;
             bitLength = 2;
-        } else if (distance < minimum + 26) {
+        } else if (length < minimum + 26) {
             // 2 bits
-            bos.write((byte) 12);
-            bits = distance - minimum - 22;
+            head2 = 13;
+            bits = length - minimum - 22;
             bitLength = 2;
-        } else if (distance < minimum + 30) {
+        } else if (length < minimum + 30) {
             // 2 bits
-            bos.write((byte) 13);
-            bits = distance - minimum - 26;
+            head2 = 14;
+            bits = length - minimum - 26;
             bitLength = 2;
-        } else if (distance < minimum + 38) {
+        } else if (length < minimum + 38) {
             // 3 bits
-            bos.write((byte) 14);
-            bits = distance - minimum - 30;
+            head2 = 15;
+            bits = length - minimum - 30;
             bitLength = 3;
-        } else if (distance < minimum + 46) {
+        } else if (length < minimum + 46) {
             // 3 bits
-            bos.write((byte) 15);
-            bits = distance - minimum - 38;
+            head2 = 16;
+            bits = length - minimum - 38;
             bitLength = 3;
-        } else if (distance < minimum + 54) {
+        } else if (length < minimum + 54) {
             // 3 bits
-            bos.write((byte) 16);
-            bits = distance - minimum - 46;
+            head2 = 17;
+            bits = length - minimum - 46;
             bitLength = 3;
-        } else if (distance < minimum + 62) {
+        } else if (length < minimum + 62) {
             // 3 bits
-            bos.write((byte) 17);
-            bits = distance - minimum - 54;
+            head2 = 18;
+            bits = length - minimum - 54;
             bitLength = 3;
-        } else if (distance < minimum + 78) {
+        } else if (length < minimum + 78) {
             // 4 bits
-            bos.write((byte) 18);
-            bits = distance - minimum - 62;
+            head2 = 19;
+            bits = length - minimum - 62;
             bitLength = 4;
-        } else if (distance < minimum + 94) {
+        } else if (length < minimum + 94) {
             // 4 bits
-            bos.write((byte) 19);
-            bits = distance - minimum - 78;
+            head2 = 20;
+            bits = length - minimum - 78;
             bitLength = 4;
-        } else if (distance < minimum + 110) {
+        } else if (length < minimum + 110) {
             // 4 bits
-            bos.write((byte) 20);
-            bits = distance - minimum - 94;
+            head2 = 21;
+            bits = length - minimum - 94;
             bitLength = 4;
-        } else if (distance < minimum + 126) {
+        } else if (length < minimum + 126) {
             // 4 bits
-            bos.write((byte) 21);
-            bits = distance - minimum - 110;
+            head2 = 22;
+            bits = length - minimum - 110;
             bitLength = 4;
-        } else if (distance < minimum + 158) {
+        } else if (length < minimum + 158) {
             // 5 bits
-            bos.write((byte) 22);
-            bits = distance - minimum - 126;
+            head2 = 23;
+            bits = length - minimum - 126;
             bitLength = 5;
-        } else if (distance < minimum + 190) {
+        } else if (length < minimum + 190) {
             // 5 bits
-            bos.write((byte) 23);
-            bits = distance - minimum - 158;
+            head2 = 24;
+            bits = length - minimum - 158;
             bitLength = 5;
-        } else if (distance < minimum + 222) {
+        } else if (length < minimum + 222) {
             // 5 bits
-            bos.write((byte) 24);
-            bits = distance - minimum - 190;
+            head2 = 25;
+            bits = length - minimum - 190;
             bitLength = 5;
-        } else if (distance < minimum + 254) {
+        } else if (length < minimum + 254) {
             // 5 bits
-            bos.write((byte) 25);
-            bits = distance - minimum - 222;
+            head2 = 26;
+            bits = length - minimum - 222;
             bitLength = 5;
-        } else if (distance < minimum + 286) {
+        } else if (length < minimum + 286) {
             // 5 bits
-            bos.write((byte) 26);
-            bits = distance - minimum - 254;
+            head2 = 27;
+            bits = length - minimum - 254;
             bitLength = 5;
         } else {
             // 0 bits
             // minimum + 286
-            bos.write((byte) 27);
+            head2 = 28;
         }
+        bos.write(1);  // a match
+        bos.write((byte) head2);  // combined: 257-284
+//        System.out.print(((1 << 8) | (head2)) + ", ");
 
         fbo.write(bits, bitLength);
     }
@@ -640,7 +645,7 @@ public abstract class LZZ2Util {
     /**
      * Returns the length recovered from the <code>lenRep</code> and <code>dlbBis</code>
      *
-     * @param lenRep the distance head
+     * @param lenRep the distance representation
      * @param dlbBis the extension bits input stream
      * @return the recovered length
      * @throws IOException if the <code>disRep</code> is not readable

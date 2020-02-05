@@ -56,18 +56,6 @@ public class FileBitInputStream {
      * @throws IOException if the input stream is not readable
      */
     public int read() throws IOException {
-//        int i;
-//        if (bitPos == 0) {
-//            byte[] b = new byte[1];
-//            if (bis.read(b) != 1) return 2;
-//            bits = b[0];
-//            i = (bits >> 7) & 1;
-//        } else {
-//            i = (bits >> (7 - bitPos)) & 1;
-//        }
-//        if (bitPos == 7) bitPos = 0;
-//        else bitPos += 1;
-//        return i;
         int i = readBits(1);
         return streamEnds ? 2 : i;
     }

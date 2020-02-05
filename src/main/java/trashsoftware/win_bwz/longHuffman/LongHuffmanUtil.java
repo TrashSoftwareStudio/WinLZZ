@@ -1,10 +1,7 @@
 package trashsoftware.win_bwz.longHuffman;
 
-import trashsoftware.win_bwz.utility.Bytes;
-
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 
 public abstract class LongHuffmanUtil {
 
@@ -76,14 +73,14 @@ public abstract class LongHuffmanUtil {
         return canonicalCode;
     }
 
-    static byte[] generateCanonicalCodeBlock(int[] lengthCode, int alphabetSize) {
+    public static byte[] generateCanonicalCodeBlock(int[] lengthCode, int alphabetSize) {
         byte[] result = new byte[alphabetSize];
         for (int i = 0; i < alphabetSize; i++)
             result[i] = (byte) lengthCode[i];
         return result;
     }
 
-    static void generateLengthCode(byte[] canonicalMap, int[] dstTable) {
+    public static void generateLengthCode(byte[] canonicalMap, int[] dstTable) {
         for (int i = 0; i < canonicalMap.length; i++) {
             dstTable[i] = canonicalMap[i] & 0xff;
         }
@@ -131,6 +128,41 @@ public abstract class LongHuffmanUtil {
         int i = list.size() - 1;
         while (list.get(i).length == maxHeight) i -= 1;
         return i;
+    }
+
+
+    public static void identicalMapOneLoop(int[] lengthCode,
+                                           int[] canonicalCode,
+                                           int i,
+                                           int average,
+                                           int[] shortMapArr,
+                                           int maxCodeLen,
+                                           int[] longMapArr) {
+        int len = lengthCode[i];
+        if (len > 0) {
+            int code = canonicalCode[i];
+            if (len < average) {
+                int sup_len = average - len;
+                int sup_pow = 1 << sup_len;
+                int res = code << sup_len;
+                for (int j = 0; j < sup_pow; ++j) {
+                    shortMapArr[res + j] = i + 1;  // 0 reserved for not found
+                }
+            } else if (len == average) {
+                shortMapArr[code] = i + 1;  // 0 reserved for not found
+            } else if (len < maxCodeLen) {
+                int sup_len = maxCodeLen - len;
+                int sup_pow = 1 << sup_len;
+                int res = code << sup_len;
+                for (int j = 0; j < sup_pow; ++j) {
+                    longMapArr[res + j] = i;
+                }
+            } else if (len == maxCodeLen) {
+                longMapArr[code] = i;
+            } else {
+                throw new RuntimeException("Code too long");
+            }
+        }
     }
 }
 

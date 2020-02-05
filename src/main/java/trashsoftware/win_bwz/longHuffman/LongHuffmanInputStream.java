@@ -1,10 +1,13 @@
 package trashsoftware.win_bwz.longHuffman;
 
+import trashsoftware.win_bwz.huffman.HuffmanDeCompressor;
 import trashsoftware.win_bwz.utility.Bytes;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+
+import static trashsoftware.win_bwz.longHuffman.LongHuffmanUtil.identicalMapOneLoop;
 
 /**
  * A Independent input stream that takes an input stream and uncompress data from stream using huffman algorithm.
@@ -99,7 +102,6 @@ public class LongHuffmanInputStream {
         if (average > maxCodeLen) {
             average = maxCodeLen;
         }
-//        System.out.println("max:" + maxCodeLen);
         return lengthCode;
     }
 
@@ -108,37 +110,7 @@ public class LongHuffmanInputStream {
         longMapArr = new int[1 << maxCodeLen];
 
         for (int i = 0; i < alphabetSize; ++i) {
-            int len = lengthCode[i];
-            if (len > 0) {
-                int code = canonicalCode[i];
-                if (len < average) {
-                    int sup_len = average - len;
-                    int sup_pow = 1 << sup_len;
-                    int res = code << sup_len;
-                    for (int j = 0; j < sup_pow; ++j) {
-                        shortMapArr[res + j] = i + 1;  // 0 reserved for not found
-//                        shortMap.put(res + j, i);
-                    }
-                } else if (len == average) {
-//                    shortMap.put(code, i);
-                    shortMapArr[code] = i + 1;  // 0 reserved for not found
-                } else if (len < maxCodeLen) {
-                    int sup_len = maxCodeLen - len;
-                    int sup_pow = 1 << sup_len;
-                    int res = code << sup_len;
-                    for (int j = 0; j < sup_pow; ++j) {
-                        longMapArr[res + j] = i;
-//                        longMap.put(res + j, i);
-                    }
-                } else if (len == maxCodeLen) {
-//                    longMap.put(code, i);
-                    longMapArr[code] = i;
-                } else {
-                    throw new RuntimeException("Code too long");
-//                    printf("Code length exceed max. Max: %d, got: %d\n", MAX_CODE_LEN, len);
-//                    exit(3);
-                }
-            }
+            identicalMapOneLoop(lengthCode, canonicalCode, i, average, shortMapArr, maxCodeLen, longMapArr);
         }
     }
 
@@ -179,15 +151,12 @@ public class LongHuffmanInputStream {
 
             int codeLen;
             int code = shortMapArr[index];
-//            Integer code = shortMap.get(index);
             if (code == 0) {  // not in short map
-//                    System.out.println("ind " + index);
                 readBits(bigMapLonger);
                 index <<= bigMapLonger;
                 index |= ((bits >> (bitPos - bigMapLonger)) & bigMapLongerAndEr);
                 bitPos -= bigMapLonger;
                 code = longMapArr[index];
-//                code = longMap.get(index);
                 codeLen = lengthMap[code];
                 bitPos += (maxCodeLen - codeLen);
             } else {
@@ -198,9 +167,7 @@ public class LongHuffmanInputStream {
             compressedBitLength += codeLen;
 
             if (code == endSig) {
-//                isTerminated = true;
                 while (compressedBitLength % 8 != 0) compressedBitLength += 1;  // fill to full byte
-//                System.out.print(getCompressedLength() + " ");
                 fc.position(getCompressedLength());
                 break;
             } else {

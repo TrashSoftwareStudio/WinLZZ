@@ -1,9 +1,8 @@
 package trashsoftware.win_bwz.huffman.MapCompressor;
 
-import trashsoftware.win_bwz.huffman.HuffmanCompressor;
+import trashsoftware.win_bwz.huffman.HuffmanCompressorBase;
 import trashsoftware.win_bwz.utility.Bytes;
 
-import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -93,7 +92,7 @@ public class MapDeCompressor {
         else origCCL = fullCCL;
 
         HashMap<Byte, Integer> lengthCode = recoverLengthCode(origCCL);
-        HashMap<Byte, String> canonicalMap = HuffmanCompressor.generateCanonicalCode(lengthCode);
+        HashMap<Byte, String> canonicalMap = HuffmanCompressorBase.generateCanonicalCode(lengthCode);
         HashMap<String, Byte> decodeMap = invertMap(canonicalMap);
 
         byte[] res = decode(sqBits, decodeMap, maxMapLen);

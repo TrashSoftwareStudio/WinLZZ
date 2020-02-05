@@ -47,32 +47,24 @@ public class FileInputBufferArray {
      * @param index the access index
      * @return the byte at the position <code>index</code>
      */
-    public byte getByte(long index) {
+    public byte getByte(long index) throws IOException {
         if (index >= this.index) {
             activeArray2 = !activeArray2;
             if (activeArray2) {
-                try {
-                    int read = bis.read(array2);
-                    if (read > 0) {
-                        this.index += read;
-                        remainSize = read;
-                    } else if (read == -1) {
-                        throw new IndexOutOfBoundsException("Index out of range");
-                    }
-                } catch (IOException e) {
-                    throw new IndexOutOfBoundsException();
+                int read = bis.read(array2);
+                if (read > 0) {
+                    this.index += read;
+                    remainSize = read;
+                } else if (read == -1) {
+                    throw new IndexOutOfBoundsException("Index out of range");
                 }
             } else {
-                try {
-                    int read = bis.read(array1);
-                    if (read > 0) {
-                        this.index += read;
-                        remainSize = read;
-                    } else if (read == -1) {
-                        throw new IndexOutOfBoundsException("Index out of range");
-                    }
-                } catch (IOException e) {
-                    throw new IndexOutOfBoundsException();
+                int read = bis.read(array1);
+                if (read > 0) {
+                    this.index += read;
+                    remainSize = read;
+                } else if (read == -1) {
+                    throw new IndexOutOfBoundsException("Index out of range");
                 }
             }
             return getByte(index);

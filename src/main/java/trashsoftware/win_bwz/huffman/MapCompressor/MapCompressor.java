@@ -1,12 +1,9 @@
 package trashsoftware.win_bwz.huffman.MapCompressor;
 
 import trashsoftware.win_bwz.huffman.HuffmanCompressor;
+import trashsoftware.win_bwz.huffman.HuffmanCompressorBase;
 import trashsoftware.win_bwz.longHuffman.HuffmanNode;
 import trashsoftware.win_bwz.longHuffman.LongHuffmanUtil;
-import trashsoftware.win_bwz.utility.Bytes;
-
-import java.util.Arrays;
-import java.util.HashMap;
 
 /**
  * A compressor that compresses code lengths of a canonical huffman table.

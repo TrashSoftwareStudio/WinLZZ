@@ -496,7 +496,7 @@ class EncodeThread implements Runnable {
         byte[] bebMap = beb.Transform();
         byte[] mapMtf = new MTFTransformByte(bebMap).Transform(18);  // the result alphabet size is 19
         byte[] cmpMap = new MapCompressor(mapMtf).Compress(false);
-        System.out.println(Arrays.toString(cmpMap));
+//        System.out.println(Arrays.toString(cmpMap));
 
         /*
          * Block structure:

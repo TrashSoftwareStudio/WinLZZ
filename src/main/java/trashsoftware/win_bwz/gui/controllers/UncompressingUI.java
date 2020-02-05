@@ -264,7 +264,7 @@ public class UncompressingUI implements Initializable {
     private void showTestFailInfo() {
         long timeUsed = System.currentTimeMillis() - startTime;
 
-        Alert info = new Alert(Alert.AlertType.INFORMATION);
+        Alert info = new Alert(Alert.AlertType.ERROR);
         info.setTitle("WinLZZ");
         double seconds = (double) timeUsed / 1000;
         info.setHeaderText(lanLoader.get(558));

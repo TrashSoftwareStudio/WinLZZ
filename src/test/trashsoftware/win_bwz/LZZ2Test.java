@@ -26,7 +26,7 @@ public class LZZ2Test {
 //        SequenceInputStream sis = new SequenceInputStream(v.elements());
         int ws = 32768;
         LZZ2Compressor c = new LZZ2Compressor(name, ws, 255);
-        c.setCompressionLevel(2);
+        c.setCompressionLevel(4);
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
             c.compress(fos);
@@ -40,6 +40,8 @@ public class LZZ2Test {
         long mid = System.currentTimeMillis();
         long t1 = mid - start;
         System.out.println("compress Time: " + t1 + " ms");
+
+//        System.exit(0);
 
         String cpyName = Util.getOriginalCopyName(cmpName);
         LZZ2DeCompressor d = new LZZ2DeCompressor(cmpName, ws);

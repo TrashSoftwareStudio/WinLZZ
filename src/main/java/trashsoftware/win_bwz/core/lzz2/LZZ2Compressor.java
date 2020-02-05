@@ -2,9 +2,10 @@ package trashsoftware.win_bwz.core.lzz2;
 
 import trashsoftware.win_bwz.core.bwz.MTFTransformByte;
 import trashsoftware.win_bwz.core.Compressor;
-import trashsoftware.win_bwz.core.fastLzz.FixedSlider;
 import trashsoftware.win_bwz.core.lzz2.util.LZZ2Util;
 import trashsoftware.win_bwz.huffman.HuffmanCompressor;
+import trashsoftware.win_bwz.huffman.HuffmanCompressorBase;
+import trashsoftware.win_bwz.huffman.HuffmanCompressorTwoBytes;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapCompressor;
 import trashsoftware.win_bwz.packer.Packer;
 import trashsoftware.win_bwz.utility.FileBitOutputStream;
@@ -25,6 +26,8 @@ import java.util.*;
  * @since 0.4
  */
 public class LZZ2Compressor implements Compressor {
+
+    public static final int MAIN_HUF_ALPHABET = 286;
 
     private InputStream sis;
 
@@ -128,21 +131,14 @@ public class LZZ2Compressor implements Compressor {
             bufferMaxSize = (int) totalLength - 1;
         }
         FixedSliderLong slider = new FixedSliderLong(sliderArraySize());
-//        SimpleHashSlider slider = new SimpleHashSlider();
-//        LinkedHashSet<Long> omitSet = new LinkedHashSet<>();
 
         long position = 0;  // The processing index. i.e. the border of buffer and slider.
-//        int sliderSize = 0;
-
-//        fillHashSlider(fba, 0, (int) front, slider, omitSet);
 
         LinkedList<Integer> lastMatches = new LinkedList<>();
         int lastLength = -1;
 
         BufferedOutputStream mainFos = new BufferedOutputStream(new FileOutputStream(mainTempName));
         BufferedOutputStream disFos = new BufferedOutputStream(new FileOutputStream(disHeadTempName));
-        BufferedOutputStream lenFos = new BufferedOutputStream(new FileOutputStream(lenHeadTempName));
-        FileBitOutputStream flagFos = new FileBitOutputStream(new BufferedOutputStream(new FileOutputStream(flagTempName)));
         FileBitOutputStream dlbFos = new FileBitOutputStream(new BufferedOutputStream(new FileOutputStream(dlBodyTempName)));
 
         long lastCheckTime = System.currentTimeMillis();
@@ -158,28 +154,33 @@ public class LZZ2Compressor implements Compressor {
 
             if (len < minimumMatchLen) {
                 // Not a match
-                flagFos.write(0);
-                mainFos.write(fba.getByte(position++));
+//                flagFos.write(0);
+//                System.out.print(fba.getByte(position) + ", ");
+                mainFos.write(0);
+                mainFos.write(fba.getByte(position++));  // a literal
             } else {
                 // A match.
                 for (int j = 0; j < skip; ++j) {
-                    flagFos.write(0);
+//                    System.out.print(fba.getByte(position) + ", ");
+                    mainFos.write(0);
                     mainFos.write(fba.getByte(position++));
                 }
+//                System.out.print(dis + " " + len + "; ");
+//                System.out.print();
 
-                flagFos.write(1);
                 int distanceInt = dis;
                 int lengthInt = len;
                 int findInLast = compressionLevel > 0 ? reverseIndexInQueue(lastMatches, distanceInt) : -1;
                 if (findInLast == -1) {
-                    LZZ2Util.addDistance(distanceInt, 0, disFos, dlbFos);  // Distance first.
-                    LZZ2Util.addLength(lengthInt, minimumMatchLen, lenFos, dlbFos);
+                    LZZ2Util.addLength(lengthInt, minimumMatchLen, mainFos, dlbFos);  // Length first.
+                    LZZ2Util.addDistance(distanceInt, 0, disFos, dlbFos);
                 } else {
                     if (findInLast == 0 && lastLength == lengthInt) {
-                        disFos.write((byte) 4);
+                        mainFos.write(1);
+                        mainFos.write(29);  // 28 is the last length head
                     } else {
+                        LZZ2Util.addLength(lengthInt, minimumMatchLen, mainFos, dlbFos);
                         disFos.write((byte) findInLast);
-                        LZZ2Util.addLength(lengthInt, minimumMatchLen, lenFos, dlbFos);
                     }
                 }
                 itemCount += 1;
@@ -200,28 +201,41 @@ public class LZZ2Compressor implements Compressor {
         }
 
         for (; position < totalLength; ++position) {
-            flagFos.write(0);
+            mainFos.write(0);
             mainFos.write(fba.getByte(position));
         }
+
+//        System.out.println();
 
         mainFos.flush();
         mainFos.close();
         disFos.flush();
         disFos.close();
-        lenFos.flush();
-        lenFos.close();
-        flagFos.flush();
-        flagFos.close();
         dlbFos.flush();
         dlbFos.close();
         fba.close();
+
+//        printStream(flagTempName);
+//        printStream(mainTempName);
+//        printStream(disHeadTempName);
+//        printStream(lenHeadTempName);
+    }
+
+    public static void printStream(String name) throws IOException {
+        BufferedInputStream bbb = new BufferedInputStream(new FileInputStream(name));
+        byte[] buf = new byte[1];
+        while (bbb.read(buf) > 0) {
+            System.out.print((buf[0] & 0xff) + " ");
+        }
+        System.out.println();
+        bbb.close();
     }
 
     private static int hash(byte b0, byte b1) {
         return (b0 & 0xff) << 8 | (b1 & 0xff);
     }
 
-    private void fillSlider(long from, long to, FileInputBufferArray fba, FixedSliderLong slider) {
+    private void fillSlider(long from, long to, FileInputBufferArray fba, FixedSliderLong slider) throws IOException {
         int lastHash = -1;
         int repeatCount = 0;
         for (long j = from; j < to; j++) {
@@ -241,7 +255,7 @@ public class LZZ2Compressor implements Compressor {
         }
     }
 
-    private int search(FileInputBufferArray fba, FixedSliderLong slider, long index) {
+    private int search(FileInputBufferArray fba, FixedSliderLong slider, long index) throws IOException {
         if (compressionLevel < 2) {
             calculateLongestMatch(fba, slider, index);
             return 0;
@@ -252,7 +266,7 @@ public class LZZ2Compressor implements Compressor {
         }
     }
 
-    private int search1(FileInputBufferArray fba, FixedSliderLong slider, long index) {
+    private int search1(FileInputBufferArray fba, FixedSliderLong slider, long index) throws IOException {
         calculateLongestMatch(fba, slider, index);
         int dis1 = dis;
         int len1 = len;
@@ -266,7 +280,7 @@ public class LZZ2Compressor implements Compressor {
         }
     }
 
-    private int searchMore(FileInputBufferArray fba, FixedSliderLong slider, long index) {
+    private int searchMore(FileInputBufferArray fba, FixedSliderLong slider, long index) throws IOException {
         int skip = 1;
         calculateLongestMatch(fba, slider, index);
         int lastDis = dis;
@@ -285,7 +299,8 @@ public class LZZ2Compressor implements Compressor {
         }
     }
 
-    private void calculateLongestMatch(FileInputBufferArray fba, FixedSliderLong slider, long index) {
+    private void calculateLongestMatch(FileInputBufferArray fba, FixedSliderLong slider, long index)
+            throws IOException {
         byte b0 = fba.getByte(index);
         byte b1 = fba.getByte(index + 1);
         int hash = hash(b0, b1);
@@ -390,23 +405,15 @@ public class LZZ2Compressor implements Compressor {
 
         if (isNotCompressible(outFile)) return;
 
-        HuffmanCompressor dhc = new HuffmanCompressor(disHeadTempName);
+        HuffmanCompressorBase dhc = new HuffmanCompressor(disHeadTempName);
         byte[] dhcMap = dhc.getMap(64);
 
-        HuffmanCompressor lhc = new HuffmanCompressor(lenHeadTempName);
-        byte[] lhcMap = lhc.getMap(32);
+        HuffmanCompressorBase mtc = new HuffmanCompressorTwoBytes(mainTempName);
+        byte[] mtcMap = mtc.getMap(MAIN_HUF_ALPHABET);
 
-        HuffmanCompressor fc = new HuffmanCompressor(flagTempName);
-        byte[] fcMap = fc.getMap(256);
-
-        HuffmanCompressor mtc = new HuffmanCompressor(mainTempName);
-        byte[] mtcMap = mtc.getMap(256);
-
-        byte[] totalMap = new byte[608];
+        byte[] totalMap = new byte[MAIN_HUF_ALPHABET + 64];
         System.arraycopy(dhcMap, 0, totalMap, 0, 64);
-        System.arraycopy(lhcMap, 0, totalMap, 64, 32);
-        System.arraycopy(fcMap, 0, totalMap, 96, 256);
-        System.arraycopy(mtcMap, 0, totalMap, 352, 256);
+        System.arraycopy(mtcMap, 0, totalMap, 64, MAIN_HUF_ALPHABET);
 
         byte[] rlcMain = new MTFTransformByte(totalMap).Transform(18);
 
@@ -415,25 +422,21 @@ public class LZZ2Compressor implements Compressor {
 
         outFile.write(csq);
 
-        dhc.SepCompress(outFile);
-        long disHeadLen = dhc.getCompressedLength();
-        lhc.SepCompress(outFile);
-        long lenHeadLen = lhc.getCompressedLength();
-        fc.SepCompress(outFile);
-        long flagLen = fc.getCompressedLength();
-
-        long dlbLen = Util.fileConcatenate(outFile, new String[]{dlBodyTempName}, 8192);
-
         mtc.SepCompress(outFile);
         long mainLen = mtc.getCompressedLength();
+
+        dhc.SepCompress(outFile);
+        long disHeadLen = dhc.getCompressedLength();
+
+        long dlbLen = Util.fileConcatenate(outFile, new String[]{dlBodyTempName}, 8192);
 
         deleteTemp();
 
         int csqLen = csq.length;
-        long[] sizes = new long[]{csqLen, disHeadLen, lenHeadLen, flagLen, dlbLen};
+        long[] sizes = new long[]{csqLen, mainLen, disHeadLen};
         byte[] sizeBlock = Util.generateSizeBlock(sizes);
         outFile.write(sizeBlock);
-        cmpSize = disHeadLen + lenHeadLen + flagLen + dlbLen + mainLen + csqLen + sizeBlock.length;
+        cmpSize = disHeadLen + dlbLen + mainLen + csqLen + sizeBlock.length;
     }
 
 

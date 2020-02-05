@@ -136,7 +136,7 @@ public class HuffmanCompressor {
         HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freqMap);
         lengthCode = new int[alphabetSize];
         LongHuffmanUtil.generateCodeLengthMap(lengthCode, rootNode, 0);
-        LongHuffmanUtil.generateCodeLengthMap(lengthCode, rootNode, 0);
+//        LongHuffmanUtil.generateCodeLengthMap(lengthCode, rootNode, 0);
 
         LongHuffmanUtil.heightControl(lengthCode, freqMap, MAX_HEIGHT);
         huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);

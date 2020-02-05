@@ -46,12 +46,8 @@ public class MapCompressor {
         return cmpMap;
     }
 
-    private byte[] compressText(int[] codeTable, int[] lengthTable) {
-        int textSize = map.length;
-        byte[] out = new byte[textSize + 64];  // assume the compression result will not exceed the orig len + 256
-        int bits = 0;
-        int bitPos = 0;
-        int resIndex = 0;
+    private int compressText(byte[] result, int[] codeTable, int[] lengthTable, int bits, int bitPos, int resIndex) {
+        int beginBitPos = bitPos;
         for (int value : map) {
             int codeLen = lengthTable[value];
             int code = codeTable[value];
@@ -62,18 +58,18 @@ public class MapCompressor {
 
             while (bitPos >= 8) {
                 bitPos -= 8;
-                out[resIndex++] = (byte) (bits >> bitPos);
+                result[resIndex++] = (byte) (bits >> bitPos);
             }
         }
 
         if (bitPos > 0) {
             bits <<= (8 - bitPos);
-            out[resIndex++] = (byte) bits;
+            result[resIndex++] = (byte) bits;
         }
-        lengthRemainder = bitPos;
-        byte[] result = new byte[resIndex];
-        System.arraycopy(out, 0, result, 0, resIndex);
-        return result;
+        lengthRemainder = (bitPos - beginBitPos) % 8;
+        if (lengthRemainder < 0) lengthRemainder += 8;
+
+        return resIndex;
     }
 
     private byte[] swapCcl(byte[] ccl) {
@@ -106,8 +102,8 @@ public class MapCompressor {
         LongHuffmanUtil.heightControl(codeLengthMap, freqMap, MAX_HEIGHT);
         int[] huffmanCode = LongHuffmanUtil.generateCanonicalCode(codeLengthMap);
 
-        System.out.println(Arrays.toString(freqMap));
-        System.out.println(Arrays.toString(huffmanCode));
+//        System.out.println(Arrays.toString(freqMap));
+//        System.out.println(Arrays.toString(huffmanCode));
 
         byte[] origCCL = generateMap(codeLengthMap);
         byte[] CCL;
@@ -118,13 +114,11 @@ public class MapCompressor {
             CCL = cclTruncate(origCCL);
         }
 
-        byte[] cmpMap = compressText(huffmanCode, codeLengthMap);
-
         int hcLen = CCL.length - 4;
         byte[] temp = new byte[map.length + 256];
 
         int outIndex = 0;
-        int bits = (hcLen << 3) | lengthRemainder;
+        int bits = hcLen << 3;
         int bitPos = 7;
 
         for (byte b : CCL) {
@@ -137,19 +131,13 @@ public class MapCompressor {
             }
         }
 
-        for (byte b : cmpMap) {
-            bits <<= 8;
-            bits |= (b & 0xff);
-            temp[outIndex++] = (byte) (bits >> bitPos);
-        }
-
-        if (bitPos > 0) {
-            bits <<= (8 - bitPos);
-            temp[outIndex++] = (byte) bits;
-        }
+        outIndex = compressText(temp, huffmanCode, codeLengthMap, bits, bitPos, outIndex);
+        temp[0] = (byte) ((temp[0] & 0xff) | (lengthRemainder << 1));
 
         byte[] result = new byte[outIndex];
         System.arraycopy(temp, 0, result, 0, outIndex);
+
+//        System.out.println(Arrays.toString(map));
         return result;
 
 //        StringBuilder builder = new StringBuilder();

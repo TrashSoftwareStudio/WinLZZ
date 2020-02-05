@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -493,8 +494,9 @@ class EncodeThread implements Runnable {
 
         BWTEncoderByte beb = new BWTEncoderByte(totalMap);
         byte[] bebMap = beb.Transform();
-        byte[] mapMtf = new MTFTransformByte(bebMap).Transform(18);
+        byte[] mapMtf = new MTFTransformByte(bebMap).Transform(18);  // the result alphabet size is 19
         byte[] cmpMap = new MapCompressor(mapMtf).Compress(false);
+        System.out.println(Arrays.toString(cmpMap));
 
         /*
          * Block structure:

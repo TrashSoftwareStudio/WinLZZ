@@ -3,6 +3,7 @@ package trashsoftware.win_bwz.huffman.MapCompressor;
 import trashsoftware.win_bwz.huffman.HuffmanCompressor;
 import trashsoftware.win_bwz.utility.Bytes;
 
+import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -95,6 +96,8 @@ public class MapDeCompressor {
         HashMap<Byte, String> canonicalMap = HuffmanCompressor.generateCanonicalCode(lengthCode);
         HashMap<String, Byte> decodeMap = invertMap(canonicalMap);
 
-        return decode(sqBits, decodeMap, maxMapLen);
+        byte[] res = decode(sqBits, decodeMap, maxMapLen);
+//        System.out.println(Arrays.toString(res));
+        return res;
     }
 }

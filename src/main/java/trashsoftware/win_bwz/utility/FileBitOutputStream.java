@@ -47,9 +47,6 @@ public class FileBitOutputStream {
      * @throws IOException if the output stream is not writable
      */
     public void write(int bits, int numberOfBits) throws IOException {
-//        for (int i = 0; i < numberOfBits; i++) {
-//            write(bits >> (numberOfBits - i - 1));
-//        }
         writeBits(bits, numberOfBits);
     }
 
@@ -63,15 +60,6 @@ public class FileBitOutputStream {
      * @throws IOException if the output stream is not writable
      */
     public void write(int bit) throws IOException {
-//        bits = bits << 1;
-//        bits = bits | bit;
-//        if (bitPos != 7) {
-//            bitPos += 1;
-//        } else {
-//            length++;
-//            bos.write((byte) bits);
-//            bitPos = 0;
-//        }
         writeBits(bit, 1);
     }
 
@@ -82,9 +70,6 @@ public class FileBitOutputStream {
      * @throws IOException if the output stream is not writable
      */
     public void writeByte(byte b) throws IOException {
-//        for (int i = 0; i < 8; i++) {
-//            write(b >> (7 - i) & 1);
-//        }
         writeBits(b, 8);
     }
 
@@ -98,7 +83,7 @@ public class FileBitOutputStream {
     private void flushBits() throws IOException {
         while (bitPos >= 8) {
             bitPos -= 8;
-            int temp = (bits >> bitPos) & 0xff;
+            byte temp = (byte) (bits >> bitPos);
             bos.write(temp);
             length++;
         }
@@ -114,11 +99,6 @@ public class FileBitOutputStream {
      * @throws IOException if the {@code bos} cannot be flushed
      */
     public void flush() throws IOException {
-//        if (bitPos != 0) {
-//            bits = bits << (8 - bitPos);
-//            bos.write((byte) bits);
-//            length++;
-//        }
         if (bitPos > 0) {
             bits <<= (8 - bitPos);
             bitPos = 0;

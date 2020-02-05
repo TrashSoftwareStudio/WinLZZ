@@ -407,43 +407,6 @@ public abstract class Bytes {
     }
 
     public static int getAndEr(int bitCount) {
-        switch (bitCount) {
-            case 0:
-                return 0;
-            case 1:
-                return 1;
-            case 2:
-                return 3;
-            case 3:
-                return 7;
-            case 4:
-                return 15;
-            case 5:
-                return 31;
-            case 6:
-                return 63;
-            case 7:
-                return 127;
-            case 8:
-                return 255;
-            case 9:
-                return 511;
-            case 10:
-                return 1023;
-            case 11:
-                return 2047;
-            case 12:
-                return 4095;
-            case 13:
-                return 8191;
-            case 14:
-                return 16383;
-            case 15:
-                return 32767;
-            case 16:
-                return 65535;
-            default:
-                throw new RuntimeException("Can't");
-        }
+        return (1 << bitCount) - 1;
     }
 }

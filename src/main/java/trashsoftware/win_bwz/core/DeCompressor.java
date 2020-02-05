@@ -1,5 +1,6 @@
 package trashsoftware.win_bwz.core;
 
+import trashsoftware.win_bwz.core.fastLzz.FastLzzDecompressor;
 import trashsoftware.win_bwz.packer.UnPacker;
 
 import java.io.OutputStream;
@@ -12,7 +13,7 @@ import java.io.OutputStream;
  * @author zbh
  * @see trashsoftware.win_bwz.core.lzz2.LZZ2DeCompressor
  * @see trashsoftware.win_bwz.core.bwz.BWZDeCompressor
- * @see trashsoftware.win_bwz.core.lzz2_plus.Lzz2PlusDecompressor
+ * @see FastLzzDecompressor
  * @since 0.5
  */
 public interface DeCompressor {

@@ -26,7 +26,7 @@ import trashsoftware.win_bwz.core.lzz2.LZZ2Compressor;
 import trashsoftware.win_bwz.utility.*;
 import trashsoftware.win_bwz.encrypters.zse.ZSEFileEncoder;
 import javafx.beans.property.*;
-import trashsoftware.win_bwz.core.lzz2_plus.Lzz2PlusCompressor;
+import trashsoftware.win_bwz.core.fastLzz.FastLzzCompressor;
 
 import java.io.*;
 import java.security.NoSuchAlgorithmException;
@@ -383,7 +383,7 @@ public class Packer {
                     headCompressor = new LZZ2Compressor(tempHeadName, defaultWindowSize, 64);
                     break;
                 case "lzz2p":
-                    headCompressor = new Lzz2PlusCompressor(tempHeadName, defaultWindowSize, 64);
+                    headCompressor = new FastLzzCompressor(tempHeadName, defaultWindowSize, 64);
                     break;
 //                case "qlz":
 //                    headCompressor = new QuickLZZCompressor(tempHeadName, 16384, 256);
@@ -401,7 +401,7 @@ public class Packer {
                     headCompressor.setCompressionLevel(cmpLevel);
                     break;
                 case "lzz2p":
-                    headCompressor = new Lzz2PlusCompressor(tempHeadName, windowSize, bufferSize);
+                    headCompressor = new FastLzzCompressor(tempHeadName, windowSize, bufferSize);
                     headCompressor.setCompressionLevel(cmpLevel);
                     break;
 //                case "qlz":
@@ -488,7 +488,7 @@ public class Packer {
                     mainCompressor = new LZZ2Compressor(mis, windowSize, bufferSize, totalLength);
                     break;
                 case "lzz2p":
-                    mainCompressor = new Lzz2PlusCompressor(mis, windowSize, bufferSize, totalLength);
+                    mainCompressor = new FastLzzCompressor(mis, windowSize, bufferSize, totalLength);
                     break;
 //                case "qlz":
 //                    mainCompressor = new QuickLZZCompressor(mis, windowSize, 256, totalLength);

@@ -5,8 +5,6 @@ import trashsoftware.win_bwz.utility.Bytes;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.Arrays;
-import java.util.HashMap;
 
 /**
  * A Independent input stream that takes an input stream and uncompress data from stream using huffman algorithm.
@@ -49,7 +47,6 @@ public class LongHuffmanInputStream {
      * length {@code average}.
      */
     private int[] shortMapArr;
-//    private HashMap<Integer, Integer> shortMap = new HashMap<>();
 
     /**
      * The huffman code table that records all codes that are shorter than or equal to {@code maxCodeLen}, but all
@@ -57,22 +54,13 @@ public class LongHuffmanInputStream {
      * reaches the length {@code maxCodeLen}.
      */
     private int[] longMapArr;
-//    private HashMap<Integer, Integer> longMap = new HashMap<>();
 
     /**
      * The table that records all huffman symbol and their corresponding code length.
      */
     private int[] lengthMap;
-//    private HashMap<Integer, Integer> lengthMapHash = new HashMap<>();
 
     private long compressedBitLength;
-
-    private boolean isTerminated;
-    private HashMap<Integer, Integer> lengthMapHash = new HashMap<>();
-    private HashMap<Integer, Integer> longMap2 = new HashMap<>();
-    private HashMap<Integer, Integer> shortMap2 = new HashMap<>();
-    private StringBuilder builder = new StringBuilder();
-
 
     private int[] result;
 
@@ -113,125 +101,6 @@ public class LongHuffmanInputStream {
         }
 //        System.out.println("max:" + maxCodeLen);
         return lengthCode;
-    }
-
-    private HashMap<Integer, Integer> recoverLengthCodeHashMap(byte[] map) {
-        HashMap<Integer, Integer> lengthCode = new HashMap<>();
-        for (int i = 0; i < alphabetSize; i++) {
-            int len = map[i] & 0xff;
-            if (len != 0) {
-                lengthCode.put(i, len);
-                if (len > maxCodeLen) maxCodeLen = len;
-            }
-        }
-        if (average > maxCodeLen) {
-            average = maxCodeLen;
-        }
-        return lengthCode;
-    }
-
-    private void generateIdenticalMapStr(HashMap<Integer, String> origMap) {
-        for (int value : origMap.keySet()) {
-            String s = origMap.get(value);
-            lengthMapHash.put(value, s.length());
-
-            if (s.length() > average) {
-                int len = maxCodeLen - s.length();
-                if (len == 0) {
-                    longMap2.put(Integer.parseInt(s, 2), value);
-                } else {
-                    for (int i = 0; i < Math.pow(2, len); i++) {
-                        String key = s + Bytes.numberToBitString(i, len);
-                        longMap2.put(Integer.parseInt(key, 2), value);
-                    }
-                }
-            } else {
-                int len = average - s.length();
-                if (len == 0) {
-                    shortMap2.put(Integer.parseInt(s, 2), value);
-                } else {
-                    for (int i = 0; i < Math.pow(2, len); i++) {
-                        String key = s + Bytes.numberToBitString(i, len);
-                        shortMap2.put(Integer.parseInt(key, 2), value);
-                    }
-                }
-            }
-        }
-    }
-
-    private void uncompressToArray() {
-        int i = 0;
-        while (builder.length() - i > maxCodeLen) {
-            int index = Integer.parseInt(builder.substring(i, i + average), 2);
-            int value;
-            int len;
-            if (shortMap2.containsKey(index)) {
-                value = shortMap2.get(index);
-                len = lengthMapHash.get(value);
-            } else {
-                value = longMap2.get(Integer.parseInt(builder.substring(i, i + maxCodeLen), 2));
-                len = lengthMapHash.get(value);
-            }
-//            System.out.print(builder.substring(i, i + len));
-            compressedBitLength += len;
-            if (value == endSig) {
-//                System.out.println();
-
-                while (compressedBitLength % 8 != 0) compressedBitLength += 1;
-//                System.out.println(compressedBitLength + "r");
-                isTerminated = true;
-                break;
-            }
-            result[currentIndex] = value;
-            currentIndex += 1;
-            i += len;
-        }
-        String rem = builder.substring(i);
-        builder.setLength(0);
-        builder.append(rem);
-    }
-
-    private void unCompressLastText() {
-        builder.append(Bytes.charMultiply('0', maxCodeLen * 8));
-        int i = 0;
-        while (true) {
-            int index = Integer.parseInt(builder.substring(i, i + average), 2);
-            int value;
-            int len;
-            if (shortMap2.containsKey(index)) {
-                value = shortMap2.get(index);
-                len = lengthMapHash.get(value);
-            } else {
-                value = longMap2.get(Integer.parseInt(builder.substring(i, i + maxCodeLen), 2));
-                len = lengthMapHash.get(value);
-            }
-            compressedBitLength += len;
-            if (value == endSig) {
-                isTerminated = true;
-                break;
-            }
-            result[currentIndex] = value;
-            currentIndex += 1;
-            i += len;
-        }
-    }
-
-    private void unCompress2() throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
-        int read;
-        while ((read = fc.read(buffer)) > 0) {
-            buffer.flip();
-            for (int i = 0; i < read; i++) builder.append(Bytes.byteToBitString(buffer.get(i)));
-            buffer.clear();
-            uncompressToArray();
-            if (isTerminated) {
-                System.out.print(getCompressedLength() + " ");
-                fc.position(getCompressedLength());
-                break;
-            }
-        }
-        if (!isTerminated) unCompressLastText();
-        if (!isTerminated) throw new IOException("Cannot find EOF character");
     }
 
     private void generateIdenticalMap(int[] lengthCode, int[] canonicalCode) {
@@ -290,10 +159,6 @@ public class LongHuffmanInputStream {
         }
     }
 
-    private int getAndEr(int len) {
-        return (1 << len) - 1;
-    }
-
     private void unCompress() throws IOException {
 
         readBuffer.clear();
@@ -304,8 +169,8 @@ public class LongHuffmanInputStream {
         bufferIndex = 0;
 
         int bigMapLonger = maxCodeLen - average;
-        int bigMapLongerAndEr = getAndEr(bigMapLonger);
-        int averageAndEr = getAndEr(average);
+        int bigMapLongerAndEr = Bytes.getAndEr(bigMapLonger);
+        int averageAndEr = Bytes.getAndEr(average);
 
         while (true) {
             readBits(average);
@@ -389,20 +254,6 @@ public class LongHuffmanInputStream {
         currentIndex = 0;
         bitPos = 0;
         bits = 0;
-//        shortMap.clear();
-//        longMap.clear();
-
-
-
-//        builder.setLength(0);
-//        isTerminated = false;
-//        shortMap2.clear();
-//        longMap2.clear();
-//        lengthMapHash.clear();
-//        HashMap<Integer, Integer> lm2 = recoverLengthCodeHashMap(map);
-//        HashMap<Integer, String> hc2 = LongHuffmanUtil.generateCanonicalCode(lm2);
-//        generateIdenticalMapStr(hc2);
-
 
         int[] lengthCode = recoverLengthCode(map);
 
@@ -414,12 +265,8 @@ public class LongHuffmanInputStream {
         long t1 = System.currentTimeMillis();
 
         unCompress();
-//        unCompress2();
 
         timer += System.currentTimeMillis() - t1;
-//        System.out.println("time: " + timer);
-
-//        System.out.println(currentIndex);
 
         int[] rtn = new int[currentIndex];
         System.arraycopy(result, 0, rtn, 0, currentIndex);

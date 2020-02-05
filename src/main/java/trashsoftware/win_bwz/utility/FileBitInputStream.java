@@ -46,14 +46,6 @@ public class FileBitInputStream {
      * @throws IOException if the stream is not readable
      */
     public int read(int length) throws IOException {
-//        int number = 0;
-//        for (int i = 0; i < length; i++) {
-//            number = number << 1;
-//            int r = read();
-//            if (r == 2) throw new IOException();
-//            number = number | r;
-//        }
-//        return number;
         return readBits(length);
     }
 

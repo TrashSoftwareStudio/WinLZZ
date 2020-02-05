@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
-abstract class LongHuffmanUtil {
+public abstract class LongHuffmanUtil {
 
     static void addArrayToFreqMap(int[] array, int[] freqMap, int textBegin, int textLength) {
         for (int i = 0; i < textLength; i++) {
@@ -14,7 +14,7 @@ abstract class LongHuffmanUtil {
         }
     }
 
-    static HuffmanNode generateHuffmanTree(int[] freqMap) {
+    public static HuffmanNode generateHuffmanTree(int[] freqMap) {
         ArrayList<HuffmanNode> list = new ArrayList<>();
         for (int v = 0; v < freqMap.length; ++v) {
             int freq = freqMap[v];
@@ -42,7 +42,7 @@ abstract class LongHuffmanUtil {
         return list.get(0);
     }
 
-    static void generateCodeLengthMap(int[] lengthMap, HuffmanNode node, int length) {
+    public static void generateCodeLengthMap(int[] lengthMap, HuffmanNode node, int length) {
         if (node != null) {
             if (node.isLeaf()) {
                 lengthMap[node.getValue()] = length;
@@ -53,7 +53,7 @@ abstract class LongHuffmanUtil {
         }
     }
 
-    static int[] generateCanonicalCode(int[] lengthCode) {
+    public static int[] generateCanonicalCode(int[] lengthCode) {
         int[] canonicalCode = new int[lengthCode.length];
 
         ArrayList<HuffmanTuple> tupleList = new ArrayList<>();
@@ -71,33 +71,7 @@ abstract class LongHuffmanUtil {
         int code = 0;
         for (int i = 1; i < tupleList.size(); i++) {
             code = (code + 1) << (tupleList.get(i).getLength() - tupleList.get(i - 1).getLength());
-//            codes[list[i].value] = code;
             canonicalCode[tupleList.get(i).getValue()] = code;
-        }
-        return canonicalCode;
-    }
-
-    static HashMap<Integer, String> generateCanonicalCode(HashMap<Integer, Integer> lengthCode) {
-        HashMap<Integer, String> canonicalCode = new HashMap<>();
-
-        ArrayList<HuffmanTuple> tupleList = new ArrayList<>();
-
-        for (int key : lengthCode.keySet()) {
-            HuffmanTuple current = new HuffmanTuple(key, lengthCode.get(key));
-            tupleList.add(current);
-        }
-        Collections.sort(tupleList);
-
-        HuffmanTuple first = new HuffmanTuple(tupleList.get(0).getValue(), tupleList.get(0).getLength());
-        canonicalCode.put(first.getValue(), Bytes.charMultiply('0', first.getLength()));
-
-        int code = 0;
-        for (int i = 1; i < tupleList.size(); i++) {
-            code = (code + 1) << (tupleList.get(i).getLength() - tupleList.get(i - 1).getLength());
-            String co = Integer.toBinaryString(code);
-            if (co.length() < tupleList.get(i).getLength())
-                co = Bytes.charMultiply('0', tupleList.get(i).getLength() - co.length()) + co;
-            canonicalCode.put(tupleList.get(i).getValue(), co);
         }
         return canonicalCode;
     }
@@ -115,7 +89,7 @@ abstract class LongHuffmanUtil {
         }
     }
 
-    static void heightControl(int[] lengthMap, int[] freqMap, int maxHeight) {
+    public static void heightControl(int[] lengthMap, int[] freqMap, int maxHeight) {
         ArrayList<LengthTuple> list = new ArrayList<>();
         int max = 0;
         for (int k = 0; k < lengthMap.length; ++k) {
@@ -157,225 +131,6 @@ abstract class LongHuffmanUtil {
         int i = list.size() - 1;
         while (list.get(i).length == maxHeight) i -= 1;
         return i;
-    }
-}
-
-
-/**
- * A tuple of a code length in the huffman code, implements the interface {@code Comparable}.
- * <p>
- * This class is used for controlling the code length of a huffman table.
- *
- * @author zbh
- * @see java.lang.Comparable
- * @since 0.5.2
- */
-class LengthTuple implements Comparable<LengthTuple> {
-
-    private int b;
-
-    int length;
-
-    private int freq;
-
-    /**
-     * Creates a new instance of {@code LengthTuple}.
-     *
-     * @param b      the value
-     * @param length the code length
-     * @param freq   the occurrences of <code>b</code> in the original text
-     */
-    LengthTuple(int b, int length, int freq) {
-        this.b = b;
-        this.length = length;
-        this.freq = freq;
-    }
-
-    /**
-     * Returns the value.
-     *
-     * @return the value
-     */
-    public int getByte() {
-        return b;
-    }
-
-    /**
-     * Compares this {@code LengthTuple} with another {@code LengthTuple}.
-     *
-     * @param o the {@code LengthTuple} to be compared with this {@code LengthTuple}
-     * @return {@code 1} if this {@code LengthTuple} is greater than <code>o</code>, {@code -1} if smaller,
-     * {@code 0} if equals
-     */
-    @Override
-    public int compareTo(LengthTuple o) {
-        return Integer.compare(o.freq, freq);
-    }
-}
-
-
-/**
- * A node of a huffman tree, where the node implements the interface {@code Comparable}.
- * <p>
- * Each {@code HuffmanNode} instance records a symbol or an internal node and its frequency.
- *
- * @author zbh
- * @see java.lang.Comparable
- * @since 0.5
- */
-class HuffmanNode implements Comparable<HuffmanNode> {
-
-    private int freq;
-
-    private int value;
-
-    private HuffmanNode left;
-
-    private HuffmanNode right;
-
-    /**
-     * Creates a new {@code HuffmanNode} instance.
-     *
-     * @param freq the occurrence times of the representation of this node
-     */
-    HuffmanNode(int freq) {
-        this.freq = freq;
-    }
-
-    /**
-     * Sets uo the value represented by this {@code HuffmanNode}.
-     *
-     * @param value the value
-     */
-    public void setValue(int value) {
-        this.value = value;
-    }
-
-    /**
-     * Sets up the left child of this {@code HuffmanNode}.
-     *
-     * @param left the left child of this {@code HuffmanNode}
-     */
-    void setLeft(HuffmanNode left) {
-        this.left = left;
-    }
-
-    /**
-     * Sets up the right child of this {@code HuffmanNode}.
-     *
-     * @param right the right child of this {@code HuffmanNode}
-     */
-    void setRight(HuffmanNode right) {
-        this.right = right;
-    }
-
-    /**
-     * Returns the value represented by this {@code HuffmanNode}.
-     *
-     * @return the value represented by this {@code HuffmanNode}
-     */
-    public int getValue() {
-        return value;
-    }
-
-    HuffmanNode getLeft() {
-        return left;
-    }
-
-    HuffmanNode getRight() {
-        return right;
-    }
-
-    int getFreq() {
-        return freq;
-    }
-
-    /**
-     * Returns {@code true} if and only if this {@code HuffmanNode} does not have neither left child nor right child.
-     *
-     * @return {@code true} if and only if this {@code HuffmanNode} does not have any children
-     */
-    boolean isLeaf() {
-        return left == null && right == null;
-    }
-
-    /**
-     * Compares this {@code HuffmanNode} with another {@code HuffmanNode}.
-     * <p>
-     * This method returns 1 if this {@code HuffmanNode} has smaller {@code freq} than <code>o</code>'s,
-     * -1 if greater, 0 if equals.
-     *
-     * @param o the {@code HuffmanNode} to be compared with this {@code HuffmanNode}
-     * @return {@code 1} if this {@code HuffmanNode} has smaller {@code freq} than <code>o</code>'s,
-     * {@code -1} if greater, {@code 0} if equals.
-     */
-    @Override
-    public int compareTo(HuffmanNode o) {
-        return Integer.compare(o.freq, freq);
-//        int x = Integer.compare(o.freq, freq);
-////        if (value == BWZCompressor.huffmanEndSig) return -1;
-////        else if (o.value == BWZCompressor.huffmanEndSig) return 1;
-//        if (x != 0 || !isLeaf() || !o.isLeaf()) return x;
-////        if (x != 0 || value == 0 || o.value == 0) return x;
-//        else return Short.compare(value, o.value);
-    }
-}
-
-
-/**
- * A tuple of a huffman code, implements the interface {@code Comparable}.
- *
- * @author zbh
- * @since 0.5
- */
-class HuffmanTuple implements Comparable<HuffmanTuple> {
-
-    private int value;
-
-    private int codeLength;
-
-    /**
-     * Creates a new {@code HuffmanTuple} instance.
-     *
-     * @param value      the value of this {@code HuffmanTuple}
-     * @param codeLength the length of huffman code of this {@code HuffmanTuple}
-     */
-    HuffmanTuple(int value, int codeLength) {
-        this.value = value;
-        this.codeLength = codeLength;
-    }
-
-    /**
-     * Returns the code length.
-     *
-     * @return the code length
-     */
-    public int getLength() {
-        return codeLength;
-    }
-
-    /**
-     * Returns the value.
-     *
-     * @return the value
-     */
-    public int getValue() {
-        return value;
-    }
-
-    /**
-     * Compares this {@code HuffmanTuple} to another {@code HuffmanTuple} by, primarily the code length,
-     * and secondarily the lexicographical order of the <code>value</code>
-     *
-     * @param o the {@code HuffmanTuple} to be compared with this {@code HuffmanTuple}
-     * @return {@code 1} if this {@code HuffmanTuple} is greater than <code>o</code>, {@code -1} if smaller,
-     * {@code 0} if equals
-     */
-    @Override
-    public int compareTo(HuffmanTuple o) {
-        int lengthCmp = Integer.compare(codeLength, o.codeLength);
-        if (lengthCmp == 0) return Integer.compare(value, o.value);
-        else return lengthCmp;
     }
 }
 

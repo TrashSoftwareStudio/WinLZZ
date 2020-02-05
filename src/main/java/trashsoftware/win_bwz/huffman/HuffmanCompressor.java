@@ -1,6 +1,10 @@
 package trashsoftware.win_bwz.huffman;
 
+import trashsoftware.win_bwz.longHuffman.HuffmanNode;
+import trashsoftware.win_bwz.longHuffman.HuffmanTuple;
+import trashsoftware.win_bwz.longHuffman.LongHuffmanUtil;
 import trashsoftware.win_bwz.utility.Bytes;
+import trashsoftware.win_bwz.utility.FileBitOutputStream;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -13,17 +17,19 @@ public class HuffmanCompressor {
 
     private final static int bufferSize = 8192;
 
-    private HashMap<Byte, Integer> freqMap = new HashMap<>();
+    private int[] freqMap;
 
     private int lengthRemainder;
 
-    private int length = 0;
+    private int inFileLength = 0;
 
-    private int compressedLength = 0;
+    private long compressedLength = 0;
 
-    private int maxHeight = 15;
+    private static final int MAX_HEIGHT = 15;
 
-    private HashMap<Byte, String> huffmanCode;
+    private int[] huffmanCode;
+
+    private int[] lengthCode;
 
 
     /**
@@ -52,54 +58,16 @@ public class HuffmanCompressor {
         int read;
         while ((read = bis.read(buffer, 0, bufferSize)) != -1) {
             addArrayToFreqMap(buffer, freqMap, read);
-            length += read;
+            inFileLength += read;
         }
-        lengthRemainder = length % 256;
+        lengthRemainder = inFileLength % 256;
         bis.close();
     }
 
-    public static void addArrayToFreqMap(byte[] array, HashMap<Byte, Integer> freqMap, int range) {
+    public static void addArrayToFreqMap(byte[] array, int[] freqMap, int range) {
         for (int i = 0; i < range; i++) {
             byte b = array[i];
-            if (freqMap.containsKey(b)) freqMap.put(b, freqMap.get(b) + 1);
-            else freqMap.put(b, 1);
-        }
-    }
-
-    public static HuffmanNode generateHuffmanTree(HashMap<Byte, Integer> freqMap) {
-        ArrayList<HuffmanNode> list = new ArrayList<>();
-        for (byte key : freqMap.keySet()) {
-            HuffmanNode hn = new HuffmanNode(freqMap.get(key));
-            hn.setValue(key);
-            list.add(hn);
-        }
-        if (list.size() == 1) {
-            HuffmanNode leaf = list.get(0);
-            HuffmanNode root = new HuffmanNode(leaf.getFreq() + 1);
-            root.setLeft(leaf);
-            return root;
-        }
-        while (list.size() > 1) {
-            Collections.sort(list);
-            // Pop out two nodes with smallest frequency.
-            HuffmanNode left = list.remove(list.size() - 1);
-            HuffmanNode right = list.remove(list.size() - 1);
-            HuffmanNode parent = new HuffmanNode(left.getFreq() + right.getFreq());
-            parent.setLeft(left);
-            parent.setRight(right);
-            list.add(parent);
-        }
-        return list.get(0);
-    }
-
-    public static void generateCodeLengthMap(HashMap<Byte, Integer> lengthMap, HuffmanNode node, int length) {
-        if (node != null) {
-            if (node.isLeaf()) {
-                lengthMap.put(node.getValue(), length);
-            } else {
-                generateCodeLengthMap(lengthMap, node.getLeft(), length + 1);
-                generateCodeLengthMap(lengthMap, node.getRight(), length + 1);
-            }
+            freqMap[b & 0xff]++;
         }
     }
 
@@ -115,7 +83,7 @@ public class HuffmanCompressor {
         Collections.sort(tupleList);
 
         HuffmanTuple first = new HuffmanTuple(tupleList.get(0).getValue(), tupleList.get(0).getLength());
-        canonicalCode.put(first.getValue(), Bytes.charMultiply('0', first.getLength()));
+        canonicalCode.put((byte) first.getValue(), Bytes.charMultiply('0', first.getLength()));
 
         int code = 0;
         for (int i = 1; i < tupleList.size(); i++) {
@@ -123,113 +91,65 @@ public class HuffmanCompressor {
             String co = Integer.toBinaryString(code);
             if (co.length() < tupleList.get(i).getLength())
                 co = Bytes.charMultiply('0', tupleList.get(i).getLength() - co.length()) + co;
-            canonicalCode.put(tupleList.get(i).getValue(), co);
+            canonicalCode.put((byte) tupleList.get(i).getValue(), co);
         }
         return canonicalCode;
     }
 
-    private byte[] generateCanonicalCodeBlock(HashMap<Byte, Integer> lengthCode) {
-        byte[] result = new byte[256];
-        for (int i = 0; i < 256; i++) {
-            if (lengthCode.containsKey((byte) i)) {
-                int len = lengthCode.get((byte) i);
-                result[i] = (byte) len;
-            } else {
-                result[i] = (byte) 0;
-            }
+
+    private static byte[] generateCanonicalCodeBlock(int[] lengthCode, int alphabetSize) {
+        byte[] result = new byte[alphabetSize];
+        for (int i = 0; i < alphabetSize; i++) {
+            result[i] = (byte) lengthCode[i];
         }
         return result;
     }
 
-    private void compressText(HashMap<Byte, String> huffmanCode, OutputStream fos) throws IOException {
+    private void compressText(int[] huffmanCode, int[] lengthCode, OutputStream fos) throws IOException {
         FileInputStream bis = new FileInputStream(inFile);
 
         byte[] buffer = new byte[bufferSize];
-        StringBuilder builder = new StringBuilder();  // sb is not a good name 233333
-        int read;
-        while ((read = bis.read(buffer, 0, bufferSize)) != -1) {
-            addCompressed(buffer, read, builder, huffmanCode);
-            byte[] toWrite = Bytes.stringBuilderToBytes(builder);
-            fos.write(toWrite);
-            compressedLength += toWrite.length;
 
-            // Fill remaining bits to the start of the builder
-            String remain = builder.substring(builder.length() - builder.length() % 8);
-            builder.setLength(0);
-            builder.append(remain);
+        FileBitOutputStream fbo = new FileBitOutputStream(fos);
+
+        int read;
+        while ((read = bis.read(buffer, 0, bufferSize)) > 0) {
+            for (int i = 0; i < read; ++i) {
+                int v = buffer[i] & 0xff;
+                int len = lengthCode[v];
+                int code = huffmanCode[v];
+                fbo.write(code, len);
+            }
         }
         // Deal with the last few bits.
-        if (builder.length() > 0) {
-            fos.write(Bytes.bitStringToByteNo8(builder.toString()));
-            compressedLength += 1;
-        }
+        fbo.flush();
+        compressedLength += fbo.getLength();
+
+//        fbo.close();
         bis.close();
+
     }
 
-    public static void addCompressed(byte[] buffer, int range, StringBuilder builder, HashMap<Byte, String> huffmanCode) {
-        for (int i = 0; i < range; i++) {
-            byte b = buffer[i];
-            builder.append(huffmanCode.get(b));
-        }
-    }
-
-    public byte[] getMap(int length) throws IOException {
+    public byte[] getMap(int alphabetSize) throws IOException {
+        freqMap = new int[alphabetSize];
         generateFreqMap();
-        HuffmanNode rootNode = generateHuffmanTree(freqMap);
-        HashMap<Byte, Integer> codeLengthMap = new HashMap<>();
-        generateCodeLengthMap(codeLengthMap, rootNode, 0);
+        HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freqMap);
+        lengthCode = new int[alphabetSize];
+        LongHuffmanUtil.generateCodeLengthMap(lengthCode, rootNode, 0);
+        LongHuffmanUtil.generateCodeLengthMap(lengthCode, rootNode, 0);
 
-        heightControl(codeLengthMap);
-        huffmanCode = generateCanonicalCode(codeLengthMap);
-        byte[] result = new byte[length];
-        System.arraycopy(generateCanonicalCodeBlock(codeLengthMap), 0, result, 0, length);
-        return result;
+        LongHuffmanUtil.heightControl(lengthCode, freqMap, MAX_HEIGHT);
+        huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
+        return generateCanonicalCodeBlock(lengthCode, alphabetSize);
     }
 
     public void SepCompress(OutputStream out) throws IOException {
         compressedLength = 1;
         out.write((byte) lengthRemainder);
-        compressText(huffmanCode, out);
+        compressText(huffmanCode, lengthCode, out);
     }
 
-    public int getCompressedLength() {
+    public long getCompressedLength() {
         return compressedLength;
-    }
-
-    private void heightControl(HashMap<Byte, Integer> codeLength) {
-        ArrayList<LengthTuple> list = new ArrayList<>();
-        for (byte key : codeLength.keySet()) list.add(new LengthTuple(key, codeLength.get(key), freqMap.get(key)));
-        Collections.sort(list);
-
-        int debt = getTotalDebt(list);
-        repay(list, debt);
-        for (LengthTuple lt : list) codeLength.put(lt.getByte(), lt.length);
-    }
-
-    private int getTotalDebt(ArrayList<LengthTuple> list) {
-        double debt = 0;
-        for (LengthTuple lt : list) {
-            if (lt.length > maxHeight) {
-                double num = Math.pow(2, (lt.length - maxHeight));
-                debt += ((num - 1) / num);
-                lt.length = maxHeight;
-            }
-        }
-        return (int) Math.round(debt);
-    }
-
-    private void repay(ArrayList<LengthTuple> list, int debt) {
-        while (debt > 0) {
-            LengthTuple lt = list.get(getLastUnderLimit(list, maxHeight));
-            int lengthDiff = maxHeight - lt.length;
-            debt -= (int) Math.pow(2, (lengthDiff - 1));
-            lt.length += 1;
-        }
-    }
-
-    public static int getLastUnderLimit(ArrayList<LengthTuple> list, int max) {
-        int i = list.size() - 1;
-        while (list.get(i).length == max) i -= 1;
-        return i;
     }
 }

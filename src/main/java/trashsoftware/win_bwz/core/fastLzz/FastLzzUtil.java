@@ -1,11 +1,11 @@
-package trashsoftware.win_bwz.core.lzz2_plus;
+package trashsoftware.win_bwz.core.fastLzz;
 
 import trashsoftware.win_bwz.utility.FileBitInputStream;
 import trashsoftware.win_bwz.utility.FileBitOutputStream;
 
 import java.io.IOException;
 
-public class Lzz2pUtil {
+public class FastLzzUtil {
 
     private static final int MINIMUM_LENGTH = 3;
     private static final int MINIMUM_DISTANCE = 1;

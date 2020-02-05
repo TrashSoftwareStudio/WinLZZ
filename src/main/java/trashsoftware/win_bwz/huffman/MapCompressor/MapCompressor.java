@@ -1,11 +1,11 @@
 package trashsoftware.win_bwz.huffman.MapCompressor;
 
 import trashsoftware.win_bwz.huffman.HuffmanCompressor;
-import trashsoftware.win_bwz.huffman.HuffmanNode;
+import trashsoftware.win_bwz.longHuffman.HuffmanNode;
+import trashsoftware.win_bwz.longHuffman.LongHuffmanUtil;
 import trashsoftware.win_bwz.utility.Bytes;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -21,9 +21,10 @@ import java.util.HashMap;
 public class MapCompressor {
 
     private byte[] map;
-    private final static int maxHeight = 7;
+    private final static int MAX_HEIGHT = 7;
     static final int[] positions = new int[]{16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
-    private HashMap<Byte, Integer> freqMap = new HashMap<>();
+//    private int[] freqMap;
+    private int lengthRemainder;
 
     /**
      * Creates a new {@code MapCompressor} instance.
@@ -36,50 +37,43 @@ public class MapCompressor {
         this.map = mapBytes;
     }
 
-    private static byte[] generateMap(HashMap<Byte, Integer> lengthMap) {
+    private static byte[] generateMap(int[] lengthMap) {
         byte[] cmpMap = new byte[19];
-        for (int i = 0; i < 19; i++)
-            if (lengthMap.containsKey((byte) i)) cmpMap[i] = (byte) (int) (lengthMap.get((byte) i));
-            else cmpMap[i] = (byte) 0;
+        for (int i = 0; i < 19; ++i) {
+            int len = lengthMap[i];
+            cmpMap[i] = (byte) len;
+        }
         return cmpMap;
     }
 
-    private static String compressText(HashMap<Byte, String> huffmanCode, byte[] text) {
-        StringBuilder builder = new StringBuilder();
-        HuffmanCompressor.addCompressed(text, text.length, builder, huffmanCode);
-        return builder.toString();
-    }
+    private byte[] compressText(int[] codeTable, int[] lengthTable) {
+        int textSize = map.length;
+        byte[] out = new byte[textSize + 64];  // assume the compression result will not exceed the orig len + 256
+        int bits = 0;
+        int bitPos = 0;
+        int resIndex = 0;
+        for (int value : map) {
+            int codeLen = lengthTable[value];
+            int code = codeTable[value];
+            if (codeLen == 0) throw new RuntimeException();
+            bits <<= codeLen;
+            bits |= code;
+            bitPos += codeLen;
 
-    private void heightControl(HashMap<Byte, Integer> codeLength) {
-        ArrayList<trashsoftware.win_bwz.huffman.LengthTuple> list = new ArrayList<>();
-        for (byte key : codeLength.keySet())
-            list.add(new trashsoftware.win_bwz.huffman.LengthTuple(key, codeLength.get(key), freqMap.get(key)));
-        Collections.sort(list);
-
-        int debt = getTotalDebt(list);
-        repay(list, debt);
-        for (trashsoftware.win_bwz.huffman.LengthTuple lt : list) codeLength.put(lt.getByte(), lt.length);
-    }
-
-    private int getTotalDebt(ArrayList<trashsoftware.win_bwz.huffman.LengthTuple> list) {
-        double debt = 0;
-        for (trashsoftware.win_bwz.huffman.LengthTuple lt : list) {
-            if (lt.length > maxHeight) {
-                double num = Math.pow(2, (lt.length - maxHeight));
-                debt += ((num - 1) / num);
-                lt.length = maxHeight;
+            while (bitPos >= 8) {
+                bitPos -= 8;
+                out[resIndex++] = (byte) (bits >> bitPos);
             }
         }
-        return (int) Math.round(debt);
-    }
 
-    private void repay(ArrayList<trashsoftware.win_bwz.huffman.LengthTuple> list, int debt) {
-        while (debt > 0) {
-            trashsoftware.win_bwz.huffman.LengthTuple lt = list.get(HuffmanCompressor.getLastUnderLimit(list, maxHeight));
-            int lengthDiff = maxHeight - lt.length;
-            debt -= (int) Math.pow(2, (lengthDiff - 1));
-            lt.length += 1;
+        if (bitPos > 0) {
+            bits <<= (8 - bitPos);
+            out[resIndex++] = (byte) bits;
         }
+        lengthRemainder = bitPos;
+        byte[] result = new byte[resIndex];
+        System.arraycopy(out, 0, result, 0, resIndex);
+        return result;
     }
 
     private byte[] swapCcl(byte[] ccl) {
@@ -104,13 +98,16 @@ public class MapCompressor {
      * @return the compressed map.
      */
     public byte[] Compress(boolean swap) {
-
+        int[] freqMap = new int[19];
         HuffmanCompressor.addArrayToFreqMap(map, freqMap, map.length);
-        HashMap<Byte, Integer> codeLengthMap = new HashMap<>();
-        HuffmanNode rootNode = HuffmanCompressor.generateHuffmanTree(freqMap);
-        HuffmanCompressor.generateCodeLengthMap(codeLengthMap, rootNode, 0);
-        heightControl(codeLengthMap);
-        HashMap<Byte, String> huffmanCode = HuffmanCompressor.generateCanonicalCode(codeLengthMap);
+        int[] codeLengthMap = new int[19];
+        HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freqMap);
+        LongHuffmanUtil.generateCodeLengthMap(codeLengthMap, rootNode, 0);
+        LongHuffmanUtil.heightControl(codeLengthMap, freqMap, MAX_HEIGHT);
+        int[] huffmanCode = LongHuffmanUtil.generateCanonicalCode(codeLengthMap);
+
+        System.out.println(Arrays.toString(freqMap));
+        System.out.println(Arrays.toString(huffmanCode));
 
         byte[] origCCL = generateMap(codeLengthMap);
         byte[] CCL;
@@ -121,16 +118,47 @@ public class MapCompressor {
             CCL = cclTruncate(origCCL);
         }
 
-        String cmpMap = compressText(huffmanCode, map);
+        byte[] cmpMap = compressText(huffmanCode, codeLengthMap);
 
-        String hcLen = Bytes.numberToBitString(CCL.length - 4, 4);
-        StringBuilder builder = new StringBuilder();
-        builder.append(hcLen);
-        builder.append(Bytes.numberToBitString(cmpMap.length() % 8, 3));  // Record length remainder.
+        int hcLen = CCL.length - 4;
+        byte[] temp = new byte[map.length + 256];
 
-        for (byte b : CCL) builder.append(Bytes.numberToBitString((b & 0xff), 3));
-        builder.append(cmpMap);
+        int outIndex = 0;
+        int bits = (hcLen << 3) | lengthRemainder;
+        int bitPos = 7;
 
-        return Bytes.stringBuilderToBytesFull(builder);
+        for (byte b : CCL) {
+            bits <<= 3;
+            bits |= b;
+            bitPos += 3;
+            if (bitPos >= 8) {
+                bitPos -= 8;
+                temp[outIndex++] = (byte) (bits >> bitPos);
+            }
+        }
+
+        for (byte b : cmpMap) {
+            bits <<= 8;
+            bits |= (b & 0xff);
+            temp[outIndex++] = (byte) (bits >> bitPos);
+        }
+
+        if (bitPos > 0) {
+            bits <<= (8 - bitPos);
+            temp[outIndex++] = (byte) bits;
+        }
+
+        byte[] result = new byte[outIndex];
+        System.arraycopy(temp, 0, result, 0, outIndex);
+        return result;
+
+//        StringBuilder builder = new StringBuilder();
+//        builder.append(hcLen);
+//        builder.append(Bytes.numberToBitString(cmpMap.length() % 8, 3));  // Record length remainder.
+//
+//        for (byte b : CCL) builder.append(Bytes.numberToBitString((b & 0xff), 3));
+//        builder.append(cmpMap);
+//
+//        return Bytes.stringBuilderToBytesFull(builder);
     }
 }

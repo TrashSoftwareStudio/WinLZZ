@@ -1,4 +1,4 @@
-package trashsoftware.win_bwz.core.lzz2_plus;
+package trashsoftware.win_bwz.core.fastLzz;
 
 import trashsoftware.win_bwz.core.Compressor;
 import trashsoftware.win_bwz.packer.Packer;
@@ -18,7 +18,7 @@ import java.io.*;
  * @see Compressor
  * @since 0.4
  */
-public class Lzz2PlusCompressor implements Compressor {
+public class FastLzzCompressor implements Compressor {
 
     /**
      * Load this size and process every time.
@@ -61,7 +61,7 @@ public class Lzz2PlusCompressor implements Compressor {
      * @param bufferSize size of look ahead buffer.
      * @throws IOException if error occurs during file reading or writing.
      */
-    public Lzz2PlusCompressor(String inFile, int windowSize, int bufferSize) throws IOException {
+    public FastLzzCompressor(String inFile, int windowSize, int bufferSize) throws IOException {
         this.bufferMaxSize = bufferSize;
         this.dictSize = windowSize - bufferMaxSize - 1;
 
@@ -78,7 +78,7 @@ public class Lzz2PlusCompressor implements Compressor {
      * @param bufferSize  size of look ahead buffer.
      * @param totalLength the total length of the files to be compressed
      */
-    public Lzz2PlusCompressor(MultipleInputStream mis, int windowSize, int bufferSize, long totalLength) {
+    public FastLzzCompressor(MultipleInputStream mis, int windowSize, int bufferSize, long totalLength) {
         this.bufferMaxSize = bufferSize;
         this.dictSize = windowSize - bufferMaxSize - 1;
         this.totalLength = totalLength;
@@ -104,7 +104,7 @@ public class Lzz2PlusCompressor implements Compressor {
         byte[] lengthBytes = Bytes.intToBytes32((int) totalLength);
         for (byte b : lengthBytes) fos.writeByte(b);
 
-        Slider slider = new Slider();
+        FixedSlider slider = new FixedSlider(16);
         while ((read = sis.read(buffer)) > 0) {
             slider.clear();
             int i = 0;
@@ -118,8 +118,8 @@ public class Lzz2PlusCompressor implements Compressor {
                     i++;
                 } else {
                     fos.write(1);
-                    Lzz2pUtil.writeLengthToStream(len, fos);
-                    Lzz2pUtil.writeDistanceToStream(dis, fos);
+                    FastLzzUtil.writeLengthToStream(len, fos);
+                    FastLzzUtil.writeDistanceToStream(dis, fos);
 
                     i += len;
                 }
@@ -146,7 +146,7 @@ public class Lzz2PlusCompressor implements Compressor {
 //        fos.close();
     }
 
-    private void fillSlider(int from, int to, Slider slider) {
+    private void fillSlider(int from, int to, FixedSlider slider) {
         int lastHash = -1;
         int repeatCount = 0;
         for (int j = from; j < to; j++) {
@@ -166,11 +166,11 @@ public class Lzz2PlusCompressor implements Compressor {
         }
     }
 
-    private void calculateLongestMatch(Slider slider, int index) {
+    private void calculateLongestMatch(FixedSlider slider, int index) {
         byte b0 = buffer[index];
         byte b1 = buffer[index + 1];
         int hash = hash(b0, b1);
-        FixedArrayDeque positions = slider.get(hash);
+        FixedSlider.FixedArrayDeque positions = slider.get(hash);
         if (positions == null) {  // not a match
             len = 0;
             return;
@@ -178,13 +178,13 @@ public class Lzz2PlusCompressor implements Compressor {
 
         int maxLookAhead = (int) Math.min(remainingLength, MEMORY_BUFFER_SIZE);
         int windowBegin = Math.max(index - dictSize, 0);
-//        System.out.println(windowBegin);
 
         int longest = 2;  // at least 2
         final int beginPos = positions.beginPos();
         int indexOfLongest = positions.tail;
+        int andEr = slider.getAndEr();
         for (int i = positions.tail - 1; i >= beginPos; i--) {
-            int pos = positions.array[i & FixedArrayDeque.RANGE];
+            int pos = positions.array[i & andEr];
 
             if (pos <= windowBegin) break;
 

@@ -5,7 +5,7 @@ import trashsoftware.win_bwz.encrypters.bzse.BZSEStreamDecoder;
 import trashsoftware.win_bwz.core.DeCompressor;
 import trashsoftware.win_bwz.encrypters.Decipher;
 import trashsoftware.win_bwz.core.lzz2.LZZ2DeCompressor;
-import trashsoftware.win_bwz.core.lzz2_plus.Lzz2PlusDecompressor;
+import trashsoftware.win_bwz.core.fastLzz.FastLzzDecompressor;
 import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.*;
 import trashsoftware.win_bwz.encrypters.WrongPasswordException;
@@ -371,7 +371,7 @@ public class UnPacker {
                     mapDec = new LZZ2DeCompressor(cmpMapName, Packer.defaultWindowSize);
                     break;
                 case "lzz2p":
-                    mapDec = new Lzz2PlusDecompressor(cmpMapName, Packer.defaultWindowSize);
+                    mapDec = new FastLzzDecompressor(cmpMapName, Packer.defaultWindowSize);
                     break;
                 case "bwz":
                     mapDec = new BWZDeCompressor(cmpMapName, Packer.defaultWindowSize, 0);
@@ -385,7 +385,7 @@ public class UnPacker {
                     mapDec = new LZZ2DeCompressor(cmpMapName, windowSize);
                     break;
                 case "lzz2p":
-                    mapDec = new Lzz2PlusDecompressor(cmpMapName, windowSize);
+                    mapDec = new FastLzzDecompressor(cmpMapName, windowSize);
                     break;
                 case "bwz":
                     mapDec = new BWZDeCompressor(cmpMapName, windowSize, 0);
@@ -664,7 +664,7 @@ public class UnPacker {
                         mainDec = new LZZ2DeCompressor(cmpTempName, windowSize);
                         break;
                     case "lzz2p":
-                        mainDec = new Lzz2PlusDecompressor(cmpTempName, windowSize);
+                        mainDec = new FastLzzDecompressor(cmpTempName, windowSize);
                         break;
                     case "bwz":
                         mainDec = new BWZDeCompressor(cmpTempName, windowSize, 0);

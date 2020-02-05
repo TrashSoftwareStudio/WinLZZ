@@ -1,4 +1,4 @@
-package trashsoftware.win_bwz.core.lzz2_plus;
+package trashsoftware.win_bwz.core.fastLzz;
 
 import trashsoftware.win_bwz.core.DeCompressor;
 import trashsoftware.win_bwz.packer.UnPacker;
@@ -17,7 +17,7 @@ import java.io.OutputStream;
  * @see DeCompressor
  * @since 0.4
  */
-public class Lzz2PlusDecompressor implements DeCompressor {
+public class FastLzzDecompressor implements DeCompressor {
 
     private FileBitInputStream fis;
 
@@ -33,9 +33,9 @@ public class Lzz2PlusDecompressor implements DeCompressor {
 
     private long umpLength;
 
-    private byte[] outBuffer = new byte[Lzz2PlusCompressor.MEMORY_BUFFER_SIZE];
+    private byte[] outBuffer = new byte[FastLzzCompressor.MEMORY_BUFFER_SIZE];
 
-    public Lzz2PlusDecompressor(String inFile, int windowSize) throws IOException {
+    public FastLzzDecompressor(String inFile, int windowSize) throws IOException {
 
         fis = new FileBitInputStream(new FileInputStream(inFile));
         byte[] lengthBytes = new byte[4];
@@ -62,8 +62,8 @@ public class Lzz2PlusDecompressor implements DeCompressor {
                 byte lit = fis.readByte();
                 outBuffer[indexInBuffer++] = lit;
             } else if (s == 1) {
-                int length = Lzz2pUtil.readLengthFromStream(fis);
-                int distance = Lzz2pUtil.readDistanceFromStream(fis);
+                int length = FastLzzUtil.readLengthFromStream(fis);
+                int distance = FastLzzUtil.readDistanceFromStream(fis);
 
                 int from = indexInBuffer - distance;
                 int to = from + length;
@@ -85,8 +85,8 @@ public class Lzz2PlusDecompressor implements DeCompressor {
             } else {
                 break;
             }
-            if (indexInBuffer >= Lzz2PlusCompressor.MEMORY_BUFFER_SIZE) {
-                if (indexInBuffer != Lzz2PlusCompressor.MEMORY_BUFFER_SIZE) throw new RuntimeException();
+            if (indexInBuffer >= FastLzzCompressor.MEMORY_BUFFER_SIZE) {
+                if (indexInBuffer != FastLzzCompressor.MEMORY_BUFFER_SIZE) throw new RuntimeException();
                 totalUmpIndex += indexInBuffer;
                 indexInBuffer = 0;
                 fos.write(outBuffer);

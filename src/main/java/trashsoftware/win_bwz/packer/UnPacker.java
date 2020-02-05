@@ -1,6 +1,9 @@
 package trashsoftware.win_bwz.packer;
 
+import trashsoftware.win_bwz.core.bwz.BWZCompressor;
 import trashsoftware.win_bwz.core.bwz.BWZDeCompressor;
+import trashsoftware.win_bwz.core.fastLzz.FastLzzCompressor;
+import trashsoftware.win_bwz.core.lzz2.LZZ2Compressor;
 import trashsoftware.win_bwz.encrypters.bzse.BZSEStreamDecoder;
 import trashsoftware.win_bwz.core.DeCompressor;
 import trashsoftware.win_bwz.encrypters.Decipher;
@@ -52,7 +55,7 @@ public class UnPacker {
     /**
      * Secondary version of the current opening archive.
      */
-    private byte secondaryVersion;
+    private byte algVersion;
 
     /**
      * List of {@code IndexNodeUnp}'s.
@@ -185,8 +188,9 @@ public class UnPacker {
 
         if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
         primaryVersion = buffer2[0];
-        secondaryVersion = buffer2[1];
-        if (primaryVersion != Packer.primaryVersion) throw new UnsupportedVersionException("Unsupported file version");
+        algVersion = buffer2[1];
+        if (primaryVersion != Packer.primaryVersion)
+            throw new UnsupportedVersionException("Unsupported file version");
 
         byte[] infoBytes = new byte[2];
         if (bis.read(infoBytes) != 2) throw new IOException("Error occurs while reading");
@@ -208,19 +212,25 @@ public class UnPacker {
         }
 
         String algCode = info.substring(2, 4);
+        int programAlgVersion;
         switch (algCode) {
             case "00":
                 alg = "lzz2";
+                programAlgVersion = LZZ2Compressor.VERSION;
                 break;
             case "10":
                 alg = "bwz";
+                programAlgVersion = BWZCompressor.VERSION;
                 break;
             case "11":
                 alg = "lzz2p";
+                programAlgVersion = FastLzzCompressor.VERSION;
                 break;
             default:
                 throw new RuntimeException("Unknown algorithm");
         }
+        if (programAlgVersion != algVersion)
+            throw new UnsupportedVersionException("Unsupported algorithm version");
 
         char sepRep = info.charAt(4);
         isSeparated = sepRep == '1';
@@ -440,7 +450,11 @@ public class UnPacker {
         }
         mapInputStream.close();
 
-        if (contextChecker.getValue() != crc32Context) throw new ChecksumDoesNotMatchException("Context damaged");
+        if (contextChecker.getValue() != crc32Context) {
+//            throw new ChecksumDoesNotMatchException("Context damaged");
+            System.err.println("CRC32 Checksum does not match");
+        }
+
     }
 
     private void buildContextTree(ContextNode node, IndexNodeUnp inu) {
@@ -727,7 +741,8 @@ public class UnPacker {
         long currentCRC32 = Security.generateCRC32(tempName);
         if (currentCRC32 != crc32Checksum) {
             failInfo = languageLoader.get(581);
-            throw new ChecksumDoesNotMatchException("CRC32 Checksum does not match");
+//            throw new ChecksumDoesNotMatchException("CRC32 Checksum does not match");
+            System.err.println("CRC32 Checksum does not match");
         }
 
         RandomAccessFile raf = new RandomAccessFile(tempName, "r");
@@ -938,7 +953,7 @@ public class UnPacker {
      * @return the unsigned integer representing secondary version.
      */
     public int getSecondaryVersionInt() {
-        return secondaryVersion & 0xff;
+        return algVersion & 0xff;
     }
 
     /**
@@ -1009,6 +1024,20 @@ public class UnPacker {
             else return 2;
         } catch (IOException e) {
             return 2;
+        }
+    }
+
+    public String getArchiveFullVersion() {
+        String primary = String.valueOf(primaryVersion & 0xff);
+        switch (alg) {
+            case "bwz":
+                return primary + String.format(".%d.%d.%d", algVersion, LZZ2Compressor.VERSION, FastLzzCompressor.VERSION);
+            case "lzz2":
+                return primary + String.format(".%d.%d.%d", BWZCompressor.VERSION, algVersion, FastLzzCompressor.VERSION);
+            case "lzz2p":
+                return primary + String.format(".%d.%d.%d", BWZCompressor.VERSION, LZZ2Compressor.VERSION, algVersion);
+            default:
+                throw new RuntimeException("Unknown algorithm");
         }
     }
 

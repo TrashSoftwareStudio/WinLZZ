@@ -114,8 +114,7 @@ public class FileInfoUI implements Initializable {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         algLabel.setText(": " + alg);
-        versionLabel.setText(String.format(": %d.%d", unPacker.getPrimaryVersionInt(),
-                unPacker.getSecondaryVersionInt()));
+        versionLabel.setText(unPacker.getArchiveFullVersion());
         versionNeededLabel.setText(": " + translateVersion(unPacker.versionNeeded()));
         compressRateLabel.setText(": " + roundedRate + " %");
         netRateLabel.setText(": " + roundedNetRate + " %");

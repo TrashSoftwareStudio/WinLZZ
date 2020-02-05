@@ -29,6 +29,8 @@ public class LZZ2Compressor implements Compressor {
 
     public static final int MAIN_HUF_ALPHABET = 286;
 
+    public static final int VERSION = 1;
+
     private InputStream sis;
 
     protected long totalLength;

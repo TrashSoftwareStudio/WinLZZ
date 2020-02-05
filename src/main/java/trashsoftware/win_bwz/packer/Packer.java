@@ -49,11 +49,6 @@ public class Packer {
      */
     public final static byte primaryVersion = 25;
 
-    /**
-     * The secondary core version.
-     */
-    public final static byte secondaryVersion = 0;
-
     public static final int FIXED_HEAD_LENGTH = 27;
 
     /**
@@ -254,8 +249,8 @@ public class Packer {
             setPartialInfo();
         }
         bos.write(Bytes.intToBytes32(SIGNATURE));  // Write header : 4 bytes
-        bos.write(primaryVersion);  // Write version : 2 bytes
-        bos.write(secondaryVersion);
+        bos.write(primaryVersion);  // Write version : 1 byte
+        // another 1 byte written after alg
 
         /*
          * Info:
@@ -283,19 +278,26 @@ public class Packer {
                 break;
         }
 
+        int algVersion;
         switch (alg) {
             case "lzz2":  // 00
+                algVersion = LZZ2Compressor.VERSION;
                 break;
 //            case "huf":
 //                inf = (byte) (inf | 0b00010000);  // 01
 //                break;
             case "bwz":
                 inf = (byte) (inf | 0b00100000);  // 10
+                algVersion = BWZCompressor.VERSION;
                 break;
             case "lzz2p":
                 inf = (byte) (inf | 0b00110000);  // 11
+                algVersion = FastLzzCompressor.VERSION;
                 break;
+            default:
+                throw new RuntimeException("Unknown algorithm");
         }
+        bos.write(algVersion);  // write algorithm version : 1 byte
 
         if (partSize != 0) inf = (byte) (inf | 0b00001000);  // If compress separately
 
@@ -695,6 +697,14 @@ public class Packer {
 //        interrupt();
         exitStatus.set(status);
         errorMsg = msg;
+    }
+
+    public static String getProgramFullVersion() {
+        return String.format("%d.%d.%d.%d",
+                Packer.primaryVersion & 0xff,
+                BWZCompressor.VERSION,
+                LZZ2Compressor.VERSION,
+                FastLzzCompressor.VERSION);
     }
 
     public ReadOnlyLongProperty progressProperty() {

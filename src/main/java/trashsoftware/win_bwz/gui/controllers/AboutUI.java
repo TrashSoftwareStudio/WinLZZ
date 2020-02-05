@@ -21,7 +21,7 @@ public class AboutUI implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         this.bundle = resources;
         versionLabel.setText(Main.version);
-        coreVersionLabel.setText(String.format("%d.%d", Packer.primaryVersion & 0xff, Packer.secondaryVersion & 0xff));
+        coreVersionLabel.setText(Packer.getProgramFullVersion());
         fillText();
     }
 

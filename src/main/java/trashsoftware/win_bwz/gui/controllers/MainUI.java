@@ -72,13 +72,10 @@ public class MainUI implements Initializable {
     private Button backButton, refreshButton, compressButton, uncompressButton;
 
     @FXML
-    private Menu settingsMenu, toolMenu, helpMenu;
-
-    @FXML
     private HBox currentDirBox;
 
     @FXML
-    private MenuItem languageSetting, about, licence, changelogView, openInDesktop, pasteHere;
+    private MenuItem  pasteHere;
 
     private String currentDir;
 

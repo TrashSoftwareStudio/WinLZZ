@@ -98,8 +98,8 @@ public class UncompressUI implements Initializable {
                 Alert alert = new Alert(Alert.AlertType.WARNING);
                 alert.setTitle(lanLoader.get(351));
                 alert.setHeaderText(lanLoader.get(352));
-                alert.setContentText(lanLoader.get(353) + Packer.primaryVersion + lanLoader.get(354) +
-                        unPacker.versionNeeded());
+                alert.setContentText(lanLoader.get(353) + Packer.getProgramFullVersion() + lanLoader.get(354) +
+                        unPacker.getArchiveFullVersion());
                 alert.showAndWait();
                 stage.close();
                 return;

@@ -25,6 +25,8 @@ public class FastLzzCompressor implements Compressor {
      */
     final static int MEMORY_BUFFER_SIZE = 16777216;  // 16 MB
 
+    public static final int VERSION = 0;
+
     private InputStream sis;
 
     protected long totalLength;

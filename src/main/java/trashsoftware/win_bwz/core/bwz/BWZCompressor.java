@@ -39,6 +39,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class BWZCompressor implements Compressor {
 
+    public static final int VERSION = 0;
+
     private static final int DEFAULT_HUF_SIZE = 16384;
 
     /**

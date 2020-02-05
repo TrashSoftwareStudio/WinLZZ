@@ -16,7 +16,7 @@ public class LZZ2Test {
         name = "dsCtrl.txt";
 //        name = "p1.png";
 //        name = "t1.bmp";
-//        name = "t5.bmp";
+        name = "t5.bmp";
 //        name = "allCodes.zip";
 //        name = "ep.head";
 //        name = "t0.txt";

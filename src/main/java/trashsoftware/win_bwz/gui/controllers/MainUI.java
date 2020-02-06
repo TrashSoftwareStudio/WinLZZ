@@ -146,7 +146,7 @@ public class MainUI implements Initializable {
 
         VBox pane = new VBox();
         pane.setFillWidth(true);
-        pane.setPrefSize(480.0, 280.0);
+        pane.setPrefSize(540.0, 320.0);
         pane.setAlignment(Pos.CENTER);
 
         Label label = new Label(LICENCE);

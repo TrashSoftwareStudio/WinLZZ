@@ -33,7 +33,6 @@ public class SeparateInputStream extends MultipleInputStream {
 
     private UnPacker unPacker;
 
-//    private LanguageLoader lanLoader;
     private ResourceBundle bundle;
 
     private int signature;

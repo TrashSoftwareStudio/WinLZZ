@@ -14,7 +14,6 @@ public class AboutUI implements Initializable {
     @FXML
     private Label versionLabel, coreVersionLabel, trashSoftwareLabel, coreVersionTextLabel;
 
-//    private LanguageLoader lanLoader;
     private ResourceBundle bundle;
 
     @Override
@@ -24,11 +23,6 @@ public class AboutUI implements Initializable {
         coreVersionLabel.setText(Packer.getProgramFullVersion());
         fillText();
     }
-
-//    void setLanLoader(LanguageLoader lanLoader) {
-//        this.lanLoader = lanLoader;
-//        fillText();
-//    }
 
     private void fillText() {
         trashSoftwareLabel.setText("(C) " + bundle.getString("trashSoftwareStudio"));

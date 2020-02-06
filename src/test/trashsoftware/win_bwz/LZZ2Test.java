@@ -20,6 +20,7 @@ public class LZZ2Test {
 //        name = "allCodes.zip";
 //        name = "ep.head";
 //        name = "t0.txt";
+        name = "t4.tif";
         String cmpName = Util.getCompressFileName(name, "lzz2");
 //        Vector<FileInputStream> v = new Vector<>();
 //        v.add(new FileInputStream(name));
@@ -30,7 +31,8 @@ public class LZZ2Test {
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
             c.compress(fos);
-            System.out.println(c.getCompressedSize());
+            System.out.println(String.format("Size after compression: %d, compress rate: %.2f%%",
+                    c.getCompressedSize(), (double) c.getCompressedSize() / c.getSizeBeforeCompression() * 100));
         } catch (Exception e) {
             //
         }

@@ -136,7 +136,8 @@ public class LZZ2Compressor implements Compressor {
 
         long position = 0;  // The processing index. i.e. the border of buffer and slider.
 
-        LinkedList<Integer> lastMatches = new LinkedList<>();
+        int[] lastDistances = new int[4];
+        int lastDisIndex = 0;
         int lastLength = -1;
 
         BufferedOutputStream mainFos = new BufferedOutputStream(new FileOutputStream(mainTempName));
@@ -168,28 +169,25 @@ public class LZZ2Compressor implements Compressor {
                     mainFos.write(fba.getByte(position++));
                 }
 //                System.out.print(dis + " " + len + "; ");
-//                System.out.print();
 
-                int distanceInt = dis;
-                int lengthInt = len;
-                int findInLast = compressionLevel > 0 ? reverseIndexInQueue(lastMatches, distanceInt) : -1;
+                int findInLast =
+                        compressionLevel > 0 ? reverseIndexInQueue(lastDistances, lastDisIndex, dis) : -1;
                 if (findInLast == -1) {
-                    LZZ2Util.addLength(lengthInt, minimumMatchLen, mainFos, dlbFos);  // Length first.
-                    LZZ2Util.addDistance(distanceInt, 0, disFos, dlbFos);
+                    LZZ2Util.addLength(len, minimumMatchLen, mainFos, dlbFos);  // Length first.
+                    LZZ2Util.addDistance(dis, 0, disFos, dlbFos);
                 } else {
-                    if (findInLast == 0 && lastLength == lengthInt) {
+                    if (findInLast == 0 && lastLength == len) {
                         mainFos.write(1);
                         mainFos.write(29);  // 28 is the last length head
                     } else {
-                        LZZ2Util.addLength(lengthInt, minimumMatchLen, mainFos, dlbFos);
+                        LZZ2Util.addLength(len, minimumMatchLen, mainFos, dlbFos);
                         disFos.write((byte) findInLast);
                     }
                 }
                 itemCount += 1;
-                position += lengthInt;
-                lastLength = lengthInt;
-                lastMatches.addFirst(distanceInt);
-                if (lastMatches.size() > 4) lastMatches.removeLast();
+                position += len;
+                lastLength = len;
+                lastDistances[(lastDisIndex++) & 0b11] = dis;
             }
 
             if (position >= totalLength) break;
@@ -338,11 +336,12 @@ public class LZZ2Compressor implements Compressor {
         len = longest;
     }
 
-    private int reverseIndexInQueue(Queue<Integer> queue, int target) {
-        int index = 0;
-        for (int i : queue) {
-            if (i == target) return index;
-            index += 1;
+    private int reverseIndexInQueue(int[] lastDistances, int index, int target) {
+        int beginIndex = index < 4 ? 0 : index - 4;
+        for (int i = beginIndex; i < index; ++i) {
+            if (lastDistances[i & 0b11] == target) {
+                return index - i - 1;
+            }
         }
         return -1;
     }
@@ -413,6 +412,8 @@ public class LZZ2Compressor implements Compressor {
         HuffmanCompressorBase mtc = new HuffmanCompressorTwoBytes(mainTempName);
         byte[] mtcMap = mtc.getMap(MAIN_HUF_ALPHABET);
 
+//        System.out.println(Arrays.toString(dhcMap));
+
         byte[] totalMap = new byte[MAIN_HUF_ALPHABET + 64];
         System.arraycopy(dhcMap, 0, totalMap, 0, 64);
         System.arraycopy(mtcMap, 0, totalMap, 64, MAIN_HUF_ALPHABET);
@@ -452,6 +453,10 @@ public class LZZ2Compressor implements Compressor {
         return cmpSize;
     }
 
+    public long getSizeBeforeCompression() {
+        return totalLength;
+    }
+
     @Override
     public void setParent(Packer parent) {
         this.parent = parent;
@@ -465,16 +470,4 @@ public class LZZ2Compressor implements Compressor {
     public void setCompressionLevel(int compressionLevel) {
         this.compressionLevel = compressionLevel;
     }
-
-//    /**
-//     * @return [lazy evaluation delay, skip repeat]
-//     */
-//    private int[] getCompressionParam() {
-//        if (compressionLevel == 0) return new int[]{0, 0};
-//        else if (compressionLevel == 1) return new int[]{1, 0};
-//        else if (compressionLevel == 2) return new int[]{2, 0};
-//        else if (compressionLevel == 3) return new int[]{1, 1};
-//        else if (compressionLevel == 4) return new int[]{2, 1};
-//        else throw new IndexOutOfBoundsException("Unknown level");
-//    }
 }

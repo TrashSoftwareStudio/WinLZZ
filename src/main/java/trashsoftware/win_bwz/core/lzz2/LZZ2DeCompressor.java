@@ -107,24 +107,15 @@ public class LZZ2DeCompressor implements DeCompressor {
         byte[] rlc = new ZeroRLCDecoderByte(rlcMain).Decode();
         byte[] totalMap = new MTFInverseByte(rlc).Inverse(18);
 
-//        System.out.println(Arrays.toString(totalMap));
-
         disHeadMap = new byte[64];
-//        byte[] lhdMap = new byte[32];
-//        byte[] fdMap = new byte[256];
         mainMap = new byte[MAIN_HUF_ALPHABET];
 
         System.arraycopy(totalMap, 0, disHeadMap, 0, 64);
-//        System.arraycopy(totalMap, 64, lhdMap, 0, 32);
-//        System.arraycopy(totalMap, 96, fdMap, 0, 256);
         System.arraycopy(totalMap, 64, mainMap, 0, MAIN_HUF_ALPHABET);
 
-        copyToTemp();
+//        System.out.println(Arrays.toString(disHeadMap));
 
-//        new HuffmanDeCompressor(cmpDisHeadTempName).Uncompress(disHeadTempName, dhdMap);
-//        new HuffmanDeCompressor(cmpLenHeadTempName).Uncompress(lenHeadTempName, lhdMap);
-//        new HuffmanDeCompressor(cmpFlagTempName).Uncompress(flagTempName, fdMap);
-//        new HuffmanDeCompressor(cmpMainTempName).Uncompress(mainTempName, mainMap);
+        copyToTemp();
     }
 
     private void deleteTemp() {
@@ -147,7 +138,8 @@ public class LZZ2DeCompressor implements DeCompressor {
 
         FileOutputBufferArray tempResult = new FileOutputBufferArray(fos, windowSize);
 
-        LinkedList<Integer> lastDistances = new LinkedList<>();
+        int[] lastDistances = new int[4];
+        int lastDisIndex = -1;
         int lastLen = -1;
 
         long lastCheckTime = System.currentTimeMillis();
@@ -165,20 +157,21 @@ public class LZZ2DeCompressor implements DeCompressor {
 //                    System.out.print(s + ", ");
                     tempResult.write((byte) s);
                 } else if (s == 285) {
-                    recoverMatch(tempResult, lastDistances.getFirst(), lastLen);
+                    int dis = lastDistances[lastDisIndex & 0b11];
+                    recoverMatch(tempResult, dis, lastLen);
+                    lastDistances[(++lastDisIndex) & 0b11] = dis;
                 } else {
                     int disHead = disHeadHis.readNext();
                     int length = LZZ2Util.recoverLength(s - 257, dlbBis) + minimumMatchLen;
                     int distance;
                     if (disHead < 4) {
-                        distance = lastDistances.get(disHead);
+                        distance = lastDistances[(lastDisIndex - disHead) & 0b11];
                     } else {
                         distance = LZZ2Util.recoverDistance(disHead, dlbBis);
                     }
 
-                    lastDistances.addFirst(distance);
+                    lastDistances[(++lastDisIndex) & 0b11] = distance;
                     lastLen = length;
-                    if (lastDistances.size() > 4) lastDistances.removeLast();
 
                     recoverMatch(tempResult, distance, length);
                 }

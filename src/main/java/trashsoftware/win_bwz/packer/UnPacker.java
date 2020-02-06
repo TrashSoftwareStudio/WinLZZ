@@ -150,7 +150,6 @@ public class UnPacker {
     private long creationTime, crc32Checksum, crc32Context;
 
     public boolean isInterrupted;
-    //    private LanguageLoader languageLoader;
     private ResourceBundle bundle;
 
     /**
@@ -377,21 +376,22 @@ public class UnPacker {
 
         DeCompressor mapDec;
         if (windowSize == 0) {
-            switch (alg) {
-                case "lzz2":
-                    mapDec = new LZZ2DeCompressor(cmpMapName, Packer.defaultWindowSize);
-                    break;
-                case "lzz2p":
-                    mapDec = new FastLzzDecompressor(cmpMapName, Packer.defaultWindowSize);
-                    break;
-                case "bwz":
-                    mapDec = new BWZDeCompressor(cmpMapName, Packer.defaultWindowSize, 0);
-                    break;
-                default:
-                    throw new NoSuchAlgorithmException("No such algorithm");
-            }
+//            switch (alg) {
+//                case "lzz2":
+//                    mapDec = new LZZ2DeCompressor(cmpMapName, Packer.defaultWindowSize);
+//                    break;
+//                case "lzz2p":
+//                    mapDec = new FastLzzDecompressor(cmpMapName, Packer.defaultWindowSize);
+//                    break;
+//                case "bwz":
+//                    mapDec = new BWZDeCompressor(cmpMapName, Packer.defaultWindowSize, 0);
+//                    break;
+//                default:
+//                    throw new NoSuchAlgorithmException("No such algorithm");
+//            }
+            mapDec = getDeCompressor(cmpMapName, Packer.defaultWindowSize);
         } else {
-            mapDec = getDeCompressor(cmpMapName);
+            mapDec = getDeCompressor(cmpMapName, windowSize);
         }
         FileOutputStream fos = new FileOutputStream(mapName);
         try {
@@ -577,7 +577,6 @@ public class UnPacker {
         String name;
         long startPos;
         if (isSeparated) {
-//            step.setValue(languageLoader.get(573));
             step.setValue(bundle.getString("merging"));
             combineName = packName + ".comb";
             name = combineName;
@@ -628,7 +627,6 @@ public class UnPacker {
             if (!f.createNewFile()) System.out.println("Creation failed");
         } else if (!isUnCompressed()) {
             if (encryptLevel != 0) {
-//                step.setValue(languageLoader.get(509));
                 step.setValue(bundle.getString("decrypting"));
                 Decipher decipher;
                 FileOutputStream fos = new FileOutputStream(cmpTempName);
@@ -665,7 +663,7 @@ public class UnPacker {
                 else step.setValue(bundle.getString("uncIng"));
 
                 DeCompressor mainDec;
-                mainDec = getDeCompressor(cmpTempName);
+                mainDec = getDeCompressor(cmpTempName, windowSize);
                 mainDec.setParent(this);
                 mainDec.setThreads(threadNumber);
                 FileOutputStream mainFos = new FileOutputStream(tempName);
@@ -683,7 +681,7 @@ public class UnPacker {
         }
     }
 
-    private DeCompressor getDeCompressor(String cmpTempName) throws IOException, NoSuchAlgorithmException {
+    private DeCompressor getDeCompressor(String cmpTempName, int windowSize) throws IOException, NoSuchAlgorithmException {
         DeCompressor mainDec;
         switch (alg) {
             case "lzz2":
@@ -731,12 +729,10 @@ public class UnPacker {
         unCompressMain();
 
         if (isInterrupted) {
-//            failInfo = languageLoader.get(580);
             failInfo = bundle.getString("operationInterrupted");
             throw new IOInterruptedException();
         }
 
-//        step.setValue(languageLoader.get(508));
         step.setValue(bundle.getString("verifying"));
         long currentCRC32 = Security.generateCRC32(tempName);
         if (currentCRC32 != crc32Checksum) {
@@ -786,7 +782,7 @@ public class UnPacker {
      */
     public boolean TestPack() {
         isTest = true;
-//        if (languageLoader != null) step.set(languageLoader.get(506));
+        startTime = System.currentTimeMillis();
         try {
             unCompressMain();
             if (isInterrupted) return false;

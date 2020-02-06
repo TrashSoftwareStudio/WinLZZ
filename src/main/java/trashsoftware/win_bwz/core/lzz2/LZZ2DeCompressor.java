@@ -5,7 +5,6 @@ import trashsoftware.win_bwz.core.bwz.ZeroRLCDecoderByte;
 import trashsoftware.win_bwz.core.DeCompressor;
 import trashsoftware.win_bwz.core.lzz2.util.LZZ2Util;
 import trashsoftware.win_bwz.huffman.HuffmanCompressorTwoBytes;
-import trashsoftware.win_bwz.huffman.HuffmanDeCompressor;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapDeCompressor;
 import trashsoftware.win_bwz.packer.UnPacker;
 import trashsoftware.win_bwz.utility.FileBitInputStream;
@@ -14,7 +13,6 @@ import trashsoftware.win_bwz.utility.Util;
 
 import java.io.*;
 import java.util.Arrays;
-import java.util.LinkedList;
 
 import static trashsoftware.win_bwz.core.lzz2.LZZ2Compressor.*;
 
@@ -141,7 +139,7 @@ public class LZZ2DeCompressor implements DeCompressor {
 
         long lastCheckTime = System.currentTimeMillis();
         startTime = lastCheckTime;
-        if (parent != null) timeOffset = lastCheckTime - parent.startTime;
+        if (parent != null) timeOffset = startTime - parent.startTime;
         long currentTime;
 
         try {

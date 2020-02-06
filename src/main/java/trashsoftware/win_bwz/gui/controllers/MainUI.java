@@ -103,7 +103,6 @@ public class MainUI implements Initializable {
         setTree();
         setTreeListener();
         rootTree.getRoot().setExpanded(true);
-        fillText();
         setNameColHoverFactory();
         nameCol.setCellValueFactory(new PropertyValueFactory<>("Name"));
         typeCol.setCellValueFactory(new PropertyValueFactory<>("Type"));
@@ -113,7 +112,7 @@ public class MainUI implements Initializable {
         table.setPlaceholder(placeHolder);
         File f = GeneralLoaders.readLastDir();
         if (f != null) {
-            currentSelection = new RegularFileNode(f, lanLoader);
+            currentSelection = new RegularFileNode(f, bundle);
             fillTable();
             backButtonListener();
             try {
@@ -134,7 +133,7 @@ public class MainUI implements Initializable {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/win_bwz/fxml/aboutUI.fxml"), bundle);
         Parent root = loader.load();
-        AboutUI aui = loader.getController();
+//        AboutUI aui = loader.getController();
 //        aui.setLanLoader(lanLoader);
         Stage stage = new Stage();
         stage.setScene(new Scene(root));
@@ -169,7 +168,7 @@ public class MainUI implements Initializable {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/win_bwz/fxml/changelogViewer.fxml"), bundle);
         Parent root = loader.load();
-        ChangelogViewer clv = loader.getController();
+//        ChangelogViewer clv = loader.getController();
 //        clv.setLanLoader(lanLoader);
         Stage stage = new Stage();
         stage.setTitle("WinLZZ");
@@ -192,7 +191,7 @@ public class MainUI implements Initializable {
         confirm.setOnAction(e -> {
             if (!lanLoader.changeLanguage(languageBox.getSelectionModel().getSelectedItem()))
                 System.out.println("Failed to change language");
-            fillText();
+            // TODO:
             lsStage.close();
             fillTable();
             setRightPopupMenu();
@@ -235,7 +234,7 @@ public class MainUI implements Initializable {
 
     @FXML
     private void backAction() {
-        currentSelection = new RegularFileNode(currentSelection.getFile().getParentFile(), lanLoader);
+        currentSelection = new RegularFileNode(currentSelection.getFile().getParentFile(), bundle);
         fillTable();
         backButtonListener();
     }
@@ -244,21 +243,18 @@ public class MainUI implements Initializable {
     private void openAction() throws Exception {
         RegularFileNode rfn = table.getSelectionModel().getSelectedItem();
         if (rfn.getFile().exists()) {
-            switch (rfn.getExtension()) {
-                case "pz":
-                    uncompressMode(rfn.getFile());
-                    break;
-                default:
-                    try {
-                        Desktop.getDesktop().open(rfn.getFile());
-                    } catch (IOException ioe) {
-                        Alert alert = new Alert(Alert.AlertType.WARNING);
-                        alert.setTitle(bundle.getString("error"));
-                        alert.setHeaderText(bundle.getString("cannotOpenThisFile"));
-                        alert.setContentText(bundle.getString("occupiedByOtherApp"));
-                        alert.showAndWait();
-                    }
-                    break;
+            if ("pz".equals(rfn.getExtension())) {
+                uncompressMode(rfn.getFile());
+            } else {
+                try {
+                    Desktop.getDesktop().open(rfn.getFile());
+                } catch (IOException ioe) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle(bundle.getString("error"));
+                    alert.setHeaderText(bundle.getString("cannotOpenThisFile"));
+                    alert.setContentText(bundle.getString("occupiedByOtherApp"));
+                    alert.showAndWait();
+                }
             }
         } else {
             Alert alert2 = new Alert(Alert.AlertType.WARNING);
@@ -276,7 +272,7 @@ public class MainUI implements Initializable {
     @FXML
     public void refreshAction() {
         String dir = currentDir;
-        if (dir.length() > 0) currentSelection = new RegularFileNode(new File(dir), lanLoader);
+        if (dir.length() > 0) currentSelection = new RegularFileNode(new File(dir), bundle);
         else currentSelection = null;
         fillTable();
     }
@@ -331,7 +327,7 @@ public class MainUI implements Initializable {
             uui.setPackFile(selected);
             uui.setStage(stage);
             uui.setParent(this);
-            uui.setLanLoader(lanLoader);
+//            uui.setLanLoader(lanLoader);
 
             stage.setOnCloseRequest(event -> uui.close());
             stage.show();
@@ -340,9 +336,9 @@ public class MainUI implements Initializable {
             } catch (Exception e) {
                 e.printStackTrace();
                 Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle(lanLoader.get(51));
-                alert.setHeaderText(lanLoader.get(52));
-                alert.setContentText(lanLoader.get(53));
+                alert.setTitle(bundle.getString("cannotOpenFile"));
+                alert.setHeaderText(bundle.getString("cannotReadArchive"));
+                alert.setContentText(bundle.getString("fileDamaged"));
                 alert.showAndWait();
                 stage.close();
             }
@@ -355,7 +351,7 @@ public class MainUI implements Initializable {
 
         Parent root = loader.load();
         Stage stage = new Stage();
-        stage.setTitle(lanLoader.get(863));
+        stage.setTitle(bundle.getString("properties"));
         stage.setScene(new Scene(root));
         stage.setResizable(false);
 
@@ -371,7 +367,6 @@ public class MainUI implements Initializable {
         } else if (fileArray.length == 0) node = new InfoNode(new File(currentDir));
         else node = new InfoNode(fileArray);
         pui.setFiles(node);
-        pui.setLanLoader(lanLoader);
         pui.display();
         stage.setOnCloseRequest(e -> pui.interrupt());
 
@@ -386,11 +381,11 @@ public class MainUI implements Initializable {
 
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
         confirmation.setTitle("WinLZZ");
-        confirmation.setHeaderText(lanLoader.get(3));
+        confirmation.setHeaderText(bundle.getString("pleaseConfirm"));
 
-        StringBuilder builder = new StringBuilder(lanLoader.get(73));
+        StringBuilder builder = new StringBuilder(bundle.getString("confirmDelete"));
         builder.append(" ");
-        for (File f : files) builder.append(f.getName()).append(lanLoader.get(76)).append(" ");
+        for (File f : files) builder.append(f.getName()).append(bundle.getString("backDot")).append(" ");
         builder.delete(builder.length() - 2, builder.length());
         builder.append(" ?");
         confirmation.setContentText(builder.toString());
@@ -402,10 +397,10 @@ public class MainUI implements Initializable {
             if (!failed.isEmpty()) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("WinLZZ");
-                alert.setHeaderText(lanLoader.get(74));
-                StringBuilder sb = new StringBuilder(lanLoader.get(75));
+                alert.setHeaderText(bundle.getString("deleteFailed"));
+                StringBuilder sb = new StringBuilder(bundle.getString("cannotDelete"));
                 sb.append(" ");
-                for (File f : failed) sb.append(f.getName()).append(lanLoader.get(76)).append(" ");
+                for (File f : failed) sb.append(f.getName()).append(bundle.getString("backDot")).append(" ");
                 sb.delete(sb.length() - 2, sb.length());
                 alert.setContentText(sb.toString());
 
@@ -431,16 +426,18 @@ public class MainUI implements Initializable {
         confirm.setOnAction(e -> {
             String newName = nameField.getText();
             if (Util.charArrayContains(nameExclusion, newName)) {
-                prompt.setText(String.format("%s\n%s", lanLoader.get(90), new String(nameExclusion)));
+                prompt.setText(String.format("%s\n%s",
+                        bundle.getString("fileNameNotAllowContain"),
+                        new String(nameExclusion)));
             } else {
                 if (!newName.equals(f.getName())) {
                     File newFile = new File(String.format("%s%s%s", f.getParent(), File.separator, newName));
                     if (newFile.exists()) {
-                        prompt.setText(lanLoader.get(89) + "\n\n");
+                        prompt.setText(bundle.getString("fileAlreadyExist") + "\n\n");
                         return;
                     } else {
                         if (!f.renameTo(newFile)) {
-                            prompt.setText(lanLoader.get(91) + "\n\n");
+                            prompt.setText(bundle.getString("cannotRenameFile") + "\n\n");
                             return;
                         }
                     }
@@ -450,7 +447,7 @@ public class MainUI implements Initializable {
             }
         });
 
-        Button cancel = new Button(lanLoader.get(2));
+        Button cancel = new Button(bundle.getString("cancel"));
         cancel.setOnAction(e -> st.close());
 
         hbox.getChildren().addAll(confirm, cancel);
@@ -521,17 +518,17 @@ public class MainUI implements Initializable {
 
     private int replaceFileBox(File existFile, File foreignFile) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/replaceUI.fxml"));
+            FXMLLoader loader =
+                    new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/replaceUI.fxml"));
 
             Parent root = loader.load();
             Stage stage = new Stage();
-            stage.setTitle(lanLoader.get(3));
+            stage.setTitle(bundle.getString("pleaseConfirm"));
             stage.setScene(new Scene(root));
             stage.setResizable(false);
 
             ReplaceUI rui = loader.getController();
             rui.setStage(stage);
-            rui.setLanLoader(lanLoader);
             rui.setFiles(existFile, foreignFile);
 
             stage.showAndWait();
@@ -545,9 +542,9 @@ public class MainUI implements Initializable {
 
     private void pasteFailed(FileMover fm) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(lanLoader.get(60));
-        alert.setHeaderText(lanLoader.get(86));
-        alert.setContentText(String.format("%s %s", lanLoader.get(87), fm.getFile().getAbsolutePath()));
+        alert.setTitle(bundle.getString("error"));
+        alert.setHeaderText(bundle.getString("pasteFailed"));
+        alert.setContentText(String.format("%s %s", bundle.getString("cannotMove"), fm.getFile().getAbsolutePath()));
         alert.showAndWait();
     }
 
@@ -645,7 +642,7 @@ public class MainUI implements Initializable {
         rootTree.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
                 if (newValue.getValue().exists())
-                    currentSelection = new RegularFileNode(newValue.getValue(), lanLoader);
+                    currentSelection = new RegularFileNode(newValue.getValue(), bundle);
                 else currentSelection = null;
                 fillTable();
             } else {
@@ -678,24 +675,24 @@ public class MainUI implements Initializable {
             try {
                 fillFrom(node);
             } catch (NullPointerException npe) {
-                placeHolder.setText(lanLoader.get(63));
+                placeHolder.setText(bundle.getString("cannotAccess"));
             }
         } else {
             currentDir = "";
             for (File d : File.listRoots())
-                table.getItems().add(new RegularFileNode(d, lanLoader));
+                table.getItems().add(new RegularFileNode(d, bundle));
             GeneralLoaders.writeLastDir(null);
         }
         refreshDirButtons();
-        if (table.getItems().size() == 0) placeHolder.setText(lanLoader.get(355));
+        if (table.getItems().size() == 0) placeHolder.setText(bundle.getString("emptyFolder"));
         else placeHolder.setText("");
     }
 
     private void fillFrom(File node) {
         ArrayList<RegularFileNode> nonDirectories = new ArrayList<>();
         for (File f : Objects.requireNonNull(node.listFiles())) {
-            if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, lanLoader));
-            else nonDirectories.add(new RegularFileNode(f, lanLoader));
+            if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, bundle));
+            else nonDirectories.add(new RegularFileNode(f, bundle));
         }
         table.getItems().addAll(nonDirectories);
         GeneralLoaders.writeLastDir(currentSelection.getFile());
@@ -757,7 +754,7 @@ public class MainUI implements Initializable {
     }
 
     private void setRightPopupMenu() {
-        openR = new MenuItem(lanLoader.get(11));
+        openR = new MenuItem(bundle.getString("open"));
         openR.setOnAction(e -> {
             try {
                 openAction();
@@ -766,10 +763,10 @@ public class MainUI implements Initializable {
             }
         });
 
-        openDirR = new MenuItem(lanLoader.get(72));
+        openDirR = new MenuItem(bundle.getString("openLocation"));
         openDirR.setOnAction(e -> desktopOpenAction());
 
-        compressR = new MenuItem(lanLoader.get(10));
+        compressR = new MenuItem(bundle.getString("compress"));
         compressR.setOnAction(e -> {
             try {
                 compressMode();
@@ -778,22 +775,22 @@ public class MainUI implements Initializable {
             }
         });
 
-        copyR = new MenuItem(lanLoader.get(77));
+        copyR = new MenuItem(bundle.getString("copy"));
         copyR.setOnAction(e -> copyAction());
 
-        cutR = new MenuItem(lanLoader.get(78));
+        cutR = new MenuItem(bundle.getString("cut"));
         cutR.setOnAction(e -> cutAction());
 
-        pasteR = new MenuItem(lanLoader.get(79));
+        pasteR = new MenuItem(bundle.getString("paste"));
         pasteR.setOnAction(e -> pasteAction());
 
-        deleteR = new MenuItem(lanLoader.get(71));
+        deleteR = new MenuItem(bundle.getString("delete"));
         deleteR.setOnAction(e -> deleteAction());
 
-        renameR = new MenuItem(lanLoader.get(88));
+        renameR = new MenuItem(bundle.getString("rename"));
         renameR.setOnAction(e -> renameAction());
 
-        propertyR = new MenuItem(lanLoader.get(70));
+        propertyR = new MenuItem(bundle.getString("properties"));
         propertyR.setOnAction(e -> {
             try {
                 showFileProperty();
@@ -835,7 +832,7 @@ public class MainUI implements Initializable {
         }
     }
 
-    private void fillText() {
+//    private void fillText() {
 //        nameCol.setText(lanLoader.get(20));
 //        typeCol.setText(lanLoader.get(21));
 //        sizeCol.setText(lanLoader.get(22));
@@ -851,5 +848,5 @@ public class MainUI implements Initializable {
 //        toolMenu.setText(lanLoader.get(30));
 //        openInDesktop.setText(lanLoader.get(32));
 //        pasteHere.setText(lanLoader.get(31));
-    }
+//    }
 }

@@ -1,10 +1,8 @@
 package trashsoftware.win_bwz.gui.controllers;
 
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.Util;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
 
@@ -17,24 +15,16 @@ import java.util.ResourceBundle;
 public class ReplaceUI implements Initializable {
 
     @FXML
-    private Label header, fromDir, existDir, name1, name2, time1, time2, size1, size2;
-
-    @FXML
-    private Button replace, skip, rename;
+    private Label header, name1, name2, time1, time2, size1, size2;
 
     private int result;
 
     private Stage stage;
-    private LanguageLoader lanLoader;
+    private ResourceBundle bundle;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
-    }
-
-    void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
-        fillText();
+        bundle = resources;
     }
 
     void setStage(Stage stage) {
@@ -43,7 +33,7 @@ public class ReplaceUI implements Initializable {
 
     void setFiles(File existFile, File fromFile) {
         String path = Util.splitStringToLine(existFile.getAbsolutePath(), 30);
-        header.setText(String.format("%s\n%s", path, lanLoader.get(83)));
+        header.setText(String.format("%s\n%s", path, bundle.getString("%existContinuePaste")));
         name1.setText(existFile.getName());
         name2.setText(fromFile.getName());
 
@@ -75,14 +65,5 @@ public class ReplaceUI implements Initializable {
     private void renameAction() {
         result = 2;
         stage.close();
-    }
-
-    private void fillText() {
-        replace.setText(lanLoader.get(80));
-        skip.setText(lanLoader.get(81));
-        rename.setText(lanLoader.get(82));
-
-        existDir.setText(lanLoader.get(84));
-        fromDir.setText(lanLoader.get(85));
     }
 }

@@ -159,7 +159,6 @@ public class Packer {
 
     public long startTime = System.currentTimeMillis();
     public boolean isInterrupted;
-    //    private LanguageLoader lanLoader;
     private ResourceBundle bundle;
 
     public final ReadOnlyIntegerWrapper exitStatus = new ReadOnlyIntegerWrapper();

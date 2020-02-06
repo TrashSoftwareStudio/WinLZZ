@@ -2,7 +2,6 @@ package trashsoftware.win_bwz.gui.controllers;
 
 import trashsoftware.win_bwz.packer.ContextNode;
 import trashsoftware.win_bwz.packer.UnPacker;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.Util;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -11,7 +10,6 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -30,11 +28,7 @@ public class UncompressingUI implements Initializable {
 
     @FXML
     private Label messageLabel, percentageLabel, ratioLabel, timeUsedLabel, expectTimeLabel, totalSizeLabel,
-            passedSizeLabel, passedSizeTitleLabel, origSizeTextLabel, timeUsedTextLabel, timeRemainTextLabel,
-            speedTextLabel, fileLabel;
-
-    @FXML
-    private Button cancelButton;
+            passedSizeLabel, passedSizeTitleLabel, fileLabel;
 
     private UncompressService service;
 
@@ -53,10 +47,12 @@ public class UncompressingUI implements Initializable {
     private boolean isTest, testResult, isAllUncompress, openAfterUnc;
 
     private MainUI grandParent;
-    private LanguageLoader lanLoader;
+    private ResourceBundle bundle;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        bundle = resources;
+        fillText();
     }
 
     /**
@@ -70,14 +66,14 @@ public class UncompressingUI implements Initializable {
         this.grandParent = grandParent;
     }
 
-    void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
-        fillText();
-    }
+//    void setLanLoader(LanguageLoader lanLoader) {
+//        this.lanLoader = lanLoader;
+//        fillText();
+//    }
 
     void setTest() {
         this.isTest = true;
-        passedSizeTitleLabel.setText(lanLoader.get(550));
+        passedSizeTitleLabel.setText(bundle.getString("testedSize"));
     }
 
     void setStage(Stage stage, UncompressUI parent) {
@@ -168,7 +164,7 @@ public class UncompressingUI implements Initializable {
 
             Alert info = new Alert(Alert.AlertType.INFORMATION);
             info.setTitle("WinLZZ");
-            info.setHeaderText(lanLoader.get(551));
+            info.setHeaderText(bundle.getString("uncFailed"));
             info.setContentText(unPacker.getFailInfo());
             info.show();
             System.gc();
@@ -190,8 +186,8 @@ public class UncompressingUI implements Initializable {
         progressBar.progressProperty().bind(service.progressProperty());
         ratioLabel.textProperty().bind(service.messageProperty());
 
-        if (isTest) messageLabel.setText(lanLoader.get(506));
-        else messageLabel.setText(lanLoader.get(504));
+        if (isTest) messageLabel.setText(bundle.getString("testing"));
+        else messageLabel.setText(bundle.getString("uncIng"));
 
         service.start();
     }
@@ -215,8 +211,8 @@ public class UncompressingUI implements Initializable {
         if (!isTest) {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("WinLZZ");
-            alert.setHeaderText(lanLoader.get(552));
-            alert.setContentText(lanLoader.get(553));
+            alert.setHeaderText(bundle.getString("cancelUnc"));
+            alert.setContentText(bundle.getString("confirmCancelUnc"));
             alert.showAndWait();
             if (alert.getResult() != ButtonType.OK) return;
         }
@@ -233,13 +229,18 @@ public class UncompressingUI implements Initializable {
 
     private void showSuccessInfo() {
         long timeUsed = System.currentTimeMillis() - startTime;
-        messageLabel.setText(lanLoader.get(560));
+        messageLabel.setText(bundle.getString("uncSucceed"));
 
         Alert info = new Alert(Alert.AlertType.CONFIRMATION);
         info.setTitle("WinLZZ");
         double seconds = (double) timeUsed / 1000;
-        info.setHeaderText(lanLoader.get(554) + lanLoader.get(555) + " " + seconds + lanLoader.get(559));
-        info.setContentText(lanLoader.get(556));
+//        info.setHeaderText(lanLoader.get(554) + lanLoader.get(555) + " " + seconds + lanLoader.get(559));
+        info.setHeaderText(String.format("%s%s %.2f %s",
+                bundle.getString("uncDone"),
+                bundle.getString("timeUsedTotal"),
+                seconds,
+                bundle.getString("seconds")));
+        info.setContentText(bundle.getString("openTarFolder"));
         info.showAndWait();
         if (info.getResult() == ButtonType.OK) {
             try {
@@ -256,8 +257,12 @@ public class UncompressingUI implements Initializable {
         Alert info = new Alert(Alert.AlertType.INFORMATION);
         info.setTitle("WinLZZ");
         double seconds = (double) timeUsed / 1000;
-        info.setHeaderText(lanLoader.get(557));
-        info.setContentText(lanLoader.get(555) + " " + seconds + lanLoader.get(559));
+        info.setHeaderText(bundle.getString("testDoneNoProblem"));
+        info.setContentText(String.format("%s %.2f %s",
+                bundle.getString("timeUsedTotal"),
+                seconds,
+                bundle.getString("seconds")));
+//        info.setContentText(lanLoader.get(555) + " " + seconds + lanLoader.get(559));
         info.showAndWait();
     }
 
@@ -267,8 +272,11 @@ public class UncompressingUI implements Initializable {
         Alert info = new Alert(Alert.AlertType.ERROR);
         info.setTitle("WinLZZ");
         double seconds = (double) timeUsed / 1000;
-        info.setHeaderText(lanLoader.get(558));
-        info.setContentText(lanLoader.get(555) + " " + seconds + lanLoader.get(559));
+        info.setHeaderText(bundle.getString("testFailFileDamaged"));
+        info.setContentText(String.format("%s %.2f %s",
+                bundle.getString("timeUsedTotal"),
+                seconds,
+                bundle.getString("seconds")));
         info.showAndWait();
     }
 
@@ -317,13 +325,13 @@ public class UncompressingUI implements Initializable {
     private void fillText() {
         timeUsedLabel.setText("--:--");
         expectTimeLabel.setText("--:--");
-        passedSizeLabel.setText("0 " + lanLoader.get(250));
+        passedSizeLabel.setText("0 " + bundle.getString("byte"));
 
-        origSizeTextLabel.setText(lanLoader.get(500));
-        passedSizeTitleLabel.setText(lanLoader.get(501));
-        timeUsedTextLabel.setText(lanLoader.get(502));
-        timeRemainTextLabel.setText(lanLoader.get(503));
-        speedTextLabel.setText(lanLoader.get(505));
-        cancelButton.setText(lanLoader.get(2));
+//        origSizeTextLabel.setText(lanLoader.get(500));
+//        passedSizeTitleLabel.setText(lanLoader.get(501));
+//        timeUsedTextLabel.setText(lanLoader.get(502));
+//        timeRemainTextLabel.setText(lanLoader.get(503));
+//        speedTextLabel.setText(lanLoader.get(505));
+//        cancelButton.setText(lanLoader.get(2));
     }
 }

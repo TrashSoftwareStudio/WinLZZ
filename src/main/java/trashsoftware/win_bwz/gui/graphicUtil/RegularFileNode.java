@@ -3,8 +3,7 @@ package trashsoftware.win_bwz.gui.graphicUtil;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
+import java.util.ResourceBundle;
 
 /**
  * A node {@code Object} that represents an actual file in the file system, used to show the information of a file on
@@ -17,7 +16,7 @@ public class RegularFileNode {
 
     private File file;
     private boolean isDir;
-    private LanguageLoader lanLoader;
+    private ResourceBundle bundle;
     private boolean isRoot;
 
     /**
@@ -26,10 +25,10 @@ public class RegularFileNode {
      * @param file      the file
      * @param lanLoader the text displaying object
      */
-    public RegularFileNode(File file, LanguageLoader lanLoader) {
+    public RegularFileNode(File file, ResourceBundle lanLoader) {
         this.file = file;
         this.isDir = file.isDirectory();
-        this.lanLoader = lanLoader;
+        this.bundle = lanLoader;
         isRoot = file.getAbsolutePath().length() <= 3;
     }
 
@@ -57,15 +56,14 @@ public class RegularFileNode {
      *
      * @return the file type to be displayed on the screen
      */
-    @SuppressWarnings("all")
     public String getType() {
-        if (isRoot) return lanLoader.get(26);
+        if (isRoot) return bundle.getString("localDisk");
         else if (isDir) {
-            return lanLoader.get(25);
+            return bundle.getString("folder");
         } else {
             String t = getExtension();
             if (t.length() > 0) t += " ";
-            return t + lanLoader.get(24);
+            return t + bundle.getString("file");
         }
     }
 
@@ -85,7 +83,7 @@ public class RegularFileNode {
      *
      * @return the {@code String} represents the last modified time of this file
      */
-    @SuppressWarnings("all")
+    @SuppressWarnings("unused")
     public String getLastModified() {
         if (isRoot) return "";
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");

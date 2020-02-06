@@ -9,7 +9,6 @@ import trashsoftware.win_bwz.core.DeCompressor;
 import trashsoftware.win_bwz.encrypters.Decipher;
 import trashsoftware.win_bwz.core.lzz2.LZZ2DeCompressor;
 import trashsoftware.win_bwz.core.fastLzz.FastLzzDecompressor;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.*;
 import trashsoftware.win_bwz.encrypters.WrongPasswordException;
 import trashsoftware.win_bwz.encrypters.zse.ZSEFileDecoder;
@@ -24,6 +23,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.zip.CRC32;
 
 /**
@@ -150,7 +150,8 @@ public class UnPacker {
     private long creationTime, crc32Checksum, crc32Context;
 
     public boolean isInterrupted;
-    private LanguageLoader languageLoader;
+    //    private LanguageLoader languageLoader;
+    private ResourceBundle bundle;
 
     /**
      * Creates a new UnPacker instance, with <code>packName</code> as the input archive name.
@@ -311,7 +312,7 @@ public class UnPacker {
             String suffixName = packName.substring(packName.lastIndexOf("."));
             bis.close();
             bis = SeparateInputStream.createNew(prefixName, suffixName, partCount, this, Packer.PART_SIGNATURE);
-            ((SeparateInputStream) bis).setLanLoader(languageLoader);
+            ((SeparateInputStream) bis).setLanLoader(bundle);
             if (bis.skip(39) != 39) throw new IOException("Error occurs while reading");
             extraLen = 12;
         } else {
@@ -390,19 +391,7 @@ public class UnPacker {
                     throw new NoSuchAlgorithmException("No such algorithm");
             }
         } else {
-            switch (alg) {
-                case "lzz2":
-                    mapDec = new LZZ2DeCompressor(cmpMapName, windowSize);
-                    break;
-                case "lzz2p":
-                    mapDec = new FastLzzDecompressor(cmpMapName, windowSize);
-                    break;
-                case "bwz":
-                    mapDec = new BWZDeCompressor(cmpMapName, windowSize, 0);
-                    break;
-                default:
-                    throw new NoSuchAlgorithmException("No such algorithm");
-            }
+            mapDec = getDeCompressor(cmpMapName);
         }
         FileOutputStream fos = new FileOutputStream(mapName);
         try {
@@ -588,7 +577,8 @@ public class UnPacker {
         String name;
         long startPos;
         if (isSeparated) {
-            step.setValue(languageLoader.get(573));
+//            step.setValue(languageLoader.get(573));
+            step.setValue(bundle.getString("merging"));
             combineName = packName + ".comb";
             name = combineName;
             try {
@@ -603,8 +593,8 @@ public class UnPacker {
             name = packName;
             startPos = archiveLength - cmpMainLength;
         }
-        if (isTest) step.setValue(languageLoader.get(506));
-        else step.setValue(languageLoader.get(504));
+        if (isTest) step.setValue(bundle.getString("testing"));
+        else step.setValue(bundle.getString("uncIng"));
 
         BWZDeCompressor mainDec = new BWZDeCompressor(name, windowSize, startPos);
         mainDec.setParent(this);
@@ -638,7 +628,8 @@ public class UnPacker {
             if (!f.createNewFile()) System.out.println("Creation failed");
         } else if (!isUnCompressed()) {
             if (encryptLevel != 0) {
-                step.setValue(languageLoader.get(509));
+//                step.setValue(languageLoader.get(509));
+                step.setValue(bundle.getString("decrypting"));
                 Decipher decipher;
                 FileOutputStream fos = new FileOutputStream(cmpTempName);
                 switch (encryption) {
@@ -670,22 +661,11 @@ public class UnPacker {
             if (windowSize == 0) {
                 tempName = cmpTempName;
             } else {
-                if (isTest) step.setValue(languageLoader.get(506));
-                else step.setValue(languageLoader.get(504));
+                if (isTest) step.setValue(bundle.getString("testing"));
+                else step.setValue(bundle.getString("uncIng"));
+
                 DeCompressor mainDec;
-                switch (alg) {
-                    case "lzz2":
-                        mainDec = new LZZ2DeCompressor(cmpTempName, windowSize);
-                        break;
-                    case "lzz2p":
-                        mainDec = new FastLzzDecompressor(cmpTempName, windowSize);
-                        break;
-                    case "bwz":
-                        mainDec = new BWZDeCompressor(cmpTempName, windowSize, 0);
-                        break;
-                    default:
-                        throw new NoSuchAlgorithmException("No such algorithm");
-                }
+                mainDec = getDeCompressor(cmpTempName);
                 mainDec.setParent(this);
                 mainDec.setThreads(threadNumber);
                 FileOutputStream mainFos = new FileOutputStream(tempName);
@@ -701,6 +681,24 @@ public class UnPacker {
                 }
             }
         }
+    }
+
+    private DeCompressor getDeCompressor(String cmpTempName) throws IOException, NoSuchAlgorithmException {
+        DeCompressor mainDec;
+        switch (alg) {
+            case "lzz2":
+                mainDec = new LZZ2DeCompressor(cmpTempName, windowSize);
+                break;
+            case "lzz2p":
+                mainDec = new FastLzzDecompressor(cmpTempName, windowSize);
+                break;
+            case "bwz":
+                mainDec = new BWZDeCompressor(cmpTempName, windowSize, 0);
+                break;
+            default:
+                throw new NoSuchAlgorithmException("No such algorithm");
+        }
+        return mainDec;
     }
 
 
@@ -733,14 +731,16 @@ public class UnPacker {
         unCompressMain();
 
         if (isInterrupted) {
-            failInfo = languageLoader.get(580);
+//            failInfo = languageLoader.get(580);
+            failInfo = bundle.getString("operationInterrupted");
             throw new IOInterruptedException();
         }
 
-        step.setValue(languageLoader.get(508));
+//        step.setValue(languageLoader.get(508));
+        step.setValue(bundle.getString("verifying"));
         long currentCRC32 = Security.generateCRC32(tempName);
         if (currentCRC32 != crc32Checksum) {
-            failInfo = languageLoader.get(581);
+            failInfo = bundle.getString("fileDamaged");
 //            throw new ChecksumDoesNotMatchException("CRC32 Checksum does not match");
             System.err.println("CRC32 Checksum does not match");
         }
@@ -749,7 +749,7 @@ public class UnPacker {
         String dirOffset;
         if (!cn.getPath().contains(File.separator)) dirOffset = "";
         else dirOffset = cn.getPath().substring(0, cn.getPath().lastIndexOf(File.separator));
-        step.setValue(languageLoader.get(507));
+        step.setValue(bundle.getString("extracting"));
         traversalExtract(targetDir, cn, raf, dirOffset);
         raf.close();
     }
@@ -790,7 +790,7 @@ public class UnPacker {
         try {
             unCompressMain();
             if (isInterrupted) return false;
-            step.setValue(languageLoader.get(508));
+            step.setValue(bundle.getString("verifying"));
             long currentCRC32 = Security.generateCRC32(tempName);
             return currentCRC32 == crc32Checksum;
         } catch (Exception e) {
@@ -899,10 +899,10 @@ public class UnPacker {
      * <p>
      * language loader is used for displaying text in different languages on the GUI.
      *
-     * @param languageLoader the language loader.
+     * @param bundle the language loader.
      */
-    public void setLanguageLoader(LanguageLoader languageLoader) {
-        this.languageLoader = languageLoader;
+    public void setLanguageLoader(ResourceBundle bundle) {
+        this.bundle = bundle;
     }
 
     /**
@@ -936,24 +936,6 @@ public class UnPacker {
      */
     public long getCrc32Checksum() {
         return crc32Checksum;
-    }
-
-    /**
-     * Returns the primary version of this archive in unsigned integer form.
-     *
-     * @return the unsigned integer representing primary version.
-     */
-    public int getPrimaryVersionInt() {
-        return primaryVersion & 0xff;
-    }
-
-    /**
-     * Returns the secondary version of this archive in unsigned integer form.
-     *
-     * @return the unsigned integer representing secondary version.
-     */
-    public int getSecondaryVersionInt() {
-        return algVersion & 0xff;
     }
 
     /**

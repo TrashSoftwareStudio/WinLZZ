@@ -125,9 +125,6 @@ public class LZZ2DeCompressor implements DeCompressor {
     }
 
     private void uncompressMain(OutputStream fos) throws IOException {
-//        printStream(flagTempName);
-//        printStream(cmpMainTempName);
-//        printStream(disHeadTempName);
 
         BufferedInputStream disHeadBis = new BufferedInputStream(new FileInputStream(cmpDisHeadTempName));
         FileBitInputStream dlbBis = new FileBitInputStream(new BufferedInputStream(new FileInputStream(dlBodyTempName)));

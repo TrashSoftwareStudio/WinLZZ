@@ -1,6 +1,5 @@
 package trashsoftware.win_bwz.gui.controllers;
 
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
@@ -31,7 +30,6 @@ public class PasswordBox implements Initializable {
 
     private Stage stage;
     private CompressUI parent;
-//    private LanguageLoader lanLoader;
     private ResourceBundle bundle;
 
     @Override

@@ -1,10 +1,10 @@
 package trashsoftware.win_bwz.gui.graphicUtil;
 
 import trashsoftware.win_bwz.packer.ContextNode;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.Util;
 
 import java.io.File;
+import java.util.ResourceBundle;
 
 /**
  * A node {@code Object} that represents a file stored in a pz archive, used to show the information of a file on
@@ -18,17 +18,17 @@ public class FileNode {
     private ContextNode cn;
     private String name;
     private boolean isDir;
-    private LanguageLoader languageLoader;
+    private ResourceBundle bundle;
 
     /**
      * Creates a new {@code FileNode} instance.
      *
-     * @param cn             the {@code ContextNode} represents this file inside the archive
-     * @param languageLoader the text displaying object
+     * @param cn     the {@code ContextNode} represents this file inside the archive
+     * @param bundle the text displaying object
      */
-    public FileNode(ContextNode cn, LanguageLoader languageLoader) {
+    public FileNode(ContextNode cn, ResourceBundle bundle) {
         this.cn = cn;
-        this.languageLoader = languageLoader;
+        this.bundle = bundle;
         String fullName = cn.getPath();
         this.name = !fullName.contains(File.separator) ?
                 fullName : fullName.substring(fullName.lastIndexOf(File.separator) + 1);
@@ -49,15 +49,14 @@ public class FileNode {
      *
      * @return the type of the file
      */
-    @SuppressWarnings("all")
     public String getType() {
         if (isDir) {
-            return languageLoader.get(25);
+            return bundle.getString("folder");
         } else {
             String t = "";
             String oName = name;
             if (oName.contains(".")) t = oName.substring(oName.lastIndexOf(".") + 1) + " ";
-            return t + languageLoader.get(24);
+            return t + bundle.getString("file");
         }
     }
 

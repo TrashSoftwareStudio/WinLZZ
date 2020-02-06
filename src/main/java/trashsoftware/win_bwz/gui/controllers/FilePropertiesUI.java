@@ -1,7 +1,6 @@
 package trashsoftware.win_bwz.gui.controllers;
 
 import trashsoftware.win_bwz.gui.graphicUtil.InfoNode;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.Util;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -22,10 +21,11 @@ import java.util.ResourceBundle;
 public class FilePropertiesUI implements Initializable {
 
     private InfoNode file;
-    private LanguageLoader lanLoader;
+
+    private ResourceBundle bundle;
 
     @FXML
-    private Label dirText, typeText, sizeText, containText, cTimeText, mTimeText, aTimeText;
+    private Label typeText, containText, cTimeText, mTimeText, aTimeText;
 
     @FXML
     private Label name, dir, type, size, fileCount, dirCount, cTime, mTime, aTime;
@@ -40,15 +40,11 @@ public class FilePropertiesUI implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        bundle = resources;
     }
 
     void setFiles(InfoNode file) {
         this.file = file;
-    }
-
-    void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
-        fillText();
     }
 
     void display() throws IOException {
@@ -68,8 +64,8 @@ public class FilePropertiesUI implements Initializable {
         String fileName = file.getFile().getName();
         if (fileName.length() == 0) {
             name.setText(file.getFile().getAbsolutePath());
-            dir.setText(lanLoader.get(861));
-            type.setText(lanLoader.get(26));
+            dir.setText(bundle.getString("thisComputer"));
+            type.setText(bundle.getString("localDisk"));
         } else {
             name.setText(file.getFile().getName());
             String parentDir = Util.splitStringToLine(file.getFile().getParent(), 30);
@@ -111,11 +107,16 @@ public class FilePropertiesUI implements Initializable {
 
         String basicName = file.getFile().getName();
         if (basicName.length() == 0) {
-            name.setText(String.format("%s %s%s", file.getFile().getAbsolutePath(), lanLoader.get(850),
-                    lanLoader.get(862)));
-            dir.setText(lanLoader.get(861));
+            name.setText(String.format("%s %s%s",
+                    file.getFile().getAbsolutePath(),
+                    bundle.getString("etc"),
+                    bundle.getString("disk")));
+            dir.setText(bundle.getString("thisComputer"));
         } else {
-            name.setText(String.format("%s %s%s", file.getFile().getName(), lanLoader.get(850), lanLoader.get(851)));
+            name.setText(String.format("%s %s%s",
+                    file.getFile().getName(),
+                    bundle.getString("etc"),
+                    bundle.getString("file2")));
             String parentDir = Util.splitStringToLine(file.getFile().getParent(), 30);
             dir.setText(parentDir);
         }
@@ -137,22 +138,26 @@ public class FilePropertiesUI implements Initializable {
                     protected Void call() {
                         ChangeListener<Number> sizeListener = (observable, oldValue, newValue) ->
                                 Platform.runLater(() -> {
-                                    String sizeR = String.format("%s (%s %s)", Util.sizeToReadable(newValue.longValue()),
-                                            Util.splitNumber(String.valueOf(newValue.longValue())), lanLoader.get(250));
+                                    String sizeR = String.format("%s (%s %s)",
+                                            Util.sizeToReadable(newValue.longValue()),
+                                            Util.splitNumber(String.valueOf(newValue.longValue())),
+                                            bundle.getString("byte"));
                                     size.setText(sizeR);
                                 });
 
                         ChangeListener<Number> fileCountListener = (observable, oldValue, newValue) ->
                                 Platform.runLater(() -> {
-                                    String content = String.format("%s %s, ", Util.splitNumber(String.valueOf(newValue)),
-                                            lanLoader.get(864));
+                                    String content = String.format("%s %s, ",
+                                            Util.splitNumber(String.valueOf(newValue)),
+                                            bundle.getString("filesUnit"));
                                     fileCount.setText(content);
                                 });
 
                         ChangeListener<Number> dirCountListener = (observable, oldValue, newValue) ->
                                 Platform.runLater(() -> {
-                                    String content = String.format("%s %s", Util.splitNumber(String.valueOf(newValue)),
-                                            lanLoader.get(860));
+                                    String content = String.format("%s %s",
+                                            Util.splitNumber(String.valueOf(newValue)),
+                                            bundle.getString("folderUnit"));
                                     dirCount.setText(content);
                                 });
 
@@ -175,17 +180,7 @@ public class FilePropertiesUI implements Initializable {
 
     private String displayType(InfoNode node) {
         String s = node.getType();
-        if (s == null) return lanLoader.get(25);
-        else return s + lanLoader.get(24);
-    }
-
-    private void fillText() {
-        dirText.setText(lanLoader.get(853));
-        typeText.setText(lanLoader.get(852));
-        sizeText.setText(lanLoader.get(854));
-        containText.setText(lanLoader.get(856));
-        cTimeText.setText(lanLoader.get(857));
-        mTimeText.setText(lanLoader.get(858));
-        aTimeText.setText(lanLoader.get(859));
+        if (s == null) return bundle.getString("folder");
+        else return s + bundle.getString("file");
     }
 }

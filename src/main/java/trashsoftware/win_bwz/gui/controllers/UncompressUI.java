@@ -3,7 +3,6 @@ package trashsoftware.win_bwz.gui.controllers;
 import trashsoftware.win_bwz.gui.graphicUtil.FileNode;
 import trashsoftware.win_bwz.packer.*;
 import trashsoftware.win_bwz.resourcesPack.configLoader.GeneralLoaders;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.Util;
 import trashsoftware.win_bwz.encrypters.WrongPasswordException;
 import javafx.fxml.FXML;
@@ -33,10 +32,10 @@ public class UncompressUI implements Initializable {
     static final File tempDir = new File("temp");
 
     @FXML
-    private Label dirText, threadNumberLabel;
+    private Label dirText;
 
     @FXML
-    private Button goBackButton, uncompressPart, uncompressAll, infoButton, testButton, annotationButton;
+    private Button goBackButton, uncompressPart, infoButton, annotationButton;
 
     @FXML
     private TableView<FileNode> fileList;
@@ -52,7 +51,6 @@ public class UncompressUI implements Initializable {
     private File packFile;
     private UnPacker unPacker;
     private ContextNode currentNode;
-    private LanguageLoader lanLoader;
 
     private ResourceBundle bundle;
 
@@ -72,12 +70,6 @@ public class UncompressUI implements Initializable {
         this.parent = parent;
     }
 
-    void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
-        fileList.setPlaceholder(new Label(lanLoader.get(350)));
-        fillText();
-    }
-
     void setStage(Stage stage) {
         this.stage = stage;
     }
@@ -90,33 +82,40 @@ public class UncompressUI implements Initializable {
         int sigCheck = UnPacker.checkSignature(packFile.getAbsolutePath());
         if (sigCheck == 0) {
             unPacker = new UnPacker(packFile.getAbsolutePath());
-            unPacker.setLanguageLoader(lanLoader);
+            unPacker.setLanguageLoader(bundle);
 
             try {
                 unPacker.readInfo();
             } catch (UnsupportedVersionException uve) {
                 Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle(lanLoader.get(351));
-                alert.setHeaderText(lanLoader.get(352));
-                alert.setContentText(lanLoader.get(353) + Packer.getProgramFullVersion() + lanLoader.get(354) +
-                        unPacker.getArchiveFullVersion());
+                alert.setTitle(bundle.getString("cannotOpenFile"));
+                alert.setHeaderText(bundle.getString("unsupportedVersion"));
+                alert.setContentText(String.format("%s %s, %s %s",
+                        bundle.getString("curSoftCoreVer"),
+                        Packer.getProgramFullVersion(),
+                        bundle.getString("uncNeedCoreVer"),
+                        unPacker.getArchiveFullVersion()));
+//                alert.setContentText(lanLoader.get(353) + Packer.getProgramFullVersion() + lanLoader.get(354) +
+//                        unPacker.getArchiveFullVersion());
                 alert.showAndWait();
                 stage.close();
                 return;
             }
         } else if (sigCheck == 1) {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle(lanLoader.get(370));
-            alert.setHeaderText(lanLoader.get(371));
-            alert.setContentText(String.format("%s %s", lanLoader.get(372), probableFirstName()));
+            alert.setTitle(bundle.getString("fileNotFirstSection"));
+            alert.setHeaderText(bundle.getString("pleaseOpenFirstSection"));
+            alert.setContentText(String.format("%s %s",
+                    bundle.getString("probFirstSection"),
+                    probableFirstName()));
             alert.showAndWait();
             stage.close();
             return;
         } else if (sigCheck == 2) {
             Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle(lanLoader.get(351));
-            alert.setHeaderText(lanLoader.get(361));
-            alert.setContentText(lanLoader.get(362));
+            alert.setTitle(bundle.getString("cannotOpenFile"));
+            alert.setHeaderText(bundle.getString("unsupportedFormat"));
+            alert.setContentText(bundle.getString("notWinLzzArchive"));
             alert.showAndWait();
             stage.close();
             return;
@@ -144,10 +143,10 @@ public class UncompressUI implements Initializable {
         try {
             unPacker.readMap();
         } catch (ChecksumDoesNotMatchException e) {
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle(lanLoader.get(60));
-            alert.setHeaderText(lanLoader.get(351));
-            alert.setContentText(lanLoader.get(363));
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle(bundle.getString("error"));
+            alert.setHeaderText(bundle.getString("cannotOpenFile"));
+            alert.setContentText(bundle.getString("damagedArchiveContext"));
             alert.showAndWait();
             stage.close();
             return;
@@ -164,10 +163,10 @@ public class UncompressUI implements Initializable {
         fileList.getItems().clear();
         ArrayList<ContextNode> contexts = currentNode.getChildren();
         if (contexts.isEmpty()) {
-            fileList.setPlaceholder(new Label(lanLoader.get(355)));
+            fileList.setPlaceholder(new Label(bundle.getString("emptyFolder")));
         } else {
-            fileList.setPlaceholder(new Label(lanLoader.get(350)));
-            for (ContextNode cn : currentNode.getChildren()) fileList.getItems().add(new FileNode(cn, lanLoader));
+            fileList.setPlaceholder(new Label(bundle.getString("loading")));
+            for (ContextNode cn : currentNode.getChildren()) fileList.getItems().add(new FileNode(cn, bundle));
         }
         String path = currentNode.getPath();
         if (path.length() > 0) path = path.substring(1);
@@ -179,7 +178,7 @@ public class UncompressUI implements Initializable {
         if (currentNode.getParent().getParent() == null) {
             dirText.setText("");
             fileList.getItems().clear();
-            fileList.getItems().add(new FileNode(currentNode, lanLoader));
+            fileList.getItems().add(new FileNode(currentNode, bundle));
             goBackButton.setDisable(true);
         } else {
             currentNode = currentNode.getParent();
@@ -194,7 +193,7 @@ public class UncompressUI implements Initializable {
         root.setPrefSize(400.0, 300.0);
         Scene scene = new Scene(root);
         st.setScene(scene);
-        st.setTitle(lanLoader.get(900));
+        st.setTitle(bundle.getString("annotations"));
 
         Label label = new Label(unPacker.getAnnotation());
         root.setContent(label);
@@ -280,7 +279,6 @@ public class UncompressUI implements Initializable {
         UncompressingUI uui = loader.getController();
         uui.setStage(stage, this);
         uui.setGrandParent(parent);
-        uui.setLanLoader(lanLoader);
         uui.setParametersOpen(unPacker, openNode);
         uui.setThreadNumber(threadNumberBox.getSelectionModel().getSelectedItem());
 
@@ -304,7 +302,8 @@ public class UncompressUI implements Initializable {
         dc.setInitialDirectory(GeneralLoaders.readLastDir());
         File selected = dc.showDialog(null);
         if (selected != null) {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/uncompressingUI.fxml"));
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/trashsoftware/win_bwz/fxml/uncompressingUI.fxml"), bundle);
             Parent root = loader.load();
             Stage stage = new Stage();
 
@@ -315,7 +314,6 @@ public class UncompressUI implements Initializable {
             UncompressingUI uui = loader.getController();
             uui.setStage(stage, this);
             uui.setGrandParent(parent);
-            uui.setLanLoader(lanLoader);
             if (isAll) uui.setParameters(unPacker, selected);
             else uui.setParameters(unPacker, selected, cn);
             uui.setThreadNumber(threadNumberBox.getSelectionModel().getSelectedItem());
@@ -327,7 +325,8 @@ public class UncompressUI implements Initializable {
     }
 
     private void testHandler() throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/uncompressingUI.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource(
+                "/trashsoftware/win_bwz/fxml/uncompressingUI.fxml"), bundle);
         Parent root = loader.load();
         Stage stage = new Stage();
 
@@ -336,7 +335,6 @@ public class UncompressUI implements Initializable {
 
         UncompressingUI uui = loader.getController();
         uui.setStage(stage, this);
-        uui.setLanLoader(lanLoader);
         uui.setGrandParent(parent);
         uui.setTest();
         uui.setParameters(unPacker);
@@ -361,7 +359,7 @@ public class UncompressUI implements Initializable {
         Pane root = new Pane();
 
         Stage stage = new Stage();
-        stage.setTitle(lanLoader.get(356));
+        stage.setTitle(bundle.getString("inputPassword"));
         stage.initStyle(StageStyle.UTILITY);
         Scene scene = new Scene(root);
         stage.setScene(scene);
@@ -374,8 +372,8 @@ public class UncompressUI implements Initializable {
 
         PasswordField pwdField = new PasswordField();
         Label prompt = new Label();
-        Button confirm = new Button(lanLoader.get(1));
-        box.getChildren().addAll(new Label(lanLoader.get(357)), pwdField, prompt, confirm);
+        Button confirm = new Button(bundle.getString("confirm"));
+        box.getChildren().addAll(new Label(bundle.getString("pleaseInputPassword")), pwdField, prompt, confirm);
 
         root.getChildren().addAll(box);
 
@@ -387,7 +385,7 @@ public class UncompressUI implements Initializable {
                     showContext();
                     stage.close();
                 } catch (WrongPasswordException wpe) {
-                    prompt.setText(lanLoader.get(358));
+                    prompt.setText(bundle.getString("wrongPassword"));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -398,7 +396,7 @@ public class UncompressUI implements Initializable {
                     unPacker.setPassword(pwdField.getText());
                     stage.close();
                 } catch (WrongPasswordException wpe) {
-                    prompt.setText(lanLoader.get(358));
+                    prompt.setText(bundle.getString("wrongPassword"));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -411,7 +409,7 @@ public class UncompressUI implements Initializable {
         goBackButton.hoverProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
                 Tooltip tt = new Tooltip();
-                tt.setText(lanLoader.get(359));
+                tt.setText(bundle.getString("backToPrevDir"));
                 goBackButton.setTooltip(tt);
             } else {
                 goBackButton.setTooltip(null);
@@ -423,7 +421,7 @@ public class UncompressUI implements Initializable {
         infoButton.hoverProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
                 Tooltip tt = new Tooltip();
-                tt.setText(lanLoader.get(360));
+                tt.setText(bundle.getString("fileInfo"));
                 infoButton.setTooltip(tt);
             } else {
                 infoButton.setTooltip(null);
@@ -431,16 +429,16 @@ public class UncompressUI implements Initializable {
         });
     }
 
-    private void fillText() {
-        nameColumn.setText(lanLoader.get(300));
-        typeColumn.setText(lanLoader.get(301));
-        origSizeColumn.setText(lanLoader.get(302));
-        testButton.setText(lanLoader.get(303));
-        threadNumberLabel.setText(lanLoader.get(304));
-        uncompressPart.setText(lanLoader.get(305));
-        uncompressAll.setText(lanLoader.get(306));
-        annotationButton.setText(lanLoader.get(900));
-    }
+//    private void fillText() {
+//        nameColumn.setText(lanLoader.get(300));
+//        typeColumn.setText(lanLoader.get(301));
+//        origSizeColumn.setText(lanLoader.get(302));
+//        testButton.setText(lanLoader.get(303));
+//        threadNumberLabel.setText(lanLoader.get(304));
+//        uncompressPart.setText(lanLoader.get(305));
+//        uncompressAll.setText(lanLoader.get(306));
+//        annotationButton.setText(lanLoader.get(900));
+//    }
 }
 
 

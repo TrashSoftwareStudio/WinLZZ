@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.ResourceBundle;
 
 /**
  * An input stream that reads multiple files as one whole file.
@@ -33,7 +34,8 @@ public class SeparateInputStream extends MultipleInputStream {
 
     private UnPacker unPacker;
 
-    private LanguageLoader lanLoader;
+//    private LanguageLoader lanLoader;
+    private ResourceBundle bundle;
 
     private int signature;
 
@@ -80,10 +82,10 @@ public class SeparateInputStream extends MultipleInputStream {
     /**
      * Sets up the language loader
      *
-     * @param lanLoader the <code>LanguageLoader</code> instance used for displaying text
+     * @param lanLoader the <code>ResourceBundle</code> instance used for displaying text
      */
-    public void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
+    public void setLanLoader(ResourceBundle lanLoader) {
+        this.bundle = lanLoader;
     }
 
     /**
@@ -170,7 +172,7 @@ public class SeparateInputStream extends MultipleInputStream {
         root.setPadding(new Insets(10.0));
         Scene scene = new Scene(root);
         pauseStage.setScene(scene);
-        pauseStage.setTitle(lanLoader.get(570));
+        pauseStage.setTitle(bundle.getString("needNextSection"));
 
         HBox upperBox = new HBox();
         upperBox.setSpacing(10.0);
@@ -178,10 +180,11 @@ public class SeparateInputStream extends MultipleInputStream {
         TextField nameField = new TextField();
         nameField.setPrefWidth(290.0);
         nameField.setText(expectedName);
-        Button browseButton = new Button(lanLoader.get(571));
+        Button browseButton = new Button(bundle.getString("browse"));
         browseButton.setOnAction(e -> {
             FileChooser fc = new FileChooser();
-            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter(lanLoader.get(50), "*.pz"));
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter(
+                    bundle.getString("winLzzArchive"), "*.pz"));
             fc.setInitialDirectory(new File(expectedName).getParentFile());
             File newFile = fc.showOpenDialog(null);
             nameField.setText(newFile.getAbsolutePath());
@@ -191,7 +194,7 @@ public class SeparateInputStream extends MultipleInputStream {
         HBox lowerBox = new HBox();
         lowerBox.setSpacing(10.0);
         lowerBox.setAlignment(Pos.CENTER_RIGHT);
-        Button confirmButton = new Button(lanLoader.get(1));
+        Button confirmButton = new Button(bundle.getString("confirm"));
         confirmButton.setOnAction(e -> {
             File file = new File(nameField.getText());
             if (!file.exists()) {
@@ -202,7 +205,7 @@ public class SeparateInputStream extends MultipleInputStream {
             pauseStage.close();
         });
 
-        Button cancelButton = new Button(lanLoader.get(2));
+        Button cancelButton = new Button(bundle.getString("cancel"));
         cancelButton.setOnAction(e -> {
             pauseStage.close();
             if (unPacker != null) unPacker.interrupt();
@@ -210,7 +213,7 @@ public class SeparateInputStream extends MultipleInputStream {
 
         lowerBox.getChildren().addAll(confirmButton, cancelButton);
 
-        root.getChildren().addAll(new Label(lanLoader.get(572)), upperBox, lowerBox);
+        root.getChildren().addAll(new Label(bundle.getString("askNextSection")), upperBox, lowerBox);
 
         pauseStage.showAndWait();
 
@@ -254,15 +257,15 @@ public class SeparateInputStream extends MultipleInputStream {
  */
 class InsertWindow extends Application {
 
-    private LanguageLoader lanLoader;
+    private ResourceBundle bundle;
 
     /**
      * Sets up the language loader
      *
-     * @param lanLoader the <code>LanguageLoader</code> instance used for displaying text
+     * @param lanLoader the <code>ResourceBundle</code> instance used for displaying text
      */
-    public void setLanLoader(LanguageLoader lanLoader) {
-        this.lanLoader = lanLoader;
+    public void setLanLoader(ResourceBundle lanLoader) {
+        this.bundle = lanLoader;
     }
 
     /**
@@ -284,7 +287,7 @@ class InsertWindow extends Application {
         Scene scene = new Scene(root);
         Stage stage = new Stage();
         stage.setScene(scene);
-        stage.setTitle(lanLoader.get(570));
+        stage.setTitle(bundle.getString("needNextSection"));
 
         stage.showAndWait();
     }

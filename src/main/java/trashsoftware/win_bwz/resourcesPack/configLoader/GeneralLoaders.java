@@ -21,6 +21,19 @@ public abstract class GeneralLoaders {
         }
     }
 
+    public static List<NamedLocale> getAllLocales() {
+        List<NamedLocale> locales = new ArrayList<>();
+        ResourceBundle resourceBundle = ResourceBundle.getBundle("trashsoftware.deepSearcher2.bundles.Languages");
+        Enumeration<String> keys = resourceBundle.getKeys();
+        while (keys.hasMoreElements()) {
+            String key = keys.nextElement();
+            String[] lanLocale = key.split("_");
+            NamedLocale namedLocale = new NamedLocale(lanLocale[0], lanLocale[1], resourceBundle.getString(key));
+            locales.add(namedLocale);
+        }
+        return locales;
+    }
+
     /**
      * Reads all configs into a {@code HashMap<String, String>}.
      *

@@ -160,4 +160,11 @@ public class FileOutputBufferArray {
     public void close() throws IOException {
         fos.close();
     }
+
+    public void copyRepeat(long from, int length) throws IOException {
+        byte[] rep = subSequence(from, from + length);
+        for (int i = 0; i < length; ++i) {
+            write(rep[i]);
+        }
+    }
 }

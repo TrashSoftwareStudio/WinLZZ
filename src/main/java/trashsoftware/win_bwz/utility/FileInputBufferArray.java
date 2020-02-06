@@ -55,7 +55,7 @@ public class FileInputBufferArray {
                 if (read > 0) {
                     this.index += read;
                     remainSize = read;
-                } else if (read == -1) {
+                } else if (read < 0) {
                     throw new IndexOutOfBoundsException("Index out of range");
                 }
             } else {
@@ -63,13 +63,12 @@ public class FileInputBufferArray {
                 if (read > 0) {
                     this.index += read;
                     remainSize = read;
-                } else if (read == -1) {
+                } else if (read < 0) {
                     throw new IndexOutOfBoundsException("Index out of range");
                 }
             }
             return getByte(index);
         } else if (index >= this.index - remainSize) {
-            // else if (index < this.index && index >= this.index - remainSize)
             if (activeArray2) return array2[(int) (index - this.index + remainSize)];
             else return array1[(int) (index - this.index + remainSize)];
         } else if (index < this.index - remainSize) {

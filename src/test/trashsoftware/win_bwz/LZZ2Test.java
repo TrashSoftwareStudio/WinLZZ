@@ -16,11 +16,11 @@ public class LZZ2Test {
         name = "dsCtrl.txt";
 //        name = "p1.png";
 //        name = "t1.bmp";
-        name = "t5.bmp";
+//        name = "t5.bmp";
 //        name = "allCodes.zip";
 //        name = "ep.head";
 //        name = "t0.txt";
-        name = "t4.tif";
+//        name = "t4.tif";
         String cmpName = Util.getCompressFileName(name, "lzz2");
 //        Vector<FileInputStream> v = new Vector<>();
 //        v.add(new FileInputStream(name));

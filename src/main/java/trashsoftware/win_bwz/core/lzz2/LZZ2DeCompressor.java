@@ -8,11 +8,10 @@ import trashsoftware.win_bwz.huffman.HuffmanCompressorTwoBytes;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapDeCompressor;
 import trashsoftware.win_bwz.packer.UnPacker;
 import trashsoftware.win_bwz.utility.FileBitInputStream;
-import trashsoftware.win_bwz.utility.FileOutputBufferArray;
+import trashsoftware.win_bwz.utility.IndexedOutputStream;
 import trashsoftware.win_bwz.utility.Util;
 
 import java.io.*;
-import java.util.Arrays;
 
 import static trashsoftware.win_bwz.core.lzz2.LZZ2Compressor.*;
 
@@ -131,7 +130,8 @@ public class LZZ2DeCompressor implements DeCompressor {
         Lzz2HuffmanInputStream mainHis = new Lzz2HuffmanInputStream(mainMap, mainBis);
         Lzz2HuffmanInputStream disHeadHis = new Lzz2HuffmanInputStream(disHeadMap, disHeadBis);
 
-        FileOutputBufferArray tempResult = new FileOutputBufferArray(fos, windowSize);
+//        FileOutputBufferArray tempResult = new FileOutputBufferArray(fos, windowSize);
+        IndexedOutputStream tempResult = new IndexedOutputStream(fos, windowSize);
 
         int[] lastDistances = new int[4];
         int lastDisIndex = -1;
@@ -150,7 +150,8 @@ public class LZZ2DeCompressor implements DeCompressor {
                     break;
                 } else if (s < 256) {
 //                    System.out.print(s + ", ");
-                    tempResult.write((byte) s);
+//                    tempResult.write((byte) s);
+                    tempResult.writeOne((byte) s);
                 } else if (s == 285) {
                     int dis = lastDistances[lastDisIndex & 0b11];
                     recoverMatch(tempResult, dis, lastLen);
@@ -191,30 +192,24 @@ public class LZZ2DeCompressor implements DeCompressor {
         mainHis.close();
     }
 
-    private void recoverMatch(FileOutputBufferArray fba, int distance, int length) throws IOException {
-//        System.out.print(distance + " " + length + "; ");
-        long index = fba.getIndex();
+    private void recoverMatch(IndexedOutputStream ios, int distance, int length) throws IOException {
+        long index = ios.getIndex();
         long from = index - distance;
         long to = from + length;
         if (to <= index) {
-            byte[] repeat = fba.subSequence(from, to);
-            for (byte b : repeat) fba.write(b);
+            ios.copyRepeat(from, length);
         } else {
-            byte[] overlapRepeat = new byte[length];
-            int overlap = (int) (index - from);
-            byte[] repeat = fba.subSequence(from, index);
             int p = 0;
+            int overlap = (int) (index - from);
             while (p < length) {
-                System.arraycopy(repeat, 0, overlapRepeat, p, Math.min(overlap, length - p));
+                ios.copyRepeat(from + p, Math.min(overlap, length - p));
                 p += overlap;
             }
-            for (byte b : overlapRepeat) fba.write(b);
         }
     }
 
     @Override
     public void deleteCache() {
-//        deleteCmpTemp();
         deleteTemp();
     }
 

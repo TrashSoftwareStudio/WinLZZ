@@ -406,7 +406,24 @@ public abstract class Bytes {
         }
     }
 
+    /**
+     * Returns the bit sequence (an {@code int}) that contains {@code bitCount} continuous number of 1's from the
+     * least significant bit
+     *
+     * @param bitCount the number of 1's
+     * @return the least positive {@code int} contains {@code bitCount} number of 1's
+     */
     public static int getAndEr(int bitCount) {
         return (1 << bitCount) - 1;
+    }
+
+    /**
+     * Returns true if and only if the number is power of 2.
+     *
+     * @param n the number
+     * @return true if and only if the number is power of 2
+     */
+    public static boolean is2Power(int n) {
+        return n > 0 && (n & n - 1) == 0;
     }
 }

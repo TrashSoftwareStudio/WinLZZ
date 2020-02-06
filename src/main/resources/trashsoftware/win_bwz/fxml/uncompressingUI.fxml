@@ -36,14 +36,14 @@
                 <GridPane.margin>
                     <Insets/>
                 </GridPane.margin>
-                <Label fx:id="origSizeTextLabel" text="%origFileSize"/>
+                <Label text="%origFileSize"/>
                 <Label fx:id="totalSizeLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
                 </padding>
             </HBox>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1">
-                <Label fx:id="timeUsedTextLabel" text="%timeUsed"/>
+                <Label text="%timeUsed"/>
                 <Label fx:id="timeUsedLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
@@ -58,7 +58,7 @@
             </HBox>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1"
                   GridPane.rowIndex="1">
-                <Label fx:id="timeRemainTextLabel" text="%timeRem"/>
+                <Label text="%timeRem"/>
                 <Label fx:id="expectTimeLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
@@ -86,7 +86,7 @@
             <padding>
                 <Insets bottom="10.0" left="25.0"/>
             </padding>
-            <Label fx:id="speedTextLabel" text="%uncSpeed"/>
+            <Label text="%uncSpeed"/>
             <Label fx:id="ratioLabel"/>
             <Label text=" KB/s"/>
         </HBox>
@@ -98,7 +98,7 @@
             <padding>
                 <Insets right="20.0"/>
             </padding>
-            <Button fx:id="cancelButton" mnemonicParsing="false" onAction="#interruptAction" text="%cancel"/>
+            <Button mnemonicParsing="false" onAction="#interruptAction" text="%cancel"/>
         </HBox>
     </VBox>
 </AnchorPane>

@@ -2,7 +2,6 @@ package trashsoftware.win_bwz.gui.controllers;
 
 import trashsoftware.win_bwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.win_bwz.packer.Packer;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.Util;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;

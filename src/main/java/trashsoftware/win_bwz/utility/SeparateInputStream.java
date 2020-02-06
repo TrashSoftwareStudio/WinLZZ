@@ -1,7 +1,6 @@
 package trashsoftware.win_bwz.utility;
 
 import trashsoftware.win_bwz.packer.UnPacker;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;

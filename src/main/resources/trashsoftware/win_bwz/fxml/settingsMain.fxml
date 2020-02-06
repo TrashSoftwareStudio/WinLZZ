@@ -1,14 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
+<?import javafx.geometry.Insets?>
 <GridPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="trashsoftware.win_bwz.gui.controllers.SettingsMain"
-            prefHeight="400.0" prefWidth="600.0">
+          xmlns:fx="http://javafx.com/fxml"
+          fx:controller="trashsoftware.win_bwz.gui.controllers.SettingsMain"
+          prefHeight="400.0" prefWidth="600.0" hgap="5">
+
+    <padding>
+        <Insets left="5" right="5"/>
+    </padding>
+
+    <rowConstraints>
+        <RowConstraints/>
+        <RowConstraints prefHeight="40" minHeight="40"/>
+    </rowConstraints>
+
+    <columnConstraints>
+        <ColumnConstraints percentWidth="35"/>
+        <ColumnConstraints percentWidth="65"/>
+    </columnConstraints>
+
+    <TreeView fx:id="treeView"/>
+
+    <ScrollPane fx:id="contentPane" GridPane.columnIndex="1"/>
+
+    <HBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="10" alignment="CENTER_RIGHT">
+        <Button fx:id="okButton" text="%ok"/>
+        <Button fx:id="cancelButton" text="%cancel" onAction="#cancelAction"/>
+        <Button fx:id="applyButton" text="%apply" disable="true"/>
+    </HBox>
 
 </GridPane>

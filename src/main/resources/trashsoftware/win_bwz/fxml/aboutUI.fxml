@@ -8,28 +8,22 @@
 
 <AnchorPane prefHeight="240.0" prefWidth="180.0" xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml" fx:controller="trashsoftware.win_bwz.gui.controllers.AboutUI">
-    <children>
-        <VBox alignment="CENTER" prefHeight="240.0" prefWidth="180.0" spacing="10.0">
-            <children>
-                <HBox alignment="CENTER" prefHeight="40.0" prefWidth="180.0" spacing="10.0">
-                    <children>
-                        <Label text="WinLZZ">
-                            <font>
-                                <Font size="18.0"/>
-                            </font>
-                        </Label>
-                        <Label fx:id="versionLabel">
-                            <font>
-                                <Font size="18.0"/>
-                            </font>
-                        </Label>
-                    </children>
-                </HBox>
-                <Label fx:id="trashSoftwareLabel" text="%trashSoftwareStudio"/>
-                <Label text="2017-2018"/>
-                <Label fx:id="coreVersionTextLabel" text="%coreVersion"/>
-                <Label fx:id="coreVersionLabel"/>
-            </children>
-        </VBox>
-    </children>
+    <VBox alignment="CENTER" prefHeight="240.0" prefWidth="180.0" spacing="10.0">
+        <HBox alignment="CENTER" prefHeight="40.0" prefWidth="180.0" spacing="10.0">
+            <Label text="WinLZZ">
+                <font>
+                    <Font size="18.0"/>
+                </font>
+            </Label>
+            <Label fx:id="versionLabel">
+                <font>
+                    <Font size="18.0"/>
+                </font>
+            </Label>
+        </HBox>
+        <Label fx:id="trashSoftwareLabel" text="%trashSoftwareStudio"/>
+        <Label text="2017-2018"/>
+        <Label fx:id="coreVersionTextLabel" text="%coreVersion"/>
+        <Label fx:id="coreVersionLabel"/>
+    </VBox>
 </AnchorPane>

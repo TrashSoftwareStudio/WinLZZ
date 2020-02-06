@@ -1,5 +1,7 @@
 package trashsoftware.win_bwz.resourcesPack.configLoader;
 
+import trashsoftware.win_bwz.resourcesPack.UTF8Control;
+
 import java.io.*;
 import java.util.*;
 
@@ -23,7 +25,10 @@ public abstract class GeneralLoaders {
 
     public static List<NamedLocale> getAllLocales() {
         List<NamedLocale> locales = new ArrayList<>();
-        ResourceBundle resourceBundle = ResourceBundle.getBundle("trashsoftware.deepSearcher2.bundles.Languages");
+        ResourceBundle resourceBundle = ResourceBundle.getBundle(
+                "trashsoftware.win_bwz.bundles.Languages",
+                new UTF8Control()
+        );
         Enumeration<String> keys = resourceBundle.getKeys();
         while (keys.hasMoreElements()) {
             String key = keys.nextElement();
@@ -196,7 +201,6 @@ public abstract class GeneralLoaders {
      *              All elements in <code>files</code> that equals <code>file</code> will be removed
      */
     private static void removeDuplicate(List<File> files, File file) {
-        Iterator<File> iterator = files.iterator();
-        while (iterator.hasNext()) if (iterator.next().equals(file)) iterator.remove();
+        files.removeIf(file1 -> file1.equals(file));
     }
 }

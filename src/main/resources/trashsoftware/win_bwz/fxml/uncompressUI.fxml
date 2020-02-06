@@ -39,8 +39,8 @@
                 <Button fx:id="infoButton" mnemonicParsing="false" onAction="#fileInfoAction" text="(?)"/>
                 <Button fx:id="annotationButton" mnemonicParsing="false" disable="true" onAction="#annotationAction"
                         text="%annotations"/>
-                <Button fx:id="testButton" mnemonicParsing="false" onAction="#testAction" text="%test"/>
-                <Label fx:id="threadNumberLabel" text="%threadNumber"/>
+                <Button mnemonicParsing="false" onAction="#testAction" text="%test"/>
+                <Label text="%threadNumber"/>
                 <ComboBox fx:id="threadNumberBox" prefWidth="80.0"/>
             </HBox>
             <HBox alignment="CENTER_RIGHT" prefHeight="40.0" prefWidth="300.0" spacing="10.0">
@@ -49,7 +49,7 @@
                 </padding>
                 <Button fx:id="uncompressPart" disable="true" mnemonicParsing="false" onAction="#uncompressPartAction"
                         text="%uncSelected"/>
-                <Button fx:id="uncompressAll" mnemonicParsing="false" onAction="#uncompressAllAction" text="%uncAll"/>
+                <Button mnemonicParsing="false" onAction="#uncompressAllAction" text="%uncAll"/>
             </HBox>
         </HBox>
     </VBox>

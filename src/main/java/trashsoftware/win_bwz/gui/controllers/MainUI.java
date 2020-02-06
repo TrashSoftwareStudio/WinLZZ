@@ -2,7 +2,6 @@ package trashsoftware.win_bwz.gui.controllers;
 
 import trashsoftware.win_bwz.gui.graphicUtil.*;
 import trashsoftware.win_bwz.resourcesPack.configLoader.GeneralLoaders;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import trashsoftware.win_bwz.utility.Util;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -16,7 +15,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -91,7 +89,6 @@ public class MainUI implements Initializable {
     private Label placeHolder = new Label();
     private ContextMenu rightPopupMenu = new ContextMenu();
 
-    private LanguageLoader lanLoader = new LanguageLoader();
     private RegularFileNode currentSelection;
 
     private char[] nameExclusion = new char[]{'\\', '/', ':', '*', '?', '"', '<', '>', '|'};
@@ -133,8 +130,6 @@ public class MainUI implements Initializable {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/win_bwz/fxml/aboutUI.fxml"), bundle);
         Parent root = loader.load();
-//        AboutUI aui = loader.getController();
-//        aui.setLanLoader(lanLoader);
         Stage stage = new Stage();
         stage.setScene(new Scene(root));
         stage.setResizable(false);
@@ -168,8 +163,6 @@ public class MainUI implements Initializable {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/win_bwz/fxml/changelogViewer.fxml"), bundle);
         Parent root = loader.load();
-//        ChangelogViewer clv = loader.getController();
-//        clv.setLanLoader(lanLoader);
         Stage stage = new Stage();
         stage.setTitle("WinLZZ");
         stage.setScene(new Scene(root));
@@ -178,32 +171,20 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    private void languageSelection() {
-        Stage lsStage = new Stage();
-        HBox pane = new HBox();
-        pane.setSpacing(10.0);
-        pane.setPadding(new Insets(10.0));
-        ComboBox<String> languageBox = new ComboBox<>();
-        languageBox.getItems().addAll(lanLoader.getAllLanguageNames());
-        languageBox.getSelectionModel().select(lanLoader.getCurrentLanguage());
+    private void settingsAction() throws IOException {
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/trashsoftware/win_bwz/fxml/settingsMain.fxml"), bundle);
+        Parent root = loader.load();
 
-        Button confirm = new Button(bundle.getString("confirm"));  // Confirm
-        confirm.setOnAction(e -> {
-            if (!lanLoader.changeLanguage(languageBox.getSelectionModel().getSelectedItem()))
-                System.out.println("Failed to change language");
-            // TODO:
-            lsStage.close();
-            fillTable();
-            setRightPopupMenu();
-            changeRightMenu();
-            changeClipBoardStatus();
-        });
-        pane.getChildren().addAll(languageBox, confirm);
-        Scene scene = new Scene(pane);
-        lsStage.setScene(scene);
-        lsStage.setResizable(false);
-        lsStage.setAlwaysOnTop(true);
-        lsStage.showAndWait();
+        Stage stage = new Stage();
+        stage.setTitle(bundle.getString("settings"));
+        stage.setScene(new Scene(root));
+        stage.setResizable(false);
+
+        SettingsMain controller = loader.getController();
+        controller.setStage(stage);
+
+        stage.show();
     }
 
     @FXML

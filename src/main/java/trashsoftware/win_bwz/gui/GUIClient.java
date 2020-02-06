@@ -19,6 +19,8 @@ import java.util.ResourceBundle;
  */
 public class GUIClient extends Application {
 
+    private static ResourceBundle bundle;
+
     /**
      * WinLZZ graphics user interface.
      *
@@ -36,7 +38,7 @@ public class GUIClient extends Application {
      */
     @Override
     public void start(Stage primaryStage) throws Exception {
-        ResourceBundle bundle = ResourceBundle.getBundle("trashsoftware.win_bwz.bundles.LangBundle",
+        bundle = ResourceBundle.getBundle("trashsoftware.win_bwz.bundles.LangBundle",
                 GeneralLoaders.getCurrentLocale(), new UTF8Control());
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/win_bwz/fxml/mainUI.fxml"), bundle);
@@ -46,5 +48,9 @@ public class GUIClient extends Application {
         primaryStage.setScene(new Scene(root));
         primaryStage.setResizable(false);
         primaryStage.show();
+    }
+
+    public static ResourceBundle getBundle() {
+        return bundle;
     }
 }

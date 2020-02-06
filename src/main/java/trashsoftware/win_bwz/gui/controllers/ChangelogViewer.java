@@ -1,7 +1,6 @@
 package trashsoftware.win_bwz.gui.controllers;
 
 import trashsoftware.win_bwz.resourcesPack.info.ChangelogReader;
-import trashsoftware.win_bwz.resourcesPack.languages.LanguageLoader;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
@@ -15,8 +14,6 @@ public class ChangelogViewer implements Initializable {
     @FXML
     private Label changelogLabel;
 
-//    private LanguageLoader lanLoader;
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         try {
@@ -26,16 +23,7 @@ public class ChangelogViewer implements Initializable {
         }
     }
 
-//    void setLanLoader(LanguageLoader lanLoader) {
-//        this.lanLoader = lanLoader;
-//        fillText();
-//    }
-
     private void setLabel() throws IOException {
         changelogLabel.setText(new ChangelogReader().readChangelog());
-    }
-
-    private void fillText() {
-//        changelogTextLabel.setText(lanLoader.get(800));
     }
 }

@@ -1,7 +1,7 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.Console.Console;
-import trashsoftware.win_bwz.GUI.GUIClient;
+import trashsoftware.win_bwz.console.Console;
+import trashsoftware.win_bwz.gui.GUIClient;
 
 /**
  * main program of WinLZZ.
@@ -14,7 +14,7 @@ public class Main {
     /**
      * The software version, will be displayed in GUI.
      */
-    public static final String version = "1.0 SNAPSHOT";
+    public static final String version = "1.0 Alpha 2";
 
     /**
      * The main function of WinLZZ.

@@ -1,45 +1,128 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.Separator?>
-<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="400.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8.0.121"
-            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.GUI.FileInfoUI">
-    <VBox alignment="CENTER" prefHeight="400.0" prefWidth="400.0" spacing="8.0">
-        <Label fx:id="typeLabel" text="类型">
-            <font>
-                <Font size="18.0"/>
-            </font>
-        </Label>
-        <Separator prefWidth="200.0"/>
-        <Label fx:id="algLabel" text="压缩方法"/>
-        <Label fx:id="versionLabel" text="版本"/>
-        <Label fx:id="versionNeededLabel" text="版本需求"/>
-        <ProgressBar fx:id="compressRateBar" prefWidth="300.0" progress="0.0"/>
-        <Label fx:id="compressRateLabel" text="压缩率"/>
-        <Label fx:id="windowSizeLabel" text="字典大小"/>
-        <HBox alignment="CENTER" prefHeight="20.0" prefWidth="200.0" spacing="10.0">
-            <Label fx:id="origSizeLabel" text="原大小"/>
-            <Label fx:id="compressSizeLabel" text="压缩后大小"/>
+<VBox alignment="CENTER" prefHeight="480.0" prefWidth="480.0" spacing="8.0" xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml" fx:controller="trashsoftware.win_bwz.gui.controllers.FileInfoUI">
+    <Label fx:id="typeLabel" text="%fileType">
+        <font>
+            <Font size="18.0"/>
+        </font>
+    </Label>
+    <Separator prefWidth="200.0"/>
+    <HBox alignment="CENTER">
+        <Label text="%compressAlg2"/>
+        <Label fx:id="algLabel"/>
+    </HBox>
+
+    <HBox alignment="CENTER">
+        <Label text="%fileVer"/>
+        <Label fx:id="versionLabel"/>
+    </HBox>
+
+    <HBox alignment="CENTER">
+        <Label text="%winLzzVerNeedUnc"/>
+        <Label fx:id="versionNeededLabel"/>
+    </HBox>
+
+    <VBox alignment="CENTER" spacing="8.0">
+        <Canvas fx:id="progressBarCanvas" height="30.0" width="400.0"/>
+        <HBox alignment="CENTER" prefHeight="30.0" spacing="20.0">
+            <HBox alignment="CENTER" spacing="5.0">
+                <Rectangle fill="GREEN" height="12.0" strokeType="INSIDE" width="12.0"/>
+                <Label text="%fileHeader"/>
+            </HBox>
+
+            <HBox alignment="CENTER" spacing="5.0">
+                <Rectangle fill="GOLD" height="12.0" strokeType="INSIDE" width="12.0"/>
+                <Label text="%additionalInfo"/>
+            </HBox>
+
+            <HBox alignment="CENTER" spacing="5.0">
+                <Rectangle fill="ORANGERED" height="12.0" strokeType="INSIDE" width="12.0"/>
+                <Label text="%context"/>
+            </HBox>
+
+            <HBox alignment="CENTER" spacing="5.0">
+                <Rectangle fill="DODGERBLUE" height="12.0" strokeType="INSIDE" width="12.0"/>
+                <Label text="%compressedFile"/>
+            </HBox>
+
         </HBox>
-        <HBox alignment="CENTER" prefHeight="20.0" prefWidth="200.0" spacing="10.0">
-            <Label fx:id="fileCountLabel" text="文件数"/>
-            <Label fx:id="dirCountLabel" text="文件夹数"/>
-        </HBox>
-        <Separator prefWidth="200.0"/>
-        <Label fx:id="annotationLabel" text="注释"/>
-        <Label fx:id="encryptionLabel" text="加密"/>
-        <Label fx:id="secretKeyLabel" text="密钥"/>
-        <Label fx:id="timeLabel" text="创建时间"/>
-        <Label fx:id="crcChecksumLabel" text="CRC32校验值"/>
-        <padding>
-            <Insets left="20.0" right="20.0"/>
-        </padding>
     </VBox>
-</AnchorPane>
+    <HBox alignment="CENTER" spacing="20.0">
+        <HBox alignment="CENTER">
+            <Label text="%compressRatio"/>
+            <Label fx:id="compressRateLabel"/>
+        </HBox>
+
+        <HBox alignment="CENTER">
+            <Label text="%netCompressRatio"/>
+            <Label fx:id="netRateLabel"/>
+        </HBox>
+    </HBox>
+
+    <HBox alignment="CENTER">
+        <Label text="%dictSize2"/>
+        <Label fx:id="windowSizeLabel"/>
+    </HBox>
+
+    <HBox alignment="CENTER" prefHeight="20.0" prefWidth="200.0" spacing="10.0">
+        <HBox alignment="CENTER">
+            <Label text="%origSize"/>
+            <Label fx:id="origSizeLabel"/>
+        </HBox>
+        <HBox alignment="CENTER">
+            <Label text="%sizeAfterCompress"/>
+            <Label fx:id="compressSizeLabel"/>
+        </HBox>
+    </HBox>
+    <HBox alignment="CENTER" prefHeight="20.0" prefWidth="200.0" spacing="10.0">
+        <HBox alignment="CENTER">
+            <Label text="%filesCount"/>
+            <Label fx:id="fileCountLabel"/>
+        </HBox>
+
+        <HBox alignment="CENTER">
+            <Label text="%folderCount"/>
+            <Label fx:id="dirCountLabel"/>
+        </HBox>
+
+    </HBox>
+    <Separator prefWidth="200.0"/>
+    <HBox alignment="CENTER">
+        <Label text="%annotations"/>
+        <Label fx:id="annotationLabel"/>
+    </HBox>
+
+    <HBox alignment="CENTER">
+        <Label text="%encryption"/>
+        <Label fx:id="encryptionLabel"/>
+    </HBox>
+
+    <HBox alignment="CENTER">
+        <Label text="%secretKey"/>
+        <Label fx:id="secretKeyLabel"/>
+    </HBox>
+
+    <HBox alignment="CENTER">
+        <Label text="%createTime"/>
+        <Label fx:id="timeLabel"/>
+    </HBox>
+
+    <HBox alignment="CENTER">
+        <Label text="%crc32"/>
+        <Label fx:id="crcChecksumLabel"/>
+    </HBox>
+
+    <padding>
+        <Insets left="20.0" right="20.0"/>
+    </padding>
+</VBox>

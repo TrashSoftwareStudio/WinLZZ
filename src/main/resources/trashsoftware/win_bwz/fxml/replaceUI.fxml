@@ -11,8 +11,8 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="300.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8.0.121"
-            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.GUI.ReplaceUI">
+<AnchorPane prefHeight="300.0" prefWidth="400.0" xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml" fx:controller="trashsoftware.win_bwz.gui.controllers.ReplaceUI">
     <VBox alignment="CENTER_LEFT" prefHeight="300.0" prefWidth="400.0" spacing="10.0">
         <padding>
             <Insets left="20.0"/>
@@ -33,8 +33,8 @@
                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
             </rowConstraints>
-            <Label fx:id="existDir" text="Label"/>
-            <Label fx:id="fromDir" text="Label" GridPane.columnIndex="1"/>
+            <Label text="%existingFile"/>
+            <Label text="%pastingFile" GridPane.columnIndex="1"/>
             <Label fx:id="name1" text="Label" GridPane.rowIndex="1"/>
             <Label fx:id="name2" text="Label" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
             <Label fx:id="time1" text="Label" GridPane.rowIndex="2"/>
@@ -46,9 +46,9 @@
             <padding>
                 <Insets right="10.0"/>
             </padding>
-            <Button fx:id="replace" mnemonicParsing="false" onAction="#replaceAction" text="Button"/>
-            <Button fx:id="skip" mnemonicParsing="false" onAction="#skipAction" text="Button"/>
-            <Button fx:id="rename" mnemonicParsing="false" onAction="#renameAction" text="Button"/>
+            <Button mnemonicParsing="false" onAction="#replaceAction" text="%cover"/>
+            <Button mnemonicParsing="false" onAction="#skipAction" text="%skip"/>
+            <Button mnemonicParsing="false" onAction="#renameAction" text="%rename"/>
         </HBox>
     </VBox>
 </AnchorPane>

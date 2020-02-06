@@ -11,8 +11,8 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="280.0" prefWidth="400.0" xmlns="http://javafx.com/javafx/8.0.121"
-            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.GUI.UncompressingUI">
+<AnchorPane prefHeight="280.0" prefWidth="400.0" xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml" fx:controller="trashsoftware.win_bwz.gui.controllers.UncompressingUI">
     <VBox alignment="CENTER" prefHeight="280.0" prefWidth="400.0" spacing="5.0">
         <opaqueInsets>
             <Insets/>
@@ -36,21 +36,21 @@
                 <GridPane.margin>
                     <Insets/>
                 </GridPane.margin>
-                <Label fx:id="origSizeTextLabel" text="原文件大小:"/>
+                <Label text="%origFileSize"/>
                 <Label fx:id="totalSizeLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
                 </padding>
             </HBox>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1">
-                <Label fx:id="timeUsedTextLabel" text="已用时间:"/>
+                <Label text="%timeUsed"/>
                 <Label fx:id="timeUsedLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
                 </padding>
             </HBox>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.rowIndex="1">
-                <Label fx:id="passedSizeTitleLabel" text="已解压大小:"/>
+                <Label fx:id="passedSizeTitleLabel" text="%uncSize"/>
                 <Label fx:id="passedSizeLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
@@ -58,7 +58,7 @@
             </HBox>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" spacing="10.0" GridPane.columnIndex="1"
                   GridPane.rowIndex="1">
-                <Label fx:id="timeRemainTextLabel" text="剩余时间:"/>
+                <Label text="%timeRem"/>
                 <Label fx:id="expectTimeLabel" text="Label"/>
                 <padding>
                     <Insets left="25.0"/>
@@ -69,7 +69,7 @@
             <opaqueInsets>
                 <Insets/>
             </opaqueInsets>
-            <Label fx:id="messageLabel" text="正在解压..."/>
+            <Label fx:id="messageLabel" text="%uncIng"/>
             <Label fx:id="percentageLabel" text="0.0"/>
             <Label text="\%"/>
             <padding>
@@ -86,7 +86,7 @@
             <padding>
                 <Insets bottom="10.0" left="25.0"/>
             </padding>
-            <Label fx:id="speedTextLabel" text="速率:"/>
+            <Label text="%uncSpeed"/>
             <Label fx:id="ratioLabel"/>
             <Label text=" KB/s"/>
         </HBox>
@@ -98,7 +98,7 @@
             <padding>
                 <Insets right="20.0"/>
             </padding>
-            <Button fx:id="cancelButton" mnemonicParsing="false" onAction="#interruptAction" text="取消"/>
+            <Button mnemonicParsing="false" onAction="#interruptAction" text="%cancel"/>
         </HBox>
     </VBox>
 </AnchorPane>

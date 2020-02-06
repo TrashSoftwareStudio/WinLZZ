@@ -10,8 +10,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="480.0" prefWidth="720.0" xmlns="http://javafx.com/javafx/8.0.121"
-            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.GUI.UncompressUI">
+<AnchorPane prefHeight="480.0" prefWidth="720.0" xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml" fx:controller="trashsoftware.win_bwz.gui.controllers.UncompressUI">
     <VBox prefHeight="480.0" prefWidth="720.0">
         <HBox alignment="CENTER_LEFT" prefHeight="40.0" prefWidth="720.0" spacing="10.0">
             <VBox.margin>
@@ -22,10 +22,13 @@
             <Label fx:id="dirText"/>
         </HBox>
         <TableView fx:id="fileList" prefHeight="400.0" prefWidth="720.0">
+            <placeholder>
+                <Label text="%loading"/>
+            </placeholder>
             <columns>
-                <TableColumn fx:id="nameColumn" prefWidth="320.0" text="文件名"/>
-                <TableColumn fx:id="typeColumn" prefWidth="100.0" text="类型"/>
-                <TableColumn fx:id="origSizeColumn" prefWidth="160.0" text="大小"/>
+                <TableColumn fx:id="nameColumn" prefWidth="320.0" text="%fileName"/>
+                <TableColumn fx:id="typeColumn" prefWidth="100.0" text="%fileType"/>
+                <TableColumn fx:id="origSizeColumn" prefWidth="160.0" text="%fileSize"/>
             </columns>
         </TableView>
         <HBox alignment="CENTER" prefHeight="40.0" prefWidth="200.0">
@@ -35,18 +38,18 @@
                 </padding>
                 <Button fx:id="infoButton" mnemonicParsing="false" onAction="#fileInfoAction" text="(?)"/>
                 <Button fx:id="annotationButton" mnemonicParsing="false" disable="true" onAction="#annotationAction"
-                        text="注释"/>
-                <Button fx:id="testButton" mnemonicParsing="false" onAction="#testAction" text="测试"/>
-                <Label fx:id="threadNumberLabel" text="线程数量:"/>
-                <ComboBox fx:id="threadNumberBox" prefWidth="60.0"/>
+                        text="%annotations"/>
+                <Button mnemonicParsing="false" onAction="#testAction" text="%test"/>
+                <Label text="%threadNumber"/>
+                <ComboBox fx:id="threadNumberBox" prefWidth="80.0"/>
             </HBox>
             <HBox alignment="CENTER_RIGHT" prefHeight="40.0" prefWidth="300.0" spacing="10.0">
                 <padding>
                     <Insets right="10.0"/>
                 </padding>
                 <Button fx:id="uncompressPart" disable="true" mnemonicParsing="false" onAction="#uncompressPartAction"
-                        text="解压选中文件"/>
-                <Button fx:id="uncompressAll" mnemonicParsing="false" onAction="#uncompressAllAction" text="全部解压"/>
+                        text="%uncSelected"/>
+                <Button mnemonicParsing="false" onAction="#uncompressAllAction" text="%uncAll"/>
             </HBox>
         </HBox>
     </VBox>

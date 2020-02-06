@@ -1,7 +1,7 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.Utility.SeparateInputStream;
-import trashsoftware.win_bwz.Utility.SeparateOutputStream;
+import trashsoftware.win_bwz.utility.SeparateInputStream;
+import trashsoftware.win_bwz.utility.SeparateOutputStream;
 
 import java.io.IOException;
 

@@ -6,13 +6,13 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane prefHeight="400.0" prefWidth="320.0" xmlns="http://javafx.com/javafx/8.0.121"
-            xmlns:fx="http://javafx.com/fxml/1" fx:controller="trashsoftware.win_bwz.GUI.ChangelogViewer">
+<AnchorPane prefHeight="400.0" prefWidth="320.0" xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml" fx:controller="trashsoftware.win_bwz.gui.controllers.ChangelogViewer">
     <VBox prefHeight="400.0" prefWidth="320.0" spacing="10.0">
         <padding>
             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
         </padding>
-        <Label fx:id="changelogTextLabel" text="更新日志"/>
+        <Label fx:id="changelogTextLabel" text="%changelog"/>
         <ScrollPane prefHeight="350.0" prefWidth="320.0">
             <Label fx:id="changelogLabel" text="Label"/>
         </ScrollPane>

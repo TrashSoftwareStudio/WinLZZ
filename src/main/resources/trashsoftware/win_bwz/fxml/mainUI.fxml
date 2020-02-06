@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<!--<?xml version="1.0" encoding="UTF-8"?>-->
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
@@ -9,65 +9,69 @@
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TreeView?>
-<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="trashsoftware.win_bwz.GUI.MainUI">
-    <VBox prefHeight="540.0" prefWidth="960.0">
-        <padding>
-            <Insets bottom="10.0" left="5.0" right="5.0"/>
-        </padding>
-        <MenuBar prefHeight="25.0">
-            <Menu fx:id="settingsMenu" mnemonicParsing="false" text="设置">
-                <MenuItem fx:id="languageSetting" mnemonicParsing="false" onAction="#languageSelection" text="语言"/>
-            </Menu>
-            <Menu fx:id="toolMenu" mnemonicParsing="false" text="编辑">
-                <MenuItem fx:id="openInDesktop" mnemonicParsing="false" onAction="#desktopOpenAction" text="在桌面中打开"/>
-                <MenuItem fx:id="pasteHere" mnemonicParsing="false" onAction="#pasteHereAction" text="粘贴"/>
-            </Menu>
-            <Menu fx:id="helpMenu" mnemonicParsing="false" text="帮助">
-                <MenuItem fx:id="about" mnemonicParsing="false" onAction="#aboutAction" text="关于"/>
-                <MenuItem fx:id="licence" mnemonicParsing="false" onAction="#licenceAction" text="开源许可证"/>
-                <MenuItem fx:id="changelogView" mnemonicParsing="false" onAction="#changelogAction" text="查看更新日志"/>
-            </Menu>
-        </MenuBar>
-        <HBox alignment="CENTER_LEFT" prefHeight="35.0" prefWidth="220.0" spacing="10.0">
-            <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="250.0" spacing="5.0">
-                <Button fx:id="backButton" disable="true" mnemonicParsing="false" onAction="#backAction"
-                        text="&lt;&lt;"/>
-                <Button fx:id="refreshButton" disable="true" mnemonicParsing="false" onAction="#refreshAction"
-                        text="♋"/>
-                <Button fx:id="compressButton" disable="true" mnemonicParsing="false" onAction="#compressMode"
-                        text="压缩">
-                </Button>
-                <Button fx:id="uncompressButton" disable="true" mnemonicParsing="false" onAction="#openAction"
-                        text="打开"/>
-            </HBox>
-            <!--<HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="620.0">-->
-                <!--<children>-->
-                    <ScrollPane fx:id="currentDirPane" prefHeight="30.0" prefWidth="720.0">
-                        <content>
-                            <HBox fx:id="currentDirBox" prefHeight="30.0" alignment="CENTER_LEFT"/>
-                        </content>
-                    </ScrollPane>
-                <!--</children>-->
-            <!--</HBox>-->
-        </HBox>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.RowConstraints?>
+<GridPane xmlns="http://javafx.com/javafx"
+          xmlns:fx="http://javafx.com/fxml"
+          fx:controller="trashsoftware.win_bwz.gui.controllers.MainUI"
+          prefHeight="540.0" prefWidth="1080.0" vgap="5.0" hgap="5.0">
+    <columnConstraints>
+        <ColumnConstraints percentWidth="30"/>
+        <ColumnConstraints percentWidth="70"/>
+    </columnConstraints>
+    <rowConstraints>
+        <RowConstraints prefHeight="25"/>
+        <RowConstraints prefHeight="35"/>
+        <RowConstraints prefHeight="480"/>
+    </rowConstraints>
+    <padding>
+        <Insets bottom="10.0" left="5.0" right="5.0"/>
+    </padding>
+    <MenuBar GridPane.columnSpan="2">
+        <Menu mnemonicParsing="false" text="%file">
+            <MenuItem mnemonicParsing="false" onAction="#settingsAction"
+                      text="%settings"/>
+        </Menu>
+        <Menu mnemonicParsing="false" text="%edit">
+            <MenuItem mnemonicParsing="false" onAction="#desktopOpenAction"
+                      text="%openInDesktop"/>
+            <MenuItem fx:id="pasteHere" mnemonicParsing="false" onAction="#pasteHereAction" text="%paste"/>
+        </Menu>
+        <Menu mnemonicParsing="false" text="%help">
+            <MenuItem mnemonicParsing="false" onAction="#aboutAction" text="%about"/>
+            <MenuItem mnemonicParsing="false" onAction="#licenceAction" text="%license"/>
+            <MenuItem mnemonicParsing="false" onAction="#changelogAction" text="%viewChangelog"/>
+        </Menu>
+    </MenuBar>
 
-        <HBox spacing="5.0">
-            <TreeView fx:id="rootTree" prefWidth="260.0"/>
-            <VBox>
-                <TableView fx:id="table" prefHeight="480.0" prefWidth="700.0">
-                    <columns>
-                        <TableColumn fx:id="nameCol" prefWidth="300.0" text="name"/>
-                        <TableColumn fx:id="typeCol" prefWidth="100.0" text="type"/>
-                        <TableColumn fx:id="sizeCol" prefWidth="100.0" text="size"/>
-                        <TableColumn fx:id="timeCol" prefWidth="120.0" text="modified"/>
-                    </columns>
-                </TableView>
-            </VBox>
-        </HBox>
-    </VBox>
-</AnchorPane>
+    <HBox alignment="CENTER_LEFT" spacing="5.0" GridPane.rowIndex="1">
+        <Button fx:id="backButton" disable="true" mnemonicParsing="false" onAction="#backAction"
+                text="&lt;&lt;"/>
+        <Button fx:id="refreshButton" disable="true" mnemonicParsing="false" onAction="#refreshAction"
+                text="♋"/>
+        <Button fx:id="compressButton" disable="true" mnemonicParsing="false" onAction="#compressMode"
+                text="%compress">
+        </Button>
+        <Button fx:id="uncompressButton" disable="true" mnemonicParsing="false" onAction="#openAction"
+                text="%open"/>
+    </HBox>
+
+    <ScrollPane prefHeight="30.0" GridPane.rowIndex="1" GridPane.columnIndex="1">
+        <HBox fx:id="currentDirBox" prefHeight="30.0" alignment="CENTER_LEFT"/>
+    </ScrollPane>
+
+    <TreeView fx:id="rootTree" prefWidth="300.0" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+
+    <TableView fx:id="table" GridPane.rowIndex="2" GridPane.columnIndex="1">
+        <columns>
+            <TableColumn fx:id="nameCol" prefWidth="300.0" text="name"/>
+            <TableColumn fx:id="typeCol" prefWidth="120.0" text="type"/>
+            <TableColumn fx:id="sizeCol" prefWidth="120.0" text="size"/>
+            <TableColumn fx:id="timeCol" prefWidth="160.0" text="modified"/>
+        </columns>
+    </TableView>
+</GridPane>

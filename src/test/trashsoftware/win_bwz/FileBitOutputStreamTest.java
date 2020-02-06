@@ -1,6 +1,6 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.Utility.FileBitOutputStream;
+import trashsoftware.win_bwz.utility.FileBitOutputStream;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;

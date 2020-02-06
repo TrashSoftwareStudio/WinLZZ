@@ -1,9 +1,8 @@
 package trashsoftware.win_bwz;
 
-import trashsoftware.win_bwz.LZZ2.LZZ2Compressor;
-import trashsoftware.win_bwz.LZZ2.LZZ2DeCompressor;
-import trashsoftware.win_bwz.Utility.ArrayHashTable;
-import trashsoftware.win_bwz.Utility.Util;
+import trashsoftware.win_bwz.core.lzz2.LZZ2Compressor;
+import trashsoftware.win_bwz.core.lzz2.LZZ2DeCompressor;
+import trashsoftware.win_bwz.utility.Util;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
@@ -13,29 +12,27 @@ public class LZZ2Test {
     public static void main(String[] args) throws Exception {
         long start = System.currentTimeMillis();
 
-        long tx = System.currentTimeMillis();
-        new ArrayHashTable(16777216);
-        System.out.println(System.currentTimeMillis() - tx);
-
         String name;
         name = "dsCtrl.txt";
-        name = "p1.png";
+//        name = "p1.png";
 //        name = "t1.bmp";
-//        name = "t5.bmp";
+        name = "t5.bmp";
 //        name = "allCodes.zip";
 //        name = "ep.head";
 //        name = "t0.txt";
+        name = "t4.tif";
         String cmpName = Util.getCompressFileName(name, "lzz2");
 //        Vector<FileInputStream> v = new Vector<>();
 //        v.add(new FileInputStream(name));
 //        SequenceInputStream sis = new SequenceInputStream(v.elements());
-        int ws = 65536;
-        LZZ2Compressor c = new LZZ2Compressor(name, ws, 286);
-        c.setCompressionLevel(1);
+        int ws = 32768;
+        LZZ2Compressor c = new LZZ2Compressor(name, ws, 255);
+        c.setCompressionLevel(4);
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
             c.compress(fos);
-            System.out.println(c.getCompressedSize());
+            System.out.println(String.format("Size after compression: %d, compress rate: %.2f%%",
+                    c.getCompressedSize(), (double) c.getCompressedSize() / c.getSizeBeforeCompression() * 100));
         } catch (Exception e) {
             //
         }
@@ -44,7 +41,9 @@ public class LZZ2Test {
 
         long mid = System.currentTimeMillis();
         long t1 = mid - start;
-        System.out.println("Compress Time: " + t1 + " ms");
+        System.out.println("compress Time: " + t1 + " ms");
+
+//        System.exit(0);
 
         String cpyName = Util.getOriginalCopyName(cmpName);
         LZZ2DeCompressor d = new LZZ2DeCompressor(cmpName, ws);

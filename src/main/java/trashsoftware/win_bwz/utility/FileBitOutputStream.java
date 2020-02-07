@@ -1,6 +1,7 @@
 package trashsoftware.win_bwz.utility;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -12,7 +13,7 @@ import java.io.OutputStream;
  */
 public class FileBitOutputStream {
 
-    private BufferedOutputStream bos;
+    private OutputStream bos;
 
     /**
      * The length written.
@@ -35,7 +36,7 @@ public class FileBitOutputStream {
      * @param fos the {@code OutputStream} to write data in.
      */
     public FileBitOutputStream(OutputStream fos) {
-        if (fos instanceof BufferedOutputStream) bos = (BufferedOutputStream) fos;
+        if (fos instanceof BufferedOutputStream || fos instanceof ByteArrayOutputStream) bos = fos;
         else bos = new BufferedOutputStream(fos);
     }
 
@@ -115,5 +116,9 @@ public class FileBitOutputStream {
      */
     public void close() throws IOException {
         bos.close();
+    }
+
+    public OutputStream getStream() {
+        return bos;
     }
 }

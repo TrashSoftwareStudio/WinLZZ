@@ -1,0 +1,540 @@
+package Controller;
+
+import ConfigLoaderPack.ConfigLoader;
+import ConfigLoaderPack.EventLogger;
+import ConfigLoaderPack.LanguageLoader;
+import ConfigLoaderPack.Recorder;
+import FileExplorer.ExplorerClient;
+import Helpers.HelperFunctions;
+import ItemUnits.FileRoot;
+import ItemUnits.SearchHistoryItem;
+import ItemUnits.FileCell;
+import ItemUnits.FormatCell;
+import Searcher.Searcher;
+import Settings.Settings;
+import javafx.beans.value.ObservableValue;
+import javafx.concurrent.Task;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
+import javafx.geometry.Pos;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.*;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.Stage;
+import javafx.util.Callback;
+
+import java.awt.*;
+import java.io.File;
+import java.io.IOException;
+//import java.lang.management.ManagementFactory;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+//import java.util.List;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+
+public class Controller implements Initializable {
+
+    @FXML
+    GridPane rootPane;
+
+    @FXML
+    CheckBox searchFile;
+
+    @FXML
+    CheckBox searchDir;
+
+    @FXML
+    CheckBox searchCont;
+
+    @FXML
+    TableView<FormatCell> formatTable;
+
+    @FXML
+    TableColumn<FormatCell, String> checkCol;
+
+    @FXML
+    TableColumn<FormatCell, String> extCol;
+
+    @FXML
+    TableColumn<FormatCell, String> desCol;
+
+    @FXML
+    Button selectButton;
+
+    @FXML
+    Button search;
+
+    @FXML
+    Button openFileButton;
+
+    @FXML
+    Button openDirButton;
+
+    @FXML
+    TextField searchField;
+
+    @FXML
+    Label currentRootDirText;
+
+    @FXML
+    CheckBox selectAllBox;
+
+    @FXML
+    Label fileCount;
+
+    @FXML
+    Label timeCount;
+
+    @FXML
+    Menu mainMenu;
+
+    @FXML
+    Menu help;
+
+    @FXML
+    TableView<FileCell> fileTable;
+
+    @FXML
+    TableColumn<FileCell, String> c1;
+
+    @FXML
+    TableColumn<FileCell, String> c2;
+
+    @FXML
+    TableColumn<FileCell, String> c3;
+
+    @FXML
+    TableColumn<FileCell, String> c4;
+
+    @FXML
+    MenuItem settings;
+
+    @FXML
+    MenuItem exit;
+
+    @FXML
+    Menu searchHis;
+
+    @FXML
+    MenuItem helpMenuItem;
+
+    @FXML
+    MenuItem about;
+
+    @FXML
+    MenuItem licence;
+
+    @FXML
+    HBox h1;
+
+    @FXML
+    HBox h2;
+
+    @FXML
+    HBox h3;
+
+    @FXML
+    ProgressIndicator proInd;
+
+    @FXML
+    Button cancelSearch;
+
+    private LanguageLoader lanLoader = new LanguageLoader();
+
+    private File currentRootDir;
+
+    private HashMap<String, String> extensions = new HashMap<>();
+
+    private Stage stage;
+
+    private long start;
+
+    private boolean isReSearching;
+
+    private SearchHistoryItem reSearchItem;
+
+    private double ratio;
+
+    private Thread currentThread;
+
+    private boolean isInSearchThread;
+
+    private float lastTime;
+
+    private boolean isCanceled;
+
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+
+        try {
+            ratio = Double.valueOf(ConfigLoader.getConfig().get("scale")) / 100.0;
+        } catch (IOException ioe) {
+            EventLogger.log(ioe, ioe.getMessage(), Level.WARNING);
+        }
+
+        fillLanguage();
+        setUIScale();
+
+        addContentBoxListener();
+        addFileTableListener();
+        addDesColListener();
+        addSelectAllBoxListener();
+
+        c1.setCellValueFactory(new PropertyValueFactory<>("Name"));
+        c2.setCellValueFactory(new PropertyValueFactory<>("Name1"));
+        c3.setCellValueFactory(new PropertyValueFactory<>("Type"));
+        c4.setCellValueFactory(new PropertyValueFactory<>("Name2"));
+
+        checkCol.setCellValueFactory(new PropertyValueFactory<>("Box"));
+        extCol.setCellValueFactory(new PropertyValueFactory<>("Name1"));
+        desCol.setCellValueFactory(new PropertyValueFactory<>("Name2"));
+
+        fillFormatTable();
+
+        addSubMenuToHistory();
+        proInd.setScaleX(0.5);
+        proInd.setScaleY(0.5);
+        proInd.setVisible(false);
+
+        searchFile.setSelected(true);
+        addCheckBoxesListener();
+
+        cancelSearch.managedProperty().bind(cancelSearch.visibleProperty());
+    }
+
+
+    /**
+     * The action event handler for "search" Button.
+     * <p>
+     * This method sets up and starts a search thread.
+     */
+    @FXML
+    private void searchAction() {
+
+        // Check if is now in another searching thread.
+        if (isInSearchThread) {
+            ContextMenu cm = new ContextMenu();
+            cm.getItems().add(new MenuItem(lanLoader.show(37)));
+            search.setOnMouseClicked(event -> cm.show(stage, event.getScreenX(), event.getScreenY()));
+            return;
+        } else {
+            search.setOnMouseClicked(null);
+        }
+
+        // Check if is re-searching.
+        if (!isReSearching) {
+            if (searchField.getText().length() == 0 || searchField.getText().length() == HelperFunctions.
+                    stringCount(searchField.getText(), " ") || (selectedCheckBoxesCount() == 1 &&
+                    searchCont.isSelected() && getSelectedInFormatTable().size() == 0)) {
+
+                fileTable.getItems().clear();
+                fileCount.setText(null);
+                timeCount.setText(null);
+                return;
+            }
+
+            if (!checkValidInput()) {
+                ContextMenu cm = new ContextMenu();
+                cm.getItems().add(new MenuItem(lanLoader.show(34)));
+                search.setOnMouseClicked(event -> cm.show(stage, event.getScreenX(), event.getScreenY()));
+                return;
+            } else {
+                search.setOnMouseClicked(null);
+            }
+        }
+
+        // Searching task.
+        Task<Void> task = new Task<Void>() {
+            @Override
+            public Void call() throws IOException {
+                updateMessage(lanLoader.show(28));
+                start = System.currentTimeMillis();
+                fileTable.getItems().clear();
+
+                Searcher se = new Searcher(currentThread);
+                se.progressProperty().addListener((obs, oldProgress, newProgress) ->
+                        updateTitle(String.valueOf((int) newProgress.doubleValue()) + lanLoader.show(26)));
+
+                if (isReSearching) {
+
+                    reSearchThread(se);
+                } else {
+
+                    searchThread(se);
+                }
+
+                return null;
+            }
+        };
+
+        // Bind UI texts.
+        timeCount.textProperty().bind(task.messageProperty());
+        fileCount.textProperty().bind(task.titleProperty());
+        cancelSearch.visibleProperty().bind(task.runningProperty());
+        proInd.visibleProperty().bind(task.runningProperty());
+
+        task.setOnFailed(e -> EventLogger.log(e.getSource().getException(), e.getSource().getMessage(), Level.INFO));
+
+        task.setOnSucceeded(e -> {
+            isInSearchThread = false;
+            timeCount.textProperty().unbind();
+            fileCount.textProperty().unbind();
+
+            forcedRefreshFileTable();
+
+            if (isCanceled) {
+                timeCount.setText(lanLoader.show(36) + " " + calculateTime() + lanLoader.show(30));
+            } else {
+                timeCount.setText(lanLoader.show(29) + " " + calculateTime() + lanLoader.show(30));
+            }
+            fileCount.setText(fileTable.getItems().size() + lanLoader.show(26));
+        });
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+
+        currentThread = thread;
+        isInSearchThread = true;
+        isCanceled = false;
+        thread.start();
+
+    }
+
+
+    /**
+     * The main thread of search process.
+     * <p>
+     * This method will be called when a new search is started.
+     *
+     * @param se the Searcher object of this thread, created in the search Task.
+     * @throws IOException if the config file cannot be load.
+     */
+    private void searchThread(Searcher se) throws IOException {
+
+        String target = searchField.getText();
+        File directory = currentRootDir;
+        boolean searchFileName = searchFile.isSelected();
+        boolean searchDirectory = searchDir.isSelected();
+        boolean searchContent = searchCont.isSelected();
+        boolean caseSense = Boolean.valueOf(ConfigLoader.getConfig().get("case_sen"));
+        boolean notSearchExt = Boolean.valueOf(ConfigLoader.getConfig().get("not_ext"));
+        boolean showHidden = Boolean.valueOf(ConfigLoader.getConfig().get("show_hidden"));
+        ArrayList<String> ext = getSelectedInFormatTable();
+        String sep = ConfigLoader.getConfig().get("and_sep");
+        String dirSep = ConfigLoader.getConfig().get("dir_sep");
+        pureSearchThread(se, target, directory, searchFileName, searchDirectory, searchContent, caseSense,
+                notSearchExt, showHidden, ext, sep, dirSep);
+        recordSearch();
+        addSubMenuToHistory();
+
+    }
+
+
+    /**
+     * The parameter setter and starter of the search thread.
+     *
+     * @param searcher        the Searcher object.
+     * @param target          the contents for searching.
+     * @param directory       the start directory of this search action.
+     * @param searchFileName  whether to search file names.
+     * @param searchDirectory whether to include path names in result.
+     * @param searchContent   whether to search file contents.
+     * @param caseSensitive   whether the search is case-sensitive.
+     * @param notSearchExt    whether to not include the files' extensions.
+     * @param showHidden      whether to show hidden files.
+     * @param extensions      the list of file formats which will be opened and searched.
+     * @param separator       the and-separator of this search.
+     * @param dirSep          the directory-separator.
+     */
+    private void pureSearchThread(Searcher searcher, String target, File directory, boolean searchFileName,
+                                  boolean searchDirectory, boolean searchContent, boolean caseSensitive,
+                                  boolean notSearchExt, boolean showHidden, ArrayList<String> extensions,
+                                  String separator, String dirSep) {
+        if (target.length() == 0) {
+            return;
+        }
+
+        searcher.setSeparator(separator);
+        searcher.setDirSep(dirSep);
+        searcher.setSearchDir(searchDirectory);
+        searcher.setSearchFile(searchFileName);
+        searcher.setNotSearchExt(notSearchExt);
+        searcher.setShowHidden(showHidden);
+        if (searchContent) {
+            searcher.setSearchContent(true);
+            searcher.setExtensions(extensions);
+        }
+        searcher.setCaseSensitive(caseSensitive);
+
+        searcher.setTableList(fileTable.getItems());
+        searcher.setLanLoader(lanLoader);
+        searcher.setSearch(directory, target);
+        searcher.startSearch();
+    }
+
+
+    /**
+     * The action event handler of "selectButton" Button.
+     * <p>
+     * This method creates a directory chooser dialog to the user and let him/her choose a root directory to search.
+     */
+    @FXML
+    public void selectAction() {
+
+        try {
+            boolean useCustom = Boolean.valueOf(ConfigLoader.getConfig().get("custom_chooser"));
+            if (useCustom && System.getProperties().getProperty("os.name").contains("Windows")) {
+                customChooser();
+            } else {
+                nativeChooser();
+            }
+        } catch (IOException ioe) {
+            nativeChooser();
+        }
+
+        if (searchFile.isSelected() || searchDir.isSelected() || searchCont.isSelected()) {
+            search.setDisable(false);
+            searchField.setOnAction(event -> searchAction());
+        }
+
+    }
+
+
+    /**
+     * Shows the customized directory chooser.
+     */
+    private void customChooser() {
+        try {
+            File f = new File("resources/fxml/explorer.fxml");
+            FXMLLoader loader = new FXMLLoader(f.toURI().toURL());
+            Parent root = loader.load();
+            Stage stage = new Stage();
+            stage.setTitle(lanLoader.show(1003));
+            stage.setScene(new Scene(root));
+            stage.setResizable(false);
+
+            stage.getIcons().add(this.stage.getIcons().get(0));
+
+            ExplorerClient s = loader.getController();
+            s.setController(this);
+            s.setStage(stage);
+
+            stage.show();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+    }
+
+
+    /**
+     * Shows the system's native directory chooser.
+     */
+    private void nativeChooser() {
+        DirectoryChooser dirChoose = new DirectoryChooser();
+
+        File selectedDirectory = dirChoose.showDialog(null);
+        if (selectedDirectory != null) {
+            currentRootDir = selectedDirectory;
+            currentRootDirText.setText(lanLoader.show(22) + "\n" + currentRootDir.getAbsolutePath());
+
+        }
+    }
+
+    /**
+     * Sets up the current searching directory.
+     *
+     * If the dir is null, the currentRootDir will represent the system root directory.
+     *
+     * @param dir the current searching directory.
+     */
+    public void setStartDirectory(File dir) {
+        this.currentRootDir = dir;
+        if (dir instanceof FileRoot) {
+            currentRootDirText.setText(lanLoader.show(22) + "\n" + lanLoader.show(1001));
+
+        } else {
+            currentRootDirText.setText(lanLoader.show(22) + "\n" + currentRootDir.getAbsolutePath());
+        }
+    }
+
+
+    /**
+     * The action event handler of the "OpenFileButton" Button and the double click event on the TableRow of
+     * the TableView "fileTable".
+     * <p>
+     * This method calls the system's default method to open the selected file.
+     */
+    @FXML
+    public void openFile() {
+        FileCell currentFc = fileTable.getSelectionModel().getSelectedItem();
+        try {
+            Desktop.getDesktop().open(new File(currentFc.getFullPath()));
+        } catch (IOException ioe) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle(lanLoader.show(201));
+            alert.setHeaderText(lanLoader.show(202));
+            alert.setContentText(lanLoader.show(203));
+            alert.showAndWait();
+        }
+
+    }
+
+
+    /**
+     * The action event handler of the "openDirectory" Button.
+     * <p>
+     * This method calls the system's default file manager to open parent directory of the selected file.
+     */
+    @FXML
+    public void openDirectory() {
+        FileCell currentFc = fileTable.getSelectionModel().getSelectedItem();
+        try {
+            Desktop.getDesktop().open(new File(currentFc.getName1()));
+        } catch (IOException ioe) {
+            EventLogger.log(ioe, ioe.getMessage(), Level.SEVERE);
+        }
+
+    }
+
+
+    /**
+     * Action event handler of the Button "cancelSearch".
+     *
+     * This method interrupts the current searching thread.
+     */
+    @FXML
+    public void cancelSearchAction() {
+        currentThread.interrupt();
+        isInSearchThread = false;
+        isCanceled = true;
+    }
+
+
+    /**
+     * The action event handler of the MenuItem "setting".
+     * <p>
+     * This method creates a new settings window.
+     */
+    @FXML
+    public void settingsAction() {
+        try {
+            File f = new File("resources/fxml/settings.fxml");
+            FXMLLoader loader = new FXMLLoader(f.toURI().toURL());
+            Parent root = loader.load();
+            Stage stage = 

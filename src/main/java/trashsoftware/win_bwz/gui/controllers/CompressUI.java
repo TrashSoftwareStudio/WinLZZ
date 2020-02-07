@@ -314,7 +314,7 @@ public class CompressUI implements Initializable {
         modeBox.getItems().clear();
         modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
         threadBox.getItems().clear();
-        threadBox.getItems().add(1);
+        threadBox.getItems().addAll(threads);
         threadBox.getSelectionModel().select(0);
     }
 

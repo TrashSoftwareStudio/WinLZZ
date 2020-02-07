@@ -4,8 +4,11 @@ import trashsoftware.win_bwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.win_bwz.core.fastLzz.FastLzzDecompressor;
 import trashsoftware.win_bwz.utility.Util;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.Arrays;
 
 public class FastLzzTest {
 
@@ -20,12 +23,14 @@ public class FastLzzTest {
 //        name = "allCodes.zip";
 //        name = "ep.head";
 //        name = "t0.txt";
-        String cmpName = Util.getCompressFileName(name, "lzz2p");
+//        name = "t3.tif";
+        String cmpName = Util.getCompressFileName(name, "flz");
 //        Vector<FileInputStream> v = new Vector<>();
 //        v.add(new FileInputStream(name));
 //        SequenceInputStream sis = new SequenceInputStream(v.elements());
         int ws = 32768;
         FastLzzCompressor c = new FastLzzCompressor(name, ws, 255);
+        c.setThreads(2);
         c.setCompressionLevel(0);
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
@@ -50,5 +55,27 @@ public class FastLzzTest {
         long t2 = System.currentTimeMillis() - mid;
         System.out.println("Uncompress Time: " + t2 + " ms");
         System.out.println("C/U time ratio: " + (double) t1 / t2);
+
+        BufferedInputStream checkBis = new BufferedInputStream(new FileInputStream(name));
+        BufferedInputStream checkBis2 = new BufferedInputStream(new FileInputStream(cpyName));
+        int read;
+        byte[] buffer = new byte[8192];
+        byte[] buffer2 = new byte[8192];
+        int begin = 0;
+        while ((read = checkBis.read(buffer)) > 0) {
+            int read2 = checkBis2.read(buffer2);
+            if (read != read2) {
+                System.out.println("Lengths not match");
+                break;
+            }
+            if (!Arrays.equals(buffer, buffer2)) {
+                System.out.println("Content not match between " + begin + " and " + (begin + read));
+                break;
+            }
+
+            begin += read;
+        }
+        checkBis.close();
+        checkBis2.close();
     }
 }

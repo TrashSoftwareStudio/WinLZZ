@@ -64,6 +64,13 @@ public class FileBitInputStream {
         return (byte) readBits(8);
     }
 
+    /**
+     * Skips the bits currently in buffer
+     */
+    public void alignByte() {
+        bitPos = 0;
+    }
+
     private void loadBits(int leastBitsCount) throws IOException {
         while (bitPos < leastBitsCount) {
             bitPos += 8;

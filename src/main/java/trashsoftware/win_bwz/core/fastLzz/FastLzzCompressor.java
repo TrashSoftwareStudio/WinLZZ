@@ -2,10 +2,7 @@ package trashsoftware.win_bwz.core.fastLzz;
 
 import trashsoftware.win_bwz.core.Compressor;
 import trashsoftware.win_bwz.packer.Packer;
-import trashsoftware.win_bwz.utility.Bytes;
-import trashsoftware.win_bwz.utility.FileBitOutputStream;
-import trashsoftware.win_bwz.utility.MultipleInputStream;
-import trashsoftware.win_bwz.utility.Util;
+import trashsoftware.win_bwz.utility.*;
 
 import java.io.*;
 import java.util.concurrent.ExecutorService;
@@ -26,7 +23,7 @@ public class FastLzzCompressor implements Compressor {
     /**
      * Load this size and process every time.
      */
-    final static int MEMORY_BUFFER_SIZE = 16384;  // 16 MB
+    final static int MEMORY_BUFFER_SIZE = 16777216;  // 16 MB
 
     public static final int VERSION = 0;
 
@@ -34,7 +31,9 @@ public class FastLzzCompressor implements Compressor {
 
     protected long totalLength;
 
-    private long remainingLength;
+    private long processedLength;
+
+//    private long remainingLength;
 
     private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
 
@@ -58,8 +57,6 @@ public class FastLzzCompressor implements Compressor {
 
     private int compressionLevel;
 
-    private int dis, len;
-
     private byte[] buffer;
 
     private int threads = 1;
@@ -79,7 +76,7 @@ public class FastLzzCompressor implements Compressor {
         this.dictSize = windowSize - bufferMaxSize - 1;
 
         this.totalLength = new File(inFile).length();
-        this.remainingLength = totalLength;
+//        this.remainingLength = totalLength;
         this.sis = new FileInputStream(inFile);
     }
 
@@ -95,7 +92,7 @@ public class FastLzzCompressor implements Compressor {
         this.bufferMaxSize = bufferSize;
         this.dictSize = windowSize - bufferMaxSize - 1;
         this.totalLength = totalLength;
-        this.remainingLength = totalLength;
+//        this.remainingLength = totalLength;
         this.sis = mis;
     }
 
@@ -118,6 +115,7 @@ public class FastLzzCompressor implements Compressor {
 
         byte[] lengthBytes = Bytes.intToBytes32((int) totalLength);
         for (byte b : lengthBytes) outFile.write(b);
+        cmpSize = 4;
 
         FixedSlider[] sliders = new FixedSlider[threads];
         for (int i = 0; i < threads; ++i) {
@@ -128,7 +126,7 @@ public class FastLzzCompressor implements Compressor {
             }
         }
 
-        while ((read = sis.read(buffer)) > 0) {
+        while ((read = sis.read(buffer)) > 0 && notInterrupted) {
             EncodeThread[] threadArray = new EncodeThread[threads];
             ExecutorService es = Executors.newCachedThreadPool();
             int i = 0;
@@ -136,44 +134,28 @@ public class FastLzzCompressor implements Compressor {
             while (start < read) {
                 int end = Math.min(start + MEMORY_BUFFER_SIZE, read);
                 threadArray[i] = new EncodeThread(start, end - start, sliders[i]);
+                if (i == 0) threadArray[i].timerThread = true;
                 i++;
                 start = end;
             }
-            for (EncodeThread th: threadArray) {
-                es.execute(th);
+            for (EncodeThread et : threadArray) {
+                if (et != null)
+                    es.execute(et);
             }
             es.shutdown();
             es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
 
             for (EncodeThread et : threadArray) {
-                cmpSize += et.writeToStream(outFile);
+                if (et != null) {
+                    cmpSize += et.writeToStream(outFile);
+                    processedLength += et.bufferSize;
+                }
             }
-
-            remainingLength -= read;
+//            remainingLength -= read;
         }
 
         sis.close();
         outFile.flush();
-    }
-
-    private void fillSlider(int from, int to, FixedSlider slider) {
-        int lastHash = -1;
-        int repeatCount = 0;
-        for (int j = from; j < to; j++) {
-            byte b0 = buffer[j];
-            byte b1 = buffer[j + 1];
-            int hash = hash(b0, b1);
-            if (hash == lastHash) {
-                repeatCount++;
-            } else {
-                if (repeatCount > 0) {
-                    repeatCount = 0;
-                    slider.addIndex(lastHash, j - 1);
-                }
-                lastHash = hash;
-                slider.addIndex(hash, j);
-            }
-        }
     }
 
     private static int hash(byte b0, byte b1) {
@@ -182,7 +164,7 @@ public class FastLzzCompressor implements Compressor {
 
     private void updateInfo(long current, long updateTime) {
         parent.progress.set(current);
-        if (timeAccumulator == 19) {
+        if (timeAccumulator == 9) {
             timeAccumulator = 0;
             double finished = ((double) current) / totalLength;
             double rounded = (double) Math.round(finished * 1000) / 10;
@@ -246,30 +228,37 @@ public class FastLzzCompressor implements Compressor {
         private FixedSlider slider;
         private FileBitOutputStream fos;
 
+        /**
+         * Whether to use this thread to drive the gui timer
+         */
+        private boolean timerThread;
+
+        private int dis, len;
+
         EncodeThread(int bufferStart, int bufferSize, FixedSlider slider) {
             this.bufferStart = bufferStart;
             this.bufferSize = bufferSize;
             this.slider = slider;
-            slider.clear();
-            fos = new FileBitOutputStream(new ByteArrayOutputStream());
+            fos = new FileBitOutputStream(new FixedByteArrayOutputStream((int) ((double) bufferSize * 1.2)));
         }
 
         @Override
         public void run() {
+            slider.clear();
             try {
                 long currentTime;
                 int i = 0;
                 while (i < bufferSize - 3) {
                     if (compressionLevel > 0) {
-                        calculateLongestMatch((FixedArraySlider) slider, i);
+                        calculateLongestMatch((FixedArraySlider) slider, bufferStart + i);
                     } else {
-                        calculateLongestMatchSingle((FixedIntSlider) slider, i);
+                        calculateLongestMatchSingle((FixedIntSlider) slider, bufferStart + i);
                     }
                     int prevI = i;
 
                     if (len < FastLzzUtil.MINIMUM_LENGTH) {
                         fos.write(0);
-                        fos.writeByte(buffer[i]);
+                        fos.writeByte(buffer[bufferStart + i]);
                         i++;
                     } else {
                         fos.write(1);
@@ -280,22 +269,25 @@ public class FastLzzCompressor implements Compressor {
                     }
 
                     if (i >= bufferSize) break;
-                    fillSlider(prevI, i, slider);
+                    fillSlider(bufferStart + prevI, bufferStart + i, this.slider);
 
                     if (parent != null && parent.isInterrupted) break;
-                    if (parent != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
-                        updateInfo(totalLength - remainingLength + i, currentTime);
+                    if (timerThread &&
+                            parent != null &&
+                            (currentTime = System.currentTimeMillis()) - lastCheckTime >= 100) {
+                        updateInfo(processedLength + i, currentTime);
                         lastCheckTime = currentTime;
                     }
                 }
                 for (; i < bufferSize; i++) {
                     fos.write(0);
-                    fos.writeByte(buffer[i]);
+                    fos.writeByte(buffer[bufferStart + i]);
                 }
                 fos.flush();
                 fos.close();
             } catch (IOException e) {
                 notInterrupted = false;
+                e.printStackTrace();
             }
         }
 
@@ -309,17 +301,17 @@ public class FastLzzCompressor implements Compressor {
                 return;
             }
 
-            int maxLookAhead = Math.min(bufferSize, MEMORY_BUFFER_SIZE);
-            int windowBegin = Math.max(index - dictSize, 0);
+            int windowBegin = Math.max(index - dictSize, bufferStart);
 
-            if (position <= windowBegin) {
+            if (position < windowBegin) {
                 len = 0;
                 return;
             }
 
+            int bufferFrontLimit = bufferStart + bufferSize;
             int length = 2;
             while (length < bufferMaxSize &&
-                    index + length < maxLookAhead &&
+                    index + length < bufferFrontLimit &&
                     buffer[position + length] == buffer[index + length]) {
                 length++;
             }
@@ -338,13 +330,13 @@ public class FastLzzCompressor implements Compressor {
                 return;
             }
 
-            int maxLookAhead = (int) Math.min(remainingLength, MEMORY_BUFFER_SIZE);
-            int windowBegin = Math.max(index - dictSize, 0);
+            int windowBegin = Math.max(index - dictSize, bufferStart);
 
             int longest = 2;  // at least 2
             final int beginPos = positions.beginPos();
             int indexOfLongest = positions.tail;
             int andEr = slider.getAndEr();
+            int bufferFrontLimit = bufferStart + bufferSize;
             for (int i = positions.tail - 1; i >= beginPos; i--) {
                 int pos = positions.array[i & andEr];
 
@@ -352,7 +344,7 @@ public class FastLzzCompressor implements Compressor {
 
                 int len = 2;
                 while (len < bufferMaxSize &&
-                        index + len < maxLookAhead &&
+                        index + len < bufferFrontLimit &&
                         buffer[pos + len] == buffer[index + len]) {
                     len++;
                 }
@@ -366,11 +358,30 @@ public class FastLzzCompressor implements Compressor {
             len = longest;
         }
 
+        private void fillSlider(int from, int to, FixedSlider slider) {
+            int lastHash = -1;
+            int repeatCount = 0;
+            for (int j = from; j < to; j++) {
+                byte b0 = buffer[j];
+                byte b1 = buffer[j + 1];
+                int hash = hash(b0, b1);
+                if (hash == lastHash) {
+                    repeatCount++;
+                } else {
+                    if (repeatCount > 0) {
+                        repeatCount = 0;
+                        slider.addIndex(lastHash, j - 1);
+                    }
+                    lastHash = hash;
+                    slider.addIndex(hash, j);
+                }
+            }
+        }
+
         int writeToStream(OutputStream outputStream) throws IOException {
-            ByteArrayOutputStream arrayOutputStream = (ByteArrayOutputStream) fos.getStream();
-            byte[] array = arrayOutputStream.toByteArray();
-            outputStream.write(array);
-            return array.length;
+            FixedByteArrayOutputStream arrayOutputStream = (FixedByteArrayOutputStream) fos.getStream();
+            arrayOutputStream.writeToStream(outputStream);
+            return arrayOutputStream.getLength();
         }
     }
 }

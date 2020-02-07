@@ -408,9 +408,11 @@ public class UnPacker {
     private void readContext() throws IOException, ChecksumDoesNotMatchException {
         BufferedInputStream mapInputStream = new BufferedInputStream(new FileInputStream(mapName));
         CRC32 contextChecker = new CRC32();
-        while (true) {
-            byte[] flag = new byte[2];
-            if (mapInputStream.read(flag) != 2) break;
+
+        byte[] flag = new byte[2];
+        byte[] buffer8 = new byte[8];
+
+        while (mapInputStream.read(flag) == 2) {
             contextChecker.update(flag, 0, flag.length);
             boolean isDir = (flag[0] & 0xff) == 0;
             int nameLen = flag[1] & 0xff;
@@ -420,7 +422,6 @@ public class UnPacker {
             String name = Bytes.stringDecode(nameBytes);
             IndexNodeUnp inu = new IndexNodeUnp(name);
 
-            byte[] buffer8 = new byte[8];
             if (mapInputStream.read(buffer8) != 8) throw new IOException("Error occurs while reading");
             contextChecker.update(buffer8, 0, buffer8.length);
             long start = Bytes.bytesToLong(buffer8);

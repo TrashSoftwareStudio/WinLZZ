@@ -36,7 +36,9 @@ public class FileBitOutputStream {
      * @param fos the {@code OutputStream} to write data in.
      */
     public FileBitOutputStream(OutputStream fos) {
-        if (fos instanceof BufferedOutputStream || fos instanceof ByteArrayOutputStream) bos = fos;
+        if (fos instanceof BufferedOutputStream ||
+                fos instanceof ByteArrayOutputStream ||
+                fos instanceof FixedByteArrayOutputStream) bos = fos;
         else bos = new BufferedOutputStream(fos);
     }
 

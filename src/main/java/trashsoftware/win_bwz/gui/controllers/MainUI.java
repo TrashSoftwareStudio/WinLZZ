@@ -85,6 +85,7 @@ public class MainUI implements Initializable {
      * {@code MenuItem}'s in right-click popup menu.
      */
     private MenuItem openR, openDirR, compressR, copyR, cutR, pasteR, deleteR, renameR, propertyR;
+    private Stage thisStage;
 
     private Label placeHolder = new Label();
     private ContextMenu rightPopupMenu = new ContextMenu();
@@ -123,6 +124,10 @@ public class MainUI implements Initializable {
         changeClipBoardStatus();
     }
 
+    public void setStage(Stage stage) {
+        this.thisStage = stage;
+    }
+
     /* Actions and handlers */
 
     @FXML
@@ -131,6 +136,7 @@ public class MainUI implements Initializable {
                 getClass().getResource("/trashsoftware/win_bwz/fxml/aboutUI.fxml"), bundle);
         Parent root = loader.load();
         Stage stage = new Stage();
+        stage.setTitle("WinLZZ");
         stage.setScene(new Scene(root));
         stage.setResizable(false);
         stage.show();
@@ -271,6 +277,13 @@ public class MainUI implements Initializable {
             e.printStackTrace();
         }
     }
+
+    @FXML
+    private void exitAction() {
+        thisStage.close();
+    }
+
+    /* Functional methods */
 
     private void refreshDirButtons() {
         currentDirBox.getChildren().clear();
@@ -812,22 +825,4 @@ public class MainUI implements Initializable {
             pasteHere.setDisable(false);
         }
     }
-
-//    private void fillText() {
-//        nameCol.setText(lanLoader.get(20));
-//        typeCol.setText(lanLoader.get(21));
-//        sizeCol.setText(lanLoader.get(22));
-//        timeCol.setText(lanLoader.get(23));
-//        compressButton.setText(lanLoader.get(10));
-//        uncompressButton.setText(lanLoader.get(11));
-//        settingsMenu.setText(lanLoader.get(12));
-//        helpMenu.setText(lanLoader.get(13));
-//        languageSetting.setText(lanLoader.get(14));
-//        about.setText(lanLoader.get(16));
-//        licence.setText(lanLoader.get(17));
-//        changelogView.setText(lanLoader.get(18));
-//        toolMenu.setText(lanLoader.get(30));
-//        openInDesktop.setText(lanLoader.get(32));
-//        pasteHere.setText(lanLoader.get(31));
-//    }
 }

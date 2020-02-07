@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import trashsoftware.win_bwz.gui.controllers.MainUI;
 import trashsoftware.win_bwz.resourcesPack.UTF8Control;
 import trashsoftware.win_bwz.resourcesPack.configLoader.GeneralLoaders;
 
@@ -44,6 +45,9 @@ public class GUIClient extends Application {
                 getClass().getResource("/trashsoftware/win_bwz/fxml/mainUI.fxml"), bundle);
 
         Parent root = loader.load();
+        MainUI controller = loader.getController();
+        controller.setStage(primaryStage);
+
         primaryStage.setTitle("WinLZZ");
         primaryStage.setScene(new Scene(root));
         primaryStage.setResizable(false);

@@ -49,7 +49,7 @@
         <ComboBox fx:id="algBox" prefWidth="200.0" GridPane.columnIndex="1"/>
         <Label text="%compressLv" GridPane.rowIndex="1">
         </Label>
-        <ComboBox fx:id="levelBox" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+        <ComboBox fx:id="presetLevelBox" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
         <Label text="%dictSize" GridPane.rowIndex="2">
         </Label>
         <Label text="%wordSize" GridPane.rowIndex="3">

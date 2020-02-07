@@ -93,7 +93,7 @@ public class FastLzzDecompressor implements DeCompressor {
                 fis.alignByte();
             }
             if (parent != null && parent.isInterrupted) break;
-            if (parent != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 100) {
+            if (parent != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
                 updateInfo(totalUmpIndex + indexInBuffer, currentTime);
                 lastCheckTime = currentTime;
             }
@@ -124,7 +124,7 @@ public class FastLzzDecompressor implements DeCompressor {
 
     private void updateInfo(long current, long updateTime) {
         parent.progress.set(current);
-        if (timeAccumulator == 9) {
+        if (timeAccumulator == 19) {
             timeAccumulator = 0;
             double finished = ((double) current) / parent.getTotalOrigSize();
             double rounded = (double) Math.round(finished * 1000) / 10;

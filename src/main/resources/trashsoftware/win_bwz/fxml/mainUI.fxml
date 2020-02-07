@@ -10,11 +10,11 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TreeView?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
 
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.control.SeparatorMenuItem?>
 <GridPane xmlns="http://javafx.com/javafx"
           xmlns:fx="http://javafx.com/fxml"
           fx:controller="trashsoftware.win_bwz.gui.controllers.MainUI"
@@ -33,8 +33,9 @@
     </padding>
     <MenuBar GridPane.columnSpan="2">
         <Menu mnemonicParsing="false" text="%file">
-            <MenuItem mnemonicParsing="false" onAction="#settingsAction"
-                      text="%settings"/>
+            <MenuItem mnemonicParsing="false" onAction="#settingsAction" text="%settings"/>
+            <SeparatorMenuItem/>
+            <MenuItem mnemonicParsing="false" onAction="#exitAction" text="%exit"/>
         </Menu>
         <Menu mnemonicParsing="false" text="%edit">
             <MenuItem mnemonicParsing="false" onAction="#desktopOpenAction"

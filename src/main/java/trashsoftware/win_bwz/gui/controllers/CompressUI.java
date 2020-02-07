@@ -26,7 +26,7 @@ public class CompressUI implements Initializable {
     private TextField nameText;
 
     @FXML
-    private ComboBox<String> algBox, levelBox, windowNameBox, modeBox, partialBox, unitBox;
+    private ComboBox<String> algBox, presetLevelBox, windowNameBox, modeBox, partialBox, unitBox;
 
     @FXML
     private ComboBox<Integer> bufferBox, threadBox;
@@ -67,7 +67,7 @@ public class CompressUI implements Initializable {
     private Integer[] labSizesLzz2 = {8, 16, 32, 64, 128, 256, LZZ2Compressor.MAXIMUM_LENGTH};
     private Integer[] labSizesFastLzz = {8, 16, 32, 64, 128, 256, FastLzzCompressor.MAXIMUM_LENGTH};
 
-    private String[] cmpLevels = new String[5];
+    private String[] cmpModeLevels = new String[5];
     private Integer[] threads = {1, 2, 3, 4};
 
     private MainUI parent;
@@ -97,7 +97,7 @@ public class CompressUI implements Initializable {
         setWindowNameBoxListener();
         setModeBoxListener();
         threadBox.getSelectionModel().select(0);
-        levelBox.getSelectionModel().select(3);
+        presetLevelBox.getSelectionModel().select(3);
         modeBox.getSelectionModel().select(1);
         algBox.getSelectionModel().select(0);
         unitBox.getSelectionModel().select(0);
@@ -132,16 +132,14 @@ public class CompressUI implements Initializable {
 
     private void fillGeneralBoxes() {
         algBox.getItems().addAll(algNames);
-        levelBox.getItems().addAll(compressionLevels);
+        presetLevelBox.getItems().addAll(compressionLevels);
         partialBox.getItems().addAll(splitSizeNames);
         unitBox.getItems().addAll("B", "KB", "MB", "GB");
-//        setBwzUi();
-//        threadBox.getSelectionModel().select(0);
     }
 
-    private boolean hasBuffer() {
-        return algValues[currentAlgIndex].equals("lzz2") || algValues[currentAlgIndex].equals("fastLzz");
-    }
+//    private boolean hasBuffer() {
+//        return algValues[currentAlgIndex].equals("lzz2") || algValues[currentAlgIndex].equals("fastLzz");
+//    }
 
     private void setSizeUnitListener() {
         partialBox.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
@@ -161,7 +159,7 @@ public class CompressUI implements Initializable {
     }
 
     private void setLevelListener() {
-        levelBox.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
+        presetLevelBox.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue.intValue() == 0) {
                 windowNameBox.getSelectionModel().clearSelection();
                 bufferBox.getSelectionModel().clearSelection();
@@ -172,27 +170,13 @@ public class CompressUI implements Initializable {
             } else {
                 windowNameBox.setDisable(false);
                 modeBox.setDisable(false);
-                if (hasBuffer()) bufferBox.setDisable(false);
-                if (newValue.intValue() == 1) {
-                    windowNameBox.getSelectionModel().select(0);
-                    modeBox.getSelectionModel().select(0);
-                    if (hasBuffer()) bufferBox.getSelectionModel().select(1);
-                } else if (newValue.intValue() == 2) {
-                    windowNameBox.getSelectionModel().select(1);
-                    modeBox.getSelectionModel().select(0);
-                    if (hasBuffer()) bufferBox.getSelectionModel().select(2);
-                } else if (newValue.intValue() == 3) {
-                    windowNameBox.getSelectionModel().select(2);
-                    modeBox.getSelectionModel().select(1);
-                    if (hasBuffer()) bufferBox.getSelectionModel().select(3);
-                } else if (newValue.intValue() == 4) {
-                    windowNameBox.getSelectionModel().select(3);
-                    modeBox.getSelectionModel().select(1);
-                    if (hasBuffer()) bufferBox.getSelectionModel().select(3);
-                } else if (newValue.intValue() == 5) {
-                    windowNameBox.getSelectionModel().select(5);
-                    modeBox.getSelectionModel().select(1);
-                    if (hasBuffer()) bufferBox.getSelectionModel().select(4);
+
+                int[] windowModeBuffer = getPresetLevels(newValue.intValue());
+                windowNameBox.getSelectionModel().select(windowModeBuffer[0]);
+                modeBox.getSelectionModel().select(windowModeBuffer[1]);
+                if (windowModeBuffer[2] >= 0) {  // has buffer (look ahead buffer) option
+                    bufferBox.setDisable(false);
+                    bufferBox.getSelectionModel().select(windowModeBuffer[2]);
                 }
             }
         });
@@ -231,7 +215,7 @@ public class CompressUI implements Initializable {
                 default:
                     throw new RuntimeException();
             }
-            levelBox.getSelectionModel().select(3);
+            presetLevelBox.getSelectionModel().select(3);
             windowNameBox.getSelectionModel().select(2);
             estimateMemoryUsage();
         });
@@ -241,6 +225,7 @@ public class CompressUI implements Initializable {
         modeBox.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
             if (newValue.intValue() >= 0) {
                 currentModeIndex = newValue.intValue();
+                estimateMemoryUsage();
             }
         }));
     }
@@ -250,6 +235,14 @@ public class CompressUI implements Initializable {
         if (alg.equals("bwz")) {
             updateMemoryLabels(
                     BWZCompressor.estimateMemoryUsage(
+                            threads[currentThreadIndex],
+                            windowSizesBwz[currentWindowIndex],
+                            currentModeIndex
+                    )
+            );
+        } else if (alg.equals("fastLzz")) {
+            updateMemoryLabels(
+                    FastLzzCompressor.estimateMemoryUsage(
                             threads[currentThreadIndex],
                             windowSizesBwz[currentWindowIndex],
                             currentModeIndex
@@ -270,7 +263,7 @@ public class CompressUI implements Initializable {
     }
 
     private void setLzz2Ui() {
-        levelBox.setDisable(false);
+        presetLevelBox.setDisable(false);
         windowNameBox.setDisable(false);
         windowNameBox.getItems().clear();
         windowNameBox.getItems().addAll(windowSizeNamesLzz2);
@@ -279,14 +272,14 @@ public class CompressUI implements Initializable {
         bufferBox.getItems().addAll(labSizesLzz2);
         modeBox.setDisable(false);
         modeBox.getItems().clear();
-        modeBox.getItems().addAll(cmpLevels);
+        modeBox.getItems().addAll(cmpModeLevels);
         threadBox.getItems().clear();
         threadBox.getItems().add(1);
         threadBox.getSelectionModel().select(0);
     }
 
     private void setBwzUi() {
-        levelBox.setDisable(false);
+        presetLevelBox.setDisable(false);
         windowNameBox.setDisable(false);
         windowNameBox.getItems().clear();
         windowNameBox.getItems().addAll(windowSizeNamesBwz);
@@ -296,14 +289,14 @@ public class CompressUI implements Initializable {
         modeBox.setDisable(false);
         modeBox.getSelectionModel().clearSelection();
         modeBox.getItems().clear();
-        modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
+        modeBox.getItems().addAll(cmpModeLevels[0], cmpModeLevels[1]);
         threadBox.getItems().clear();
         threadBox.getItems().addAll(threads);
         threadBox.getSelectionModel().select(0);
     }
 
     private void setFastLzzUi() {
-        levelBox.setDisable(false);
+        presetLevelBox.setDisable(false);
         windowNameBox.setDisable(false);
         windowNameBox.getItems().clear();
         windowNameBox.getItems().addAll(windowSizeNamesFastLzz);
@@ -312,7 +305,7 @@ public class CompressUI implements Initializable {
         bufferBox.getItems().addAll(labSizesFastLzz);
         modeBox.setDisable(false);
         modeBox.getItems().clear();
-        modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
+        modeBox.getItems().addAll(cmpModeLevels[0], cmpModeLevels[1]);
         threadBox.getItems().clear();
         threadBox.getItems().addAll(threads);
         threadBox.getSelectionModel().select(0);
@@ -363,7 +356,7 @@ public class CompressUI implements Initializable {
         String alg = getAlgCode();
 
         int window, buffer, cmpLevel;
-        if (levelBox.getSelectionModel().getSelectedIndex() == 0) {
+        if (presetLevelBox.getSelectionModel().getSelectedIndex() == 0) {
             window = 0;
             buffer = 0;
             cmpLevel = 0;
@@ -429,6 +422,65 @@ public class CompressUI implements Initializable {
 
     private void fillTexts() {
         for (int i = 0; i < 6; i++) compressionLevels[i] = bundle.getString("compressLv" + i);
-        for (int i = 0; i < 5; i++) cmpLevels[i] = bundle.getString("compressStrongLv" + i);
+        for (int i = 0; i < 5; i++) cmpModeLevels[i] = bundle.getString("compressStrongLv" + i);
+    }
+
+    private int[] getPresetLevels(int presetLevel) {
+        String currentAlgValue = algValues[currentAlgIndex];
+        switch (currentAlgValue) {
+            case "bwz":
+                return getBwzPref(presetLevel);
+            case "lzz2":
+                return getLzz2Pref(presetLevel);
+            case "fastLzz":
+                return getFastLzzPref(presetLevel);
+            default:
+                throw new RuntimeException();
+        }
+    }
+
+    private int[] getBwzPref(int presetLevel) {
+        switch (presetLevel) {
+            case 1:
+                return new int[]{0, 0, -1};
+            case 2:
+                return new int[]{1, 0, -1};
+            default:  // default level is 3
+                return new int[]{2, 1, -1};
+            case 4:
+                return new int[]{3, 1, -1};
+            case 5:
+                return new int[]{5, 1, -1};
+        }
+    }
+
+    private int[] getLzz2Pref(int presetLevel) {
+        switch (presetLevel) {
+            case 1:
+                return new int[]{0, 0, 1};
+            case 2:
+                return new int[]{1, 0, 2};
+            default:  // default level is 3
+                return new int[]{2, 1, 3};
+            case 4:
+                return new int[]{3, 2, 3};
+            case 5:
+                return new int[]{5, 3, 4};
+        }
+    }
+
+    private int[] getFastLzzPref(int presetLevel) {
+        switch (presetLevel) {
+            case 1:
+                return new int[]{0, 0, 1};
+            case 2:
+                return new int[]{1, 0, 2};
+            default:  // default level is 3
+                return new int[]{2, 0, 3};
+            case 4:
+                return new int[]{3, 1, 3};
+            case 5:
+                return new int[]{5, 1, 4};
+        }
     }
 }

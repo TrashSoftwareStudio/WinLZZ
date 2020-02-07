@@ -25,7 +25,7 @@ public class FastLzzCompressor implements Compressor {
      */
     final static int MEMORY_BUFFER_SIZE = 16777216;  // 16 MB
 
-    public static final int VERSION = 0;
+    public static final int VERSION = 1;
 
     private InputStream sis;
 
@@ -164,7 +164,7 @@ public class FastLzzCompressor implements Compressor {
 
     private void updateInfo(long current, long updateTime) {
         parent.progress.set(current);
-        if (timeAccumulator == 9) {
+        if (timeAccumulator == 19) {
             timeAccumulator = 0;
             double finished = ((double) current) / totalLength;
             double rounded = (double) Math.round(finished * 1000) / 10;
@@ -221,6 +221,30 @@ public class FastLzzCompressor implements Compressor {
         this.compressionLevel = compressionLevel;
     }
 
+    /**
+     * returns the estimated memory usage during compression and decompression
+     *
+     * @param threads    the thread number
+     * @param windowSize the window size
+     * @param modeLevel  the strong level
+     * @return {@code long[2]{memory when compress, memory when uncompress}}
+     */
+    public static long[] estimateMemoryUsage(int threads, int windowSize, int modeLevel) {
+        long cmpMemOneThread = 1024;  // other objects
+        cmpMemOneThread += MEMORY_BUFFER_SIZE;  // memory buffer
+        if (modeLevel == 0) {  // FixedIntSlider
+            cmpMemOneThread += 65536 * 4;
+        } else {  // FixedArraySlider
+            int fadSize = 24 + 8 + 16 * 4;
+            cmpMemOneThread += 65536 * fadSize;
+        }
+        long cmpTotal = cmpMemOneThread * threads;
+
+        long uncMem = 1024; // other objects
+        uncMem += MEMORY_BUFFER_SIZE;  // memory buffer
+        return new long[]{cmpTotal, uncMem};
+    }
+
     private class EncodeThread implements Runnable {
 
         private int bufferStart;
@@ -274,7 +298,7 @@ public class FastLzzCompressor implements Compressor {
                     if (parent != null && parent.isInterrupted) break;
                     if (timerThread &&
                             parent != null &&
-                            (currentTime = System.currentTimeMillis()) - lastCheckTime >= 100) {
+                            (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
                         updateInfo(processedLength + i, currentTime);
                         lastCheckTime = currentTime;
                     }

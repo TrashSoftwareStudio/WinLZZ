@@ -158,7 +158,7 @@ public class LZZ2DeCompressor implements DeCompressor {
                     lastDistances[(++lastDisIndex) & 0b11] = dis;
                 } else {
                     int disHead = disHeadHis.readNext();
-                    int length = LZZ2Util.recoverLength(s - 257, dlbBis) + minimumMatchLen;
+                    int length = LZZ2Util.recoverLength(s - 257, dlbBis) + MINIMUM_MATCH_LEN;
                     int distance;
                     if (disHead < 4) {
                         distance = lastDistances[(lastDisIndex - disHead) & 0b11];

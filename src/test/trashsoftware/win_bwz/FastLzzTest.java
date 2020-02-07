@@ -26,7 +26,7 @@ public class FastLzzTest {
 //        SequenceInputStream sis = new SequenceInputStream(v.elements());
         int ws = 32768;
         FastLzzCompressor c = new FastLzzCompressor(name, ws, 255);
-        c.setCompressionLevel(1);
+        c.setCompressionLevel(0);
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
             c.compress(fos);

@@ -37,7 +37,9 @@ public class FastLzzCompressor implements Compressor {
 
     private int dictSize;
 
-    final static int minimumMatchLen = 3;
+    public static final int MAXIMUM_DISTANCE = 71168 + FastLzzUtil.MINIMUM_DISTANCE;
+
+    public static final int MAXIMUM_LENGTH = 276 + FastLzzUtil.MINIMUM_LENGTH;
 
     protected long cmpSize;
 
@@ -50,6 +52,8 @@ public class FastLzzCompressor implements Compressor {
     private long startTime;
 
     private long timeOffset;
+
+    private int compressionLevel;
 
     private int dis, len;
 
@@ -88,11 +92,15 @@ public class FastLzzCompressor implements Compressor {
         this.sis = mis;
     }
 
-    private void compressContent(OutputStream outFile) throws IOException {
+    private void validateWindowSize() {
         if (totalLength <= bufferMaxSize) {
             dictSize = (int) totalLength - 1;
             bufferMaxSize = (int) totalLength - 1;
         }
+    }
+
+    private void compressContent(OutputStream outFile) throws IOException {
+        validateWindowSize();
 
         long lastCheckTime = System.currentTimeMillis();
         startTime = lastCheckTime;
@@ -106,15 +114,25 @@ public class FastLzzCompressor implements Compressor {
         byte[] lengthBytes = Bytes.intToBytes32((int) totalLength);
         for (byte b : lengthBytes) fos.writeByte(b);
 
-        FixedSlider slider = new FixedSlider(16);
+        FixedSlider slider;
+        if (compressionLevel > 0) {
+            slider = new FixedArraySlider(16);
+        } else {
+            slider = new FixedIntSlider();
+        }
+
         while ((read = sis.read(buffer)) > 0) {
             slider.clear();
             int i = 0;
             while (i < read - 3) {
-                calculateLongestMatch(slider, i);
+                if (compressionLevel > 0) {
+                    calculateLongestMatch((FixedArraySlider) slider, i);
+                } else {
+                    calculateLongestMatchSingle((FixedIntSlider) slider, i);
+                }
                 int prevI = i;
 
-                if (len < minimumMatchLen) {
+                if (len < FastLzzUtil.MINIMUM_LENGTH) {
                     fos.write(0);
                     fos.writeByte(buffer[i]);
                     i++;
@@ -145,7 +163,6 @@ public class FastLzzCompressor implements Compressor {
         sis.close();
         fos.flush();
         cmpSize = fos.getLength();
-//        fos.close();
     }
 
     private void fillSlider(int from, int to, FixedSlider slider) {
@@ -168,11 +185,40 @@ public class FastLzzCompressor implements Compressor {
         }
     }
 
-    private void calculateLongestMatch(FixedSlider slider, int index) {
+    private void calculateLongestMatchSingle(FixedIntSlider slider, int index) {
         byte b0 = buffer[index];
         byte b1 = buffer[index + 1];
         int hash = hash(b0, b1);
-        FixedSlider.FixedArrayDeque positions = slider.get(hash);
+        int position = slider.get(hash);
+        if (position == -1) {  // not a match
+            len = 0;
+            return;
+        }
+
+        int maxLookAhead = (int) Math.min(remainingLength, MEMORY_BUFFER_SIZE);
+        int windowBegin = Math.max(index - dictSize, 0);
+
+        if (position <= windowBegin) {
+            len = 0;
+            return;
+        }
+
+        int len = 2;
+        while (len < bufferMaxSize &&
+                index + len < maxLookAhead &&
+                buffer[position + len] == buffer[index + len]) {
+            len++;
+        }
+
+        dis = index - position;
+        this.len = len;
+    }
+
+    private void calculateLongestMatch(FixedArraySlider slider, int index) {
+        byte b0 = buffer[index];
+        byte b1 = buffer[index + 1];
+        int hash = hash(b0, b1);
+        FixedArraySlider.FixedArrayDeque positions = slider.get(hash);
         if (positions == null) {  // not a match
             len = 0;
             return;
@@ -266,5 +312,6 @@ public class FastLzzCompressor implements Compressor {
 
     @Override
     public void setCompressionLevel(int compressionLevel) {
+        this.compressionLevel = compressionLevel;
     }
 }

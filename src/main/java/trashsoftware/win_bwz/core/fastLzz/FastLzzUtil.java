@@ -7,8 +7,8 @@ import java.io.IOException;
 
 public class FastLzzUtil {
 
-    private static final int MINIMUM_LENGTH = 3;
-    private static final int MINIMUM_DISTANCE = 1;
+    static final int MINIMUM_LENGTH = 3;
+    static final int MINIMUM_DISTANCE = 1;
 
     public static void writeDistanceToStream(int distance, FileBitOutputStream outputStream) throws IOException {
         int head;
@@ -72,6 +72,7 @@ public class FastLzzUtil {
             head = 3;
             content = outstandingLength - 21;
             contentBitLength = 8;
+            // maximum 276 + MINIMUM
         }
         outputStream.write(head, 2);
         outputStream.write(content, contentBitLength);

@@ -1,17 +1,25 @@
 package trashsoftware.win_bwz.core.fastLzz;
 
-public class FixedSlider {
+import java.util.Arrays;
+
+public abstract class FixedSlider {
+    abstract void clear();
+
+    abstract void addIndex(int hashCode, int position);
+}
+
+class FixedArraySlider extends FixedSlider {
     private FixedArrayDeque[] array = new FixedArrayDeque[65536];
 
     private int arraySize;
     private int andEr;
 
-    public FixedSlider(int arraySize) {
+    public FixedArraySlider(int arraySize) {
         this.arraySize = arraySize;
         this.andEr = arraySize - 1;
     }
 
-    public void addIndex(int hashCode, int position) {
+    void addIndex(int hashCode, int position) {
         FixedArrayDeque fad = array[hashCode];
         if (fad == null) {
             fad = new FixedArrayDeque(arraySize);
@@ -50,3 +58,26 @@ public class FixedSlider {
     }
 }
 
+class FixedIntSlider extends FixedSlider {
+    private int[] array = new int[65536];
+
+    FixedIntSlider() {
+        resetArray();
+    }
+
+    void addIndex(int hashCode, int position) {
+        array[hashCode] = position;
+    }
+
+    void clear() {
+        resetArray();
+    }
+
+    int get(int hashCode) {
+        return array[hashCode];
+    }
+
+    private void resetArray() {
+        Arrays.fill(array, -1);
+    }
+}

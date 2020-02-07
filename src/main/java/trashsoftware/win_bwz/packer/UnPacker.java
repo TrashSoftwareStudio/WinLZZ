@@ -223,7 +223,7 @@ public class UnPacker {
                 programAlgVersion = BWZCompressor.VERSION;
                 break;
             case "11":
-                alg = "lzz2p";
+                alg = "fastLzz";
                 programAlgVersion = FastLzzCompressor.VERSION;
                 break;
             default:
@@ -380,7 +380,7 @@ public class UnPacker {
 //                case "lzz2":
 //                    mapDec = new LZZ2DeCompressor(cmpMapName, Packer.defaultWindowSize);
 //                    break;
-//                case "lzz2p":
+//                case "fastLzz":
 //                    mapDec = new FastLzzDecompressor(cmpMapName, Packer.defaultWindowSize);
 //                    break;
 //                case "bwz":
@@ -687,7 +687,7 @@ public class UnPacker {
             case "lzz2":
                 mainDec = new LZZ2DeCompressor(cmpTempName, windowSize);
                 break;
-            case "lzz2p":
+            case "fastLzz":
                 mainDec = new FastLzzDecompressor(cmpTempName, windowSize);
                 break;
             case "bwz":
@@ -1012,7 +1012,7 @@ public class UnPacker {
                 return primary + String.format(".%d.%d.%d", algVersion, LZZ2Compressor.VERSION, FastLzzCompressor.VERSION);
             case "lzz2":
                 return primary + String.format(".%d.%d.%d", BWZCompressor.VERSION, algVersion, FastLzzCompressor.VERSION);
-            case "lzz2p":
+            case "fastLzz":
                 return primary + String.format(".%d.%d.%d", BWZCompressor.VERSION, LZZ2Compressor.VERSION, algVersion);
             default:
                 throw new RuntimeException("Unknown algorithm");

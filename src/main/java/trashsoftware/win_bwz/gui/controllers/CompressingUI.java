@@ -89,7 +89,7 @@ public class CompressingUI implements Initializable {
         this.threads = threads;
         this.annotation = annotation;
         this.partSize = partSize;
-        if (algorithm.equals("lzz2") || algorithm.equals("lzz2p")) {
+        if (algorithm.equals("lzz2") || algorithm.equals("fastLzz")) {
             compressedSizeLabel.setDisable(true);
             compressedSizeLabel.setVisible(false);
             cmpSizeTextLabel.setDisable(true);

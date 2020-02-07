@@ -89,8 +89,8 @@ public class FileInfoUI implements Initializable {
             case "lzz2":
                 alg = "LZZ2";
                 break;
-            case "lzz2p":
-                alg = "LZZ2+";
+            case "fastLzz":
+                alg = "FastLZZ";
                 break;
             case "bwz":
                 alg = "BWZ";

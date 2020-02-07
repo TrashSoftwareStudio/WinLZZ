@@ -1,6 +1,8 @@
 package trashsoftware.win_bwz.gui.controllers;
 
 import trashsoftware.win_bwz.core.bwz.BWZCompressor;
+import trashsoftware.win_bwz.core.fastLzz.FastLzzCompressor;
+import trashsoftware.win_bwz.core.lzz2.LZZ2Compressor;
 import trashsoftware.win_bwz.gui.graphicUtil.AnnotationNode;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -40,33 +42,41 @@ public class CompressUI implements Initializable {
     private AnnotationNode annotation;
 
     private int encryptLevel = 0;
-    private String[] algNames = new String[]{"BWZ", "LZZ2", "LZZ2+"};
-    private String[] algValues = new String[]{"bwz", "lzz2", "lzz2p"};
+    private String[] algNames = {"BWZ", "LZZ2", "FastLZZ"};
+    private String[] algValues = {"bwz", "lzz2", "fastLzz"};
     private String[] compressionLevels = new String[6];
-    private String[] windowsSizeNames = new String[]{"4KB", "16KB", "32KB", "64KB", "128KB", "256KB", "1MB"};
-    private String[] windowsSizeNames2 = new String[]{"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
-    private String[] splitSizeNames = new String[]{"1.44 MB - Floppy", "10 MB", "650 MB - CD", "700 MB - CD",
+    private String[] windowSizeNamesLzz2 = {"4KB", "16KB", "32KB", "64KB", "128KB", "256KB", "1MB"};
+    private String[] windowSizeNamesBwz = {"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
+    private String[] windowSizeNamesFastLzz = {"4KB", "16KB", "32KB", "64KB", "69KB"};
+    private String[] splitSizeNames = {"1.44 MB - Floppy", "10 MB", "650 MB - CD", "700 MB - CD",
             "4095 MB - FAT32", "4481 MB - DVD"};
 
-    private int[] windowSizes = new int[]{4096, 16384, 32768, 65536, 131072, 262144, 1048576};
+    private int[] windowSizesLzz2 = {4096, 16384, 32768, 65536, 131072, 262144, 1048576};
     // Window sizes of LZZ2.
 
-    private int[] windowSizes2 = new int[]{131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
+    private int[] windowSizesBwz = {131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
     // Window sizes of BWT.
+
+    private int[] windowSizesFastLzz = {4096, 16384, 32768, 65536, FastLzzCompressor.MAXIMUM_DISTANCE};
 
     /**
      * Indices of units of corresponding pre-selections, 0 for byte, 1 for kb, 2 for mb, 3 for gb.
      */
-    private int[] splitUnits = new int[]{2, 2, 2, 2, 2, 2};
+    private int[] splitUnits = {2, 2, 2, 2, 2, 2};
 
-    private Integer[] bufferSizes = new Integer[]{8, 16, 32, 64, 128, 256, 286};
+    private Integer[] labSizesLzz2 = {8, 16, 32, 64, 128, 256, LZZ2Compressor.MAXIMUM_LENGTH};
+    private Integer[] labSizesFastLzz = {8, 16, 32, 64, 128, 256, FastLzzCompressor.MAXIMUM_LENGTH};
 
     private String[] cmpLevels = new String[5];
-    private Integer[] threads = new Integer[]{1, 2, 3, 4};
+    private Integer[] threads = {1, 2, 3, 4};
 
     private MainUI parent;
-    //    private LanguageLoader lanLoader;
     private ResourceBundle bundle;
+
+    private int currentThreadIndex = 0;
+    private int currentModeIndex = 1;
+    private int currentAlgIndex = 0;
+    private int currentWindowIndex = 2;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -78,16 +88,15 @@ public class CompressUI implements Initializable {
     }
 
     void load() {
-//        this.lanLoader = lanLoader;
         fillTexts();
-        setBoxes();
-        algBox.getSelectionModel().select(0);
-        setWindowSizeBox();
+        fillGeneralBoxes();
         setLevelListener();
         setAlgBoxListener();
         setSizeUnitListener();
-        setWindowNameBoxListener();
         setThreadBoxListener();
+        setWindowNameBoxListener();
+        setModeBoxListener();
+        threadBox.getSelectionModel().select(0);
         levelBox.getSelectionModel().select(3);
         modeBox.getSelectionModel().select(1);
         algBox.getSelectionModel().select(0);
@@ -121,37 +130,17 @@ public class CompressUI implements Initializable {
         return annotation;
     }
 
-    private void setBoxes() {
+    private void fillGeneralBoxes() {
         algBox.getItems().addAll(algNames);
-        bufferBox.getItems().addAll(bufferSizes);
         levelBox.getItems().addAll(compressionLevels);
-        modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
         partialBox.getItems().addAll(splitSizeNames);
         unitBox.getItems().addAll("B", "KB", "MB", "GB");
+//        setBwzUi();
+//        threadBox.getSelectionModel().select(0);
     }
 
-    private void setWindowSizeBox() {
-        windowNameBox.getItems().clear();
-        threadBox.getItems().clear();
-        switch (algBox.getSelectionModel().getSelectedItem()) {
-            case "BWZ":
-                windowNameBox.getItems().addAll(windowsSizeNames2);
-                threadBox.getItems().addAll(threads);
-                break;
-//            case "Huffman":
-//                threadBox.getItems().addAll(threads);
-//                break;
-            default:
-                windowNameBox.getItems().addAll(windowsSizeNames);
-                threadBox.getItems().add(1);
-                break;
-        }
-        threadBox.getSelectionModel().select(0);
-    }
-
-    private boolean isLevelAble() {
-        return algBox.getSelectionModel().getSelectedItem().equals("LZZ2") ||
-                algBox.getSelectionModel().getSelectedItem().equals("LZZ2+");
+    private boolean hasBuffer() {
+        return algValues[currentAlgIndex].equals("lzz2") || algValues[currentAlgIndex].equals("fastLzz");
     }
 
     private void setSizeUnitListener() {
@@ -162,7 +151,12 @@ public class CompressUI implements Initializable {
 
     private void setWindowNameBoxListener() {
         windowNameBox.getSelectionModel().selectedIndexProperty().addListener((
-                (observable, oldValue, newValue) -> estimateMemoryUsage()
+                (observable, oldValue, newValue) -> {
+                    if (newValue.intValue() >= 0) {
+                        currentWindowIndex = newValue.intValue();
+                        estimateMemoryUsage();
+                    }
+                }
         ));
     }
 
@@ -178,77 +172,77 @@ public class CompressUI implements Initializable {
             } else {
                 windowNameBox.setDisable(false);
                 modeBox.setDisable(false);
-                if (isLevelAble()) bufferBox.setDisable(false);
+                if (hasBuffer()) bufferBox.setDisable(false);
                 if (newValue.intValue() == 1) {
                     windowNameBox.getSelectionModel().select(0);
                     modeBox.getSelectionModel().select(0);
-                    if (isLevelAble()) bufferBox.getSelectionModel().select(1);
+                    if (hasBuffer()) bufferBox.getSelectionModel().select(1);
                 } else if (newValue.intValue() == 2) {
                     windowNameBox.getSelectionModel().select(1);
                     modeBox.getSelectionModel().select(0);
-                    if (isLevelAble()) bufferBox.getSelectionModel().select(2);
+                    if (hasBuffer()) bufferBox.getSelectionModel().select(2);
                 } else if (newValue.intValue() == 3) {
                     windowNameBox.getSelectionModel().select(2);
                     modeBox.getSelectionModel().select(1);
-                    if (isLevelAble()) bufferBox.getSelectionModel().select(3);
+                    if (hasBuffer()) bufferBox.getSelectionModel().select(3);
                 } else if (newValue.intValue() == 4) {
                     windowNameBox.getSelectionModel().select(3);
                     modeBox.getSelectionModel().select(1);
-                    if (isLevelAble()) bufferBox.getSelectionModel().select(3);
+                    if (hasBuffer()) bufferBox.getSelectionModel().select(3);
                 } else if (newValue.intValue() == 5) {
                     windowNameBox.getSelectionModel().select(5);
                     modeBox.getSelectionModel().select(1);
-                    if (isLevelAble()) bufferBox.getSelectionModel().select(4);
+                    if (hasBuffer()) bufferBox.getSelectionModel().select(4);
                 }
             }
         });
     }
 
     private void setThreadBoxListener() {
-        threadBox.getSelectionModel().selectedItemProperty().addListener((
-                (observable, oldValue, newValue) -> estimateMemoryUsage()
+        threadBox.getSelectionModel().selectedIndexProperty().addListener((
+                (observable, oldValue, newValue) -> {
+                    if (newValue != null && newValue.intValue() >= 0) {
+                        currentThreadIndex = newValue.intValue();
+                        estimateMemoryUsage();
+                    }
+                }
         ));
     }
 
     private void setAlgBoxListener() {
-        algBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            switch (newValue) {
-                case "LZZ2+":
-
-                case "LZZ2":
-                    levelBox.setDisable(false);
-                    windowNameBox.setDisable(false);
-                    bufferBox.setDisable(false);
-                    modeBox.setDisable(false);
+        algBox.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
+            currentAlgIndex = newValue.intValue();
+            String newAlgName = algValues[currentAlgIndex];
+            switch (newAlgName) {
+                case "fastLzz":
+                    setFastLzzUi();
                     bufferBox.getSelectionModel().select(3);
-                    modeBox.getItems().clear();
-                    modeBox.getItems().addAll(cmpLevels);
+                    modeBox.getSelectionModel().select(0);
+                    break;
+                case "lzz2":
+                    setLzz2Ui();
+                    bufferBox.getSelectionModel().select(3);
                     modeBox.getSelectionModel().select(1);
                     break;
-                case "BWZ":
-                    levelBox.setDisable(false);
-                    windowNameBox.setDisable(false);
-                    bufferBox.getSelectionModel().clearSelection();
-                    modeBox.getSelectionModel().clearSelection();
-                    bufferBox.setDisable(true);
-                    modeBox.getItems().clear();
-                    modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
+                case "bwz":
+                    setBwzUi();
                     modeBox.getSelectionModel().select(1);
                     break;
-//                case "Huffman":
-//                    levelBox.setDisable(true);
-//                    windowNameBox.setDisable(true);
-//                    bufferBox.getSelectionModel().clearSelection();
-//                    modeBox.getSelectionModel().clearSelection();
-//                    bufferBox.setDisable(true);
-//                    modeBox.getItems().clear();
-//                    modeBox.setDisable(true);
+                default:
+                    throw new RuntimeException();
             }
-            setWindowSizeBox();
             levelBox.getSelectionModel().select(3);
             windowNameBox.getSelectionModel().select(2);
             estimateMemoryUsage();
         });
+    }
+
+    private void setModeBoxListener() {
+        modeBox.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
+            if (newValue.intValue() >= 0) {
+                currentModeIndex = newValue.intValue();
+            }
+        }));
     }
 
     private void estimateMemoryUsage() {
@@ -256,9 +250,9 @@ public class CompressUI implements Initializable {
         if (alg.equals("bwz")) {
             updateMemoryLabels(
                     BWZCompressor.estimateMemoryUsage(
-                            threadBox.getSelectionModel().getSelectedItem(),
-                            windowSizes2[windowNameBox.getSelectionModel().getSelectedIndex()],
-                            modeBox.getSelectionModel().getSelectedIndex()
+                            threads[currentThreadIndex],
+                            windowSizesBwz[currentWindowIndex],
+                            currentModeIndex
                     )
             );
         }
@@ -272,7 +266,56 @@ public class CompressUI implements Initializable {
     }
 
     private String getAlgCode() {
-        return algValues[algBox.getSelectionModel().getSelectedIndex()];
+        return algValues[currentAlgIndex];
+    }
+
+    private void setLzz2Ui() {
+        levelBox.setDisable(false);
+        windowNameBox.setDisable(false);
+        windowNameBox.getItems().clear();
+        windowNameBox.getItems().addAll(windowSizeNamesLzz2);
+        bufferBox.setDisable(false);
+        bufferBox.getItems().clear();
+        bufferBox.getItems().addAll(labSizesLzz2);
+        modeBox.setDisable(false);
+        modeBox.getItems().clear();
+        modeBox.getItems().addAll(cmpLevels);
+        threadBox.getItems().clear();
+        threadBox.getItems().add(1);
+        threadBox.getSelectionModel().select(0);
+    }
+
+    private void setBwzUi() {
+        levelBox.setDisable(false);
+        windowNameBox.setDisable(false);
+        windowNameBox.getItems().clear();
+        windowNameBox.getItems().addAll(windowSizeNamesBwz);
+        bufferBox.getSelectionModel().clearSelection();
+        bufferBox.getItems().clear();
+        bufferBox.setDisable(true);
+        modeBox.setDisable(false);
+        modeBox.getSelectionModel().clearSelection();
+        modeBox.getItems().clear();
+        modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
+        threadBox.getItems().clear();
+        threadBox.getItems().addAll(threads);
+        threadBox.getSelectionModel().select(0);
+    }
+
+    private void setFastLzzUi() {
+        levelBox.setDisable(false);
+        windowNameBox.setDisable(false);
+        windowNameBox.getItems().clear();
+        windowNameBox.getItems().addAll(windowSizeNamesFastLzz);
+        bufferBox.setDisable(false);
+        bufferBox.getItems().clear();
+        bufferBox.getItems().addAll(labSizesFastLzz);
+        modeBox.setDisable(false);
+        modeBox.getItems().clear();
+        modeBox.getItems().addAll(cmpLevels[0], cmpLevels[1]);
+        threadBox.getItems().clear();
+        threadBox.getItems().add(1);
+        threadBox.getSelectionModel().select(0);
     }
 
     @FXML
@@ -288,7 +331,6 @@ public class CompressUI implements Initializable {
 
         PasswordBox pb = loader.getController();
         pb.setParent(this);
-//        pb.setLanLoader(lanLoader);
         pb.setStage(stage);
 
         stage.show();
@@ -328,24 +370,25 @@ public class CompressUI implements Initializable {
         } else {
             switch (alg) {
                 case "bwz":
-                    window = windowSizes2[windowNameBox.getSelectionModel().getSelectedIndex()];
+                    window = windowSizesBwz[currentWindowIndex];
                     buffer = 0;
-                    cmpLevel = modeBox.getSelectionModel().getSelectedIndex();
+                    cmpLevel = currentModeIndex;
                     break;
-                case "lzz2p":
-                case "lzz2":
-                    window = windowSizes[windowNameBox.getSelectionModel().getSelectedIndex()];
+                case "fastLzz":
+                    window = windowSizesFastLzz[currentWindowIndex];
                     buffer = bufferBox.getSelectionModel().getSelectedItem();
-                    cmpLevel = modeBox.getSelectionModel().getSelectedIndex();
+                    cmpLevel = currentModeIndex;
+                    break;
+                case "lzz2":
+                    window = windowSizesLzz2[currentWindowIndex];
+                    buffer = bufferBox.getSelectionModel().getSelectedItem();
+                    cmpLevel = currentModeIndex;
                     break;
                 default:
-                    window = windowSizes[windowNameBox.getSelectionModel().getSelectedIndex()];
-                    buffer = 256;
-                    cmpLevel = 0;
-                    break;
+                    throw new RuntimeException();
             }
         }
-        int threads = threadBox.getSelectionModel().getSelectedItem();
+        int threads = this.threads[currentThreadIndex];
 
         long partSize;
         String partText = partialBox.getEditor().getText();
@@ -385,18 +428,6 @@ public class CompressUI implements Initializable {
     }
 
     private void fillTexts() {
-//        nameLabel.setText(lanLoader.get(100));
-//        passwordButton.setText(lanLoader.get(101));
-//        algLabel.setText(lanLoader.get(102));
-//        levelLabel.setText(lanLoader.get(103));
-//        windowLabel.setText(lanLoader.get(104));
-//        bufferLabel.setText(lanLoader.get(105));
-//        strongModeLabel.setText(lanLoader.get(106));
-//        threadLabel.setText(lanLoader.get(107));
-//        partialLabel.setText(lanLoader.get(121));
-//        startCompressButton.setText(lanLoader.get(108));
-//        annotationButton.setText(lanLoader.get(109));
-
         for (int i = 0; i < 6; i++) compressionLevels[i] = bundle.getString("compressLv" + i);
         for (int i = 0; i < 5; i++) cmpLevels[i] = bundle.getString("compressStrongLv" + i);
     }

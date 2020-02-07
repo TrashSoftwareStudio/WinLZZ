@@ -14,7 +14,6 @@ import trashsoftware.win_bwz.utility.MultipleInputStream;
 import trashsoftware.win_bwz.utility.Util;
 
 import java.io.*;
-import java.util.*;
 
 /**
  * LZZ2 (Lempel-Ziv-ZBH 2) compressor, implements {@code Compressor} interface.
@@ -27,9 +26,13 @@ import java.util.*;
  */
 public class LZZ2Compressor implements Compressor {
 
+    public static final int VERSION = 1;
+
     public static final int MAIN_HUF_ALPHABET = 286;
 
-    public static final int VERSION = 1;
+    final static int MINIMUM_MATCH_LEN = 3;
+
+    public static final int MAXIMUM_LENGTH = 286 + MINIMUM_MATCH_LEN;
 
     private InputStream sis;
 
@@ -40,8 +43,6 @@ public class LZZ2Compressor implements Compressor {
     private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
 
     private int dictSize;
-
-    final static int minimumMatchLen = 3;
 
     protected String mainTempName, lenHeadTempName, disHeadTempName, flagTempName, dlBodyTempName;
 
@@ -73,7 +74,7 @@ public class LZZ2Compressor implements Compressor {
      */
     public LZZ2Compressor(String inFile, int windowSize, int bufferSize) throws IOException {
         this.windowSize = windowSize;
-        this.bufferMaxSize = bufferSize + minimumMatchLen + 1;
+        this.bufferMaxSize = bufferSize + MINIMUM_MATCH_LEN + 1;
         this.dictSize = windowSize - bufferMaxSize - 1;
 
         this.totalLength = new File(inFile).length();
@@ -91,7 +92,7 @@ public class LZZ2Compressor implements Compressor {
      */
     public LZZ2Compressor(MultipleInputStream mis, int windowSize, int bufferSize, long totalLength) {
         this.windowSize = windowSize;
-        this.bufferMaxSize = bufferSize + minimumMatchLen + 1;
+        this.bufferMaxSize = bufferSize + MINIMUM_MATCH_LEN + 1;
         this.dictSize = windowSize - bufferMaxSize - 1;
         this.totalLength = totalLength;
         this.sis = mis;
@@ -155,7 +156,7 @@ public class LZZ2Compressor implements Compressor {
             int skip = search(fba, slider, position);
             long prevPos = position;
 
-            if (len < minimumMatchLen) {
+            if (len < MINIMUM_MATCH_LEN) {
                 // Not a match
 //                flagFos.write(0);
 //                System.out.print(fba.getByte(position) + ", ");
@@ -173,14 +174,14 @@ public class LZZ2Compressor implements Compressor {
                 int findInLast =
                         compressionLevel > 0 ? reverseIndexInQueue(lastDistances, lastDisIndex, dis) : -1;
                 if (findInLast == -1) {
-                    LZZ2Util.addLength(len, minimumMatchLen, mainFos, dlbFos);  // Length first.
+                    LZZ2Util.addLength(len, MINIMUM_MATCH_LEN, mainFos, dlbFos);  // Length first.
                     LZZ2Util.addDistance(dis, 0, disFos, dlbFos);
                 } else {
                     if (findInLast == 0 && lastLength == len) {
                         mainFos.write(1);
                         mainFos.write(29);  // 28 is the last length head
                     } else {
-                        LZZ2Util.addLength(len, minimumMatchLen, mainFos, dlbFos);
+                        LZZ2Util.addLength(len, MINIMUM_MATCH_LEN, mainFos, dlbFos);
                         disFos.write((byte) findInLast);
                     }
                 }

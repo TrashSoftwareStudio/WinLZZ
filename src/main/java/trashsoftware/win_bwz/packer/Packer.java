@@ -282,14 +282,11 @@ public class Packer {
             case "lzz2":  // 00
                 algVersion = LZZ2Compressor.VERSION;
                 break;
-//            case "huf":
-//                inf = (byte) (inf | 0b00010000);  // 01
-//                break;
             case "bwz":
                 inf = (byte) (inf | 0b00100000);  // 10
                 algVersion = BWZCompressor.VERSION;
                 break;
-            case "lzz2p":
+            case "fastLzz":
                 inf = (byte) (inf | 0b00110000);  // 11
                 algVersion = FastLzzCompressor.VERSION;
                 break;
@@ -383,12 +380,9 @@ public class Packer {
                 case "lzz2":
                     headCompressor = new LZZ2Compressor(tempHeadName, defaultWindowSize, 64);
                     break;
-                case "lzz2p":
+                case "fastLzz":
                     headCompressor = new FastLzzCompressor(tempHeadName, defaultWindowSize, 64);
                     break;
-//                case "qlz":
-//                    headCompressor = new QuickLZZCompressor(tempHeadName, 16384, 256);
-//                    break;
                 case "bwz":
                     headCompressor = new BWZCompressor(tempHeadName, defaultWindowSize);
                     break;
@@ -401,13 +395,10 @@ public class Packer {
                     headCompressor = new LZZ2Compressor(tempHeadName, windowSize, bufferSize);
                     headCompressor.setCompressionLevel(cmpLevel);
                     break;
-                case "lzz2p":
+                case "fastLzz":
                     headCompressor = new FastLzzCompressor(tempHeadName, windowSize, bufferSize);
                     headCompressor.setCompressionLevel(cmpLevel);
                     break;
-//                case "qlz":
-//                    headCompressor = new QuickLZZCompressor(tempHeadName, windowSize, 256);
-//                    break;
                 case "bwz":
                     headCompressor = new BWZCompressor(tempHeadName, windowSize);
                     break;
@@ -488,12 +479,9 @@ public class Packer {
                 case "lzz2":
                     mainCompressor = new LZZ2Compressor(mis, windowSize, bufferSize, totalLength);
                     break;
-                case "lzz2p":
+                case "fastLzz":
                     mainCompressor = new FastLzzCompressor(mis, windowSize, bufferSize, totalLength);
                     break;
-//                case "qlz":
-//                    mainCompressor = new QuickLZZCompressor(mis, windowSize, 256, totalLength);
-//                    break;
                 case "bwz":
                     mainCompressor = new BWZCompressor(mis, windowSize);
                     break;

@@ -1,5 +1,6 @@
 package trashsoftware.win_bwz.gui.controllers;
 
+import javafx.stage.Modality;
 import trashsoftware.win_bwz.gui.graphicUtil.FileNode;
 import trashsoftware.win_bwz.packer.*;
 import trashsoftware.win_bwz.resourcesPack.configLoader.GeneralLoaders;
@@ -360,17 +361,18 @@ public class UncompressUI implements Initializable {
 
         Stage stage = new Stage();
         stage.setTitle(bundle.getString("inputPassword"));
-        stage.initStyle(StageStyle.UTILITY);
+        stage.setResizable(false);
         Scene scene = new Scene(root);
         stage.setScene(scene);
 
         VBox box = new VBox();
         box.setAlignment(Pos.CENTER);
-        box.setPrefSize(180.0, 100.0);
+        box.setPrefSize(320.0, 120.0);
         box.setPadding(new Insets(10.0, 10.0, 10.0, 10.0));
         box.setSpacing(5.0);
 
         PasswordField pwdField = new PasswordField();
+        pwdField.setPrefWidth(100);
         Label prompt = new Label();
         Button confirm = new Button(bundle.getString("confirm"));
         box.getChildren().addAll(new Label(bundle.getString("pleaseInputPassword")), pwdField, prompt, confirm);
@@ -402,6 +404,8 @@ public class UncompressUI implements Initializable {
                 }
             });
         }
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.initOwner(this.stage);
         stage.showAndWait();
     }
 

@@ -35,6 +35,7 @@
         <Menu mnemonicParsing="false" text="%file">
             <MenuItem mnemonicParsing="false" onAction="#settingsAction" text="%settings"/>
             <SeparatorMenuItem/>
+            <MenuItem mnemonicParsing="false" onAction="#restartAction" text="%restart"/>
             <MenuItem mnemonicParsing="false" onAction="#exitAction" text="%exit"/>
         </Menu>
         <Menu mnemonicParsing="false" text="%edit">

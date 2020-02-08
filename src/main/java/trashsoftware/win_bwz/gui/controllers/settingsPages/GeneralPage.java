@@ -4,21 +4,29 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.ComboBox;
 import trashsoftware.win_bwz.gui.GUIClient;
+import trashsoftware.win_bwz.gui.controllers.SettingsMain;
+import trashsoftware.win_bwz.gui.graphicUtil.InfoBoxes;
 import trashsoftware.win_bwz.resourcesPack.configLoader.GeneralLoaders;
 import trashsoftware.win_bwz.resourcesPack.configLoader.NamedLocale;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.ResourceBundle;
 
 public class GeneralPage extends SettingsPage {
 
     @FXML
     ComboBox<NamedLocale> languageBox;
 
-    public GeneralPage() throws IOException {
+    private SettingsMain parent;
+    private ResourceBundle bundle;
+
+    public GeneralPage(SettingsMain parent) throws IOException {
+        bundle = GUIClient.getBundle();
+        this.parent = parent;
         FXMLLoader loader = new FXMLLoader(getClass()
                 .getResource("/trashsoftware/win_bwz/fxml/settingsPages/general.fxml"),
-                GUIClient.getBundle());
+                bundle);
         loader.setRoot(this);
         loader.setController(this);
 
@@ -34,6 +42,17 @@ public class GeneralPage extends SettingsPage {
             NamedLocale selectedLocale = languageBox.getSelectionModel().getSelectedItem();
             GeneralLoaders.writeConfig("locale", selectedLocale.getConfigValue());
             statusSaver.store(languageBox);
+
+            if (InfoBoxes.showConfirmBox(
+                    "WinLZZ",
+                    bundle.getString("pleaseConfirm"),
+                    bundle.getString("needRestartApply"),
+                    bundle.getString("restartNow"),
+                    bundle.getString("restartLater")
+            )) {
+                parent.closeWindow();
+                parent.askParentToRestart();
+            }
         }
     }
 

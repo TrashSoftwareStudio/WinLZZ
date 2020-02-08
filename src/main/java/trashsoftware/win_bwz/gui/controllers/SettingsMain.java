@@ -27,6 +27,7 @@ public class SettingsMain implements Initializable {
     Button okButton, cancelButton, applyButton;
 
     private Stage thisStage;
+    private MainUI mainUI;
     private ResourceBundle bundle;
 
     @Override
@@ -39,8 +40,9 @@ public class SettingsMain implements Initializable {
         contentPane.setFitToWidth(true);
     }
 
-    void setStage(Stage stage) {
+    void setStageAndParent(Stage stage, MainUI mainUI) {
         this.thisStage = stage;
+        this.mainUI = mainUI;
     }
 
     @FXML
@@ -48,8 +50,12 @@ public class SettingsMain implements Initializable {
         closeWindow();
     }
 
-    private void closeWindow() {
+    public void closeWindow() {
         thisStage.close();
+    }
+
+    public void askParentToRestart() {
+        mainUI.restartAction();
     }
 
     private void setUpItems() {
@@ -59,7 +65,7 @@ public class SettingsMain implements Initializable {
             NavigatorPage mainPage = new NavigatorPage();
             root.setValue(new SettingsItem(bundle.getString("settings"), mainPage));
 
-            GeneralPage generalPage = new GeneralPage();
+            GeneralPage generalPage = new GeneralPage(this);
             root.getChildren().add(new TreeItem<>(
                     new SettingsItem(bundle.getString("general"), generalPage)));
 

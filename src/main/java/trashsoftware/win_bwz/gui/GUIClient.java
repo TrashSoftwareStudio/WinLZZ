@@ -1,6 +1,7 @@
 package trashsoftware.win_bwz.gui;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -9,7 +10,6 @@ import trashsoftware.win_bwz.gui.controllers.MainUI;
 import trashsoftware.win_bwz.resourcesPack.UTF8Control;
 import trashsoftware.win_bwz.resourcesPack.configLoader.GeneralLoaders;
 
-import java.util.Locale;
 import java.util.ResourceBundle;
 
 /**
@@ -39,6 +39,10 @@ public class GUIClient extends Application {
      */
     @Override
     public void start(Stage primaryStage) throws Exception {
+        showMainUi(primaryStage);
+    }
+
+    private void showMainUi(Stage primaryStage) throws Exception {
         bundle = ResourceBundle.getBundle("trashsoftware.win_bwz.bundles.LangBundle",
                 GeneralLoaders.getCurrentLocale(), new UTF8Control());
         FXMLLoader loader = new FXMLLoader(
@@ -46,7 +50,7 @@ public class GUIClient extends Application {
 
         Parent root = loader.load();
         MainUI controller = loader.getController();
-        controller.setStage(primaryStage);
+        controller.setStageAndParent(primaryStage, this);
 
         primaryStage.setTitle("WinLZZ");
         primaryStage.setScene(new Scene(root));
@@ -56,5 +60,16 @@ public class GUIClient extends Application {
 
     public static ResourceBundle getBundle() {
         return bundle;
+    }
+
+    public void restart(Stage oldStage) {
+        oldStage.close();
+        Platform.runLater(() -> {
+            try {
+                showMainUi(new Stage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 }

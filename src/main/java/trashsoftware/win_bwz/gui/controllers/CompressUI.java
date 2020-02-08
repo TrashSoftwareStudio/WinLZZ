@@ -1,5 +1,6 @@
 package trashsoftware.win_bwz.gui.controllers;
 
+import javafx.stage.Modality;
 import trashsoftware.win_bwz.core.bwz.BWZCompressor;
 import trashsoftware.win_bwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.win_bwz.core.lzz2.LZZ2Compressor;
@@ -334,6 +335,8 @@ public class CompressUI implements Initializable {
         pb.setParent(this);
         pb.setStage(stage);
 
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.initOwner(this.pStage);
         stage.show();
     }
 
@@ -353,6 +356,8 @@ public class CompressUI implements Initializable {
         au.setParent(this);
 //        au.setLanLoader(lanLoader);
 
+        stage.initModality(Modality.WINDOW_MODAL);
+        stage.initOwner(this.pStage);
         stage.show();
     }
 

@@ -1,5 +1,6 @@
 package trashsoftware.win_bwz.gui.controllers;
 
+import trashsoftware.win_bwz.gui.GUIClient;
 import trashsoftware.win_bwz.gui.graphicUtil.*;
 import trashsoftware.win_bwz.resourcesPack.configLoader.GeneralLoaders;
 import trashsoftware.win_bwz.utility.Util;
@@ -86,6 +87,7 @@ public class MainUI implements Initializable {
      */
     private MenuItem openR, openDirR, compressR, copyR, cutR, pasteR, deleteR, renameR, propertyR;
     private Stage thisStage;
+    private GUIClient guiClient;
 
     private Label placeHolder = new Label();
     private ContextMenu rightPopupMenu = new ContextMenu();
@@ -124,8 +126,9 @@ public class MainUI implements Initializable {
         changeClipBoardStatus();
     }
 
-    public void setStage(Stage stage) {
+    public void setStageAndParent(Stage stage, GUIClient guiClient) {
         this.thisStage = stage;
+        this.guiClient = guiClient;
     }
 
     /* Actions and handlers */
@@ -188,7 +191,7 @@ public class MainUI implements Initializable {
         stage.setResizable(false);
 
         SettingsMain controller = loader.getController();
-        controller.setStage(stage);
+        controller.setStageAndParent(stage, this);
 
         stage.show();
     }
@@ -283,6 +286,11 @@ public class MainUI implements Initializable {
         thisStage.close();
     }
 
+    @FXML
+    public void restartAction() {
+        guiClient.restart(thisStage);
+    }
+
     /* Functional methods */
 
     private void refreshDirButtons() {
@@ -373,19 +381,19 @@ public class MainUI implements Initializable {
         for (int i = 0; i < files.length; i++)
             files[i] = selections.get(i).getFile();
 
-        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmation.setTitle("WinLZZ");
-        confirmation.setHeaderText(bundle.getString("pleaseConfirm"));
-
         StringBuilder builder = new StringBuilder(bundle.getString("confirmDelete"));
         builder.append(" ");
         for (File f : files) builder.append(f.getName()).append(bundle.getString("backDot")).append(" ");
         builder.delete(builder.length() - 2, builder.length());
         builder.append(" ?");
-        confirmation.setContentText(builder.toString());
-        confirmation.showAndWait();
 
-        if (confirmation.getResult() == ButtonType.OK) {
+        boolean astConfirmDelete = InfoBoxes.showConfirmBox(
+                "WinLZZ",
+                bundle.getString("pleaseConfirm"),
+                builder.toString()
+        );
+
+        if (astConfirmDelete) {
             ArrayList<File> failed = new ArrayList<>();
             for (File f : files) if (!Util.recursiveDelete(f)) failed.add(f);
             if (!failed.isEmpty()) {

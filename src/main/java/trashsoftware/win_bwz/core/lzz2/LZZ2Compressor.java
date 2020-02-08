@@ -7,6 +7,7 @@ import trashsoftware.win_bwz.huffman.HuffmanCompressor;
 import trashsoftware.win_bwz.huffman.HuffmanCompressorBase;
 import trashsoftware.win_bwz.huffman.HuffmanCompressorTwoBytes;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapCompressor;
+import trashsoftware.win_bwz.longHuffman.LongHuffmanUtil;
 import trashsoftware.win_bwz.packer.Packer;
 import trashsoftware.win_bwz.utility.FileBitOutputStream;
 import trashsoftware.win_bwz.utility.FileInputBufferArray;
@@ -107,7 +108,7 @@ public class LZZ2Compressor implements Compressor {
         this.dlBodyTempName = inFile + ".dlb.temp";
     }
 
-    private int sliderArraySize() {
+    private static int sliderArraySize(int dictSize, int compressionLevel) {
         int base;
         if (dictSize <= 8192) base = 16;
         else if (dictSize <= 16384) base = 32;
@@ -133,7 +134,7 @@ public class LZZ2Compressor implements Compressor {
             dictSize = (int) totalLength - 1;
             bufferMaxSize = (int) totalLength - 1;
         }
-        FixedSliderLong slider = new FixedSliderLong(sliderArraySize());
+        FixedSliderLong slider = new FixedSliderLong(sliderArraySize(dictSize, compressionLevel));
 
         long position = 0;  // The processing index. i.e. the border of buffer and slider.
 
@@ -143,7 +144,8 @@ public class LZZ2Compressor implements Compressor {
 
         BufferedOutputStream mainFos = new BufferedOutputStream(new FileOutputStream(mainTempName));
         BufferedOutputStream disFos = new BufferedOutputStream(new FileOutputStream(disHeadTempName));
-        FileBitOutputStream dlbFos = new FileBitOutputStream(new BufferedOutputStream(new FileOutputStream(dlBodyTempName)));
+        FileBitOutputStream dlbFos = new FileBitOutputStream(
+                new BufferedOutputStream(new FileOutputStream(dlBodyTempName)));
 
         long lastCheckTime = System.currentTimeMillis();
         startTime = lastCheckTime;
@@ -152,13 +154,11 @@ public class LZZ2Compressor implements Compressor {
 
         while (position < totalLength - 3) {
 
-
             int skip = search(fba, slider, position);
             long prevPos = position;
 
             if (len < MINIMUM_MATCH_LEN) {
                 // Not a match
-//                flagFos.write(0);
 //                System.out.print(fba.getByte(position) + ", ");
                 mainFos.write(0);
                 mainFos.write(fba.getByte(position++));  // a literal
@@ -470,5 +470,23 @@ public class LZZ2Compressor implements Compressor {
     @Override
     public void setCompressionLevel(int compressionLevel) {
         this.compressionLevel = compressionLevel;
+    }
+
+    public static long[] estimateMemoryUsage(int threads, int windowSize, int modeLevel) {
+        long cmpMem = 2048;  // objects
+        cmpMem += windowSize * 2;  // input buffer array
+        long sliderArraySize = sliderArraySize(windowSize, modeLevel);
+        long sliderMem = sliderArraySize * 65536 * 8;  // 8 is size of long
+        cmpMem += sliderMem;
+        cmpMem += 65536 * 32;  // FixedArrayDeque
+        cmpMem += 16384;  // estimate mtf, huf
+
+        long uncMem = 2048;  // objects
+        uncMem += LongHuffmanUtil.hufDecompressorMem();  // huffman dec
+        uncMem += 500;  // heads
+        uncMem += windowSize * 2;  // output buffer
+        uncMem += 16384;  // others
+
+        return new long[]{cmpMem, uncMem};
     }
 }

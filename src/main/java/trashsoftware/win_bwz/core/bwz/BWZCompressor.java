@@ -15,6 +15,7 @@ import trashsoftware.win_bwz.core.bwz.bwt.BWTEncoder;
 import trashsoftware.win_bwz.core.bwz.bwt.BWTEncoderByte;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapCompressor;
 import trashsoftware.win_bwz.longHuffman.LongHuffmanCompressorRam;
+import trashsoftware.win_bwz.longHuffman.LongHuffmanUtil;
 import trashsoftware.win_bwz.packer.Packer;
 import trashsoftware.win_bwz.utility.Bytes;
 import trashsoftware.win_bwz.utility.Util;
@@ -332,6 +333,7 @@ public class BWZCompressor implements Compressor {
         uncEachThread += (windowSize + 4) * 4;  // bwt decoder init
         uncEachThread += (windowSize * 4 + 258) * 4;  // ll, lf, lf2, counts
         uncEachThread += windowSize * 2;  // two copies in bwt decoder
+        uncEachThread += LongHuffmanUtil.hufDecompressorMem();  // huffman decompressor
 
         uncMemory += uncEachThread;
 

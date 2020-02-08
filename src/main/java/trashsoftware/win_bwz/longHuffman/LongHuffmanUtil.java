@@ -100,7 +100,7 @@ public abstract class LongHuffmanUtil {
 
         int debt = getTotalDebt(list, maxHeight);
         repay(list, debt, maxHeight);
-        for (LengthTuple lt: list) lengthMap[lt.getByte()] = lt.length;
+        for (LengthTuple lt : list) lengthMap[lt.getByte()] = lt.length;
     }
 
     private static int getTotalDebt(ArrayList<LengthTuple> list, int maxHeight) {
@@ -164,6 +164,11 @@ public abstract class LongHuffmanUtil {
                 throw new RuntimeException("Code too long");
             }
         }
+    }
+
+    public static int hufDecompressorMem() {
+        return (int) Math.pow(2, 15) * 4 +  // identical map
+                300 * 4;  // length map
     }
 }
 

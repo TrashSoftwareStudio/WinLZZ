@@ -46,9 +46,5 @@ class FixedArrayDeque {
     long get(int index) {
         return array[index & (arraySize - 1)];
     }
-
-    int size() {
-        return tail - beginPos();
-    }
 }
 

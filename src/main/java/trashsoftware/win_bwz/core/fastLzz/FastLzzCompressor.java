@@ -90,7 +90,6 @@ public class FastLzzCompressor implements Compressor {
         this.bufferMaxSize = bufferSize;
         this.dictSize = windowSize - bufferMaxSize - 1;
         this.totalLength = totalLength;
-//        this.remainingLength = totalLength;
         this.sis = mis;
     }
 
@@ -149,7 +148,6 @@ public class FastLzzCompressor implements Compressor {
                     processedLength += et.bufferSize;
                 }
             }
-//            remainingLength -= read;
         }
 
         sis.close();
@@ -293,7 +291,10 @@ public class FastLzzCompressor implements Compressor {
                     if (i >= bufferSize) break;
                     fillSlider(bufferStart + prevI, bufferStart + i, this.slider);
 
-                    if (parent != null && parent.isInterrupted) break;
+                    if (parent != null && parent.isInterrupted) {
+                        notInterrupted = false;
+                        break;
+                    }
                     if (timerThread &&
                             parent != null &&
                             (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {

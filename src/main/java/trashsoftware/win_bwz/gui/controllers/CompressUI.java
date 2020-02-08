@@ -248,6 +248,14 @@ public class CompressUI implements Initializable {
                             currentModeIndex
                     )
             );
+        } else if (alg.equals("lzz2")) {
+            updateMemoryLabels(
+                    LZZ2Compressor.estimateMemoryUsage(
+                            threads[currentThreadIndex],
+                            windowSizesBwz[currentWindowIndex],
+                            currentModeIndex
+                    )
+            );
         }
     }
 

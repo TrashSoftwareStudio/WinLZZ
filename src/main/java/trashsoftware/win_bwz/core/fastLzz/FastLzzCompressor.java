@@ -33,8 +33,6 @@ public class FastLzzCompressor implements Compressor {
 
     private long processedLength;
 
-//    private long remainingLength;
-
     private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
 
     private int dictSize;

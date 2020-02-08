@@ -139,6 +139,7 @@ public abstract class LongHuffmanUtil {
                                            int maxCodeLen,
                                            int[] longMapArr) {
         int len = lengthCode[i];
+//        int shortMapLen = shortMapArr.length;  // the long map is all zero in the first <shortMapLen> positions
         if (len > 0) {
             int code = canonicalCode[i];
             if (len < average) {

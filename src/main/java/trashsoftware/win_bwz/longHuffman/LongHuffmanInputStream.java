@@ -1,6 +1,5 @@
 package trashsoftware.win_bwz.longHuffman;
 
-import trashsoftware.win_bwz.huffman.HuffmanDeCompressor;
 import trashsoftware.win_bwz.utility.Bytes;
 
 import java.io.IOException;
@@ -45,18 +44,19 @@ public class LongHuffmanInputStream {
     private int average = 8;
 
     /**
-     * The huffman code table that records all codes that are shorter than or equal to {@code average}, but all codes
+     * This map is a combination of two maps.
+     * <p>
+     * The short map that records all codes that are shorter than or equal to {@code average}, but all codes
      * shorter than {@code average} is extended by all possible combination of 0's and 1's until they reaches the
      * length {@code average}.
-     */
-    private int[] shortMapArr;
-
-    /**
-     * The huffman code table that records all codes that are shorter than or equal to {@code maxCodeLen}, but all
+     * The long map that records all codes that are shorter than or equal to {@code maxCodeLen}, but all
      * codes shorter than {@code maxCodeLen} is extended by all possible combination of 0's and 1's until they
      * reaches the length {@code maxCodeLen}.
+     * <p>
+     * The first {@code Math.power(2, shortMapLength)} ints is the short map. It stores the 8-bits identical code +1.
+     * So 0 represents "not in the short map".
      */
-    private int[] longMapArr;
+    private int[] identicalMap;
 
     /**
      * The table that records all huffman symbol and their corresponding code length.
@@ -106,11 +106,10 @@ public class LongHuffmanInputStream {
     }
 
     private void generateIdenticalMap(int[] lengthCode, int[] canonicalCode) {
-        shortMapArr = new int[1 << average];
-        longMapArr = new int[1 << maxCodeLen];
+        identicalMap = new int[1 << maxCodeLen];
 
         for (int i = 0; i < alphabetSize; ++i) {
-            identicalMapOneLoop(lengthCode, canonicalCode, i, average, shortMapArr, maxCodeLen, longMapArr);
+            identicalMapOneLoop(lengthCode, canonicalCode, i, average, identicalMap, maxCodeLen, identicalMap);
         }
     }
 
@@ -150,13 +149,13 @@ public class LongHuffmanInputStream {
             bitPos -= average;
 
             int codeLen;
-            int code = shortMapArr[index];
+            int code = identicalMap[index];
             if (code == 0) {  // not in short map
                 readBits(bigMapLonger);
                 index <<= bigMapLonger;
                 index |= ((bits >> (bitPos - bigMapLonger)) & bigMapLongerAndEr);
                 bitPos -= bigMapLonger;
-                code = longMapArr[index];
+                code = identicalMap[index];
                 codeLen = lengthMap[code];
                 bitPos += (maxCodeLen - codeLen);
             } else {

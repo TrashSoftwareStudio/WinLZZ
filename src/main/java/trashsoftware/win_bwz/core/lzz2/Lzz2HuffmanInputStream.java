@@ -3,7 +3,6 @@ package trashsoftware.win_bwz.core.lzz2;
 import trashsoftware.win_bwz.longHuffman.LongHuffmanUtil;
 import trashsoftware.win_bwz.utility.Bytes;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -11,19 +10,15 @@ import static trashsoftware.win_bwz.longHuffman.LongHuffmanUtil.identicalMapOneL
 
 public class Lzz2HuffmanInputStream {
 
-//    private static final int BUFFER_SIZE = 8192;
-
     private int maxCodeLen;
     private int average = 8;
 
     private InputStream bis;
 
     private int[] lengthCode;
-    private int[] shortMapArr;
-    private int[] longMapArr;
+    private int[] identicalMap;
 
     private byte[] buffer = new byte[1];
-//    private int bufferIndex;
 
     private int bits;
     private int bitPos;
@@ -59,11 +54,10 @@ public class Lzz2HuffmanInputStream {
     }
 
     private void generateIdenticalMap(int[] lengthCode, int[] canonicalCode) {
-        shortMapArr = new int[1 << average];
-        longMapArr = new int[1 << maxCodeLen];
+        identicalMap = new int[1 << maxCodeLen];
 
         for (int i = 0; i < lengthCode.length; ++i) {
-            identicalMapOneLoop(lengthCode, canonicalCode, i, average, shortMapArr, maxCodeLen, longMapArr);
+            identicalMapOneLoop(lengthCode, canonicalCode, i, average, identicalMap, maxCodeLen, identicalMap);
         }
     }
 
@@ -86,13 +80,14 @@ public class Lzz2HuffmanInputStream {
         bitPos -= average;
 
         int codeLen;
-        int code = shortMapArr[index];
+        int code = identicalMap[index];
+
         if (code == 0) {  // not in short map
             loadBits(bigMapLonger);
             index <<= bigMapLonger;
             index |= ((bits >> (bitPos - bigMapLonger)) & bigMapLongerAndEr);
             bitPos -= bigMapLonger;
-            code = longMapArr[index];
+            code = identicalMap[index];
             codeLen = lengthCode[code];
             bitPos += (maxCodeLen - codeLen);
         } else {
@@ -100,9 +95,6 @@ public class Lzz2HuffmanInputStream {
             codeLen = lengthCode[code];
             bitPos += (average - codeLen);
         }
-//            result[currentIndex++] = code;
-//        currentLen++;
-//        fos.write(code);
         return code;
     }
 

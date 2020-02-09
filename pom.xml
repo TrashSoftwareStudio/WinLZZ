@@ -3,44 +3,52 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>trashsoftware</groupId>
     <artifactId>win-bwz</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0-ALPHA</version>
     <packaging>jar</packaging>
     <name>deep-searcher</name>
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-controls -->
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-controls</artifactId>
-            <version>13</version>
-        </dependency>
+        <!--        &lt;!&ndash; https://mvnrepository.com/artifact/org.openjfx/javafx-controls &ndash;&gt;-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.openjfx</groupId>-->
+        <!--            <artifactId>javafx-controls</artifactId>-->
+        <!--            <version>13</version>-->
+        <!--        </dependency>-->
 
-        <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-graphics -->
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-graphics</artifactId>
-            <version>13</version>
-        </dependency>
+        <!--        &lt;!&ndash; https://mvnrepository.com/artifact/org.openjfx/javafx-graphics &ndash;&gt;-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.openjfx</groupId>-->
+        <!--            <artifactId>javafx-graphics</artifactId>-->
+        <!--            <version>13</version>-->
+        <!--        </dependency>-->
 
-        <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-base -->
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-base</artifactId>
-            <version>13</version>
-        </dependency>
+        <!--        &lt;!&ndash; https://mvnrepository.com/artifact/org.openjfx/javafx-base &ndash;&gt;-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.openjfx</groupId>-->
+        <!--            <artifactId>javafx-base</artifactId>-->
+        <!--            <version>13</version>-->
+        <!--        </dependency>-->
 
-        <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-fxml -->
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-fxml</artifactId>
-            <version>13</version>
-        </dependency>
+        <!--        &lt;!&ndash; https://mvnrepository.com/artifact/org.openjfx/javafx-fxml &ndash;&gt;-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.openjfx</groupId>-->
+        <!--            <artifactId>javafx-fxml</artifactId>-->
+        <!--            <version>13</version>-->
+        <!--        </dependency>-->
 
         <!-- https://mvnrepository.com/artifact/org.json/json -->
+<!--        <dependency>-->
+<!--            <groupId>org.json</groupId>-->
+<!--            <artifactId>json</artifactId>-->
+<!--            <version>20190722</version>-->
+<!--        </dependency>-->
+
+        <!-- https://mvnrepository.com/artifact/com.googlecode.json-simple/json-simple -->
         <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20190722</version>
+            <groupId>com.googlecode.json-simple</groupId>
+            <artifactId>json-simple</artifactId>
+            <version>1.1.1</version>
         </dependency>
+
 
     </dependencies>
 
@@ -51,7 +59,8 @@
         </repository>
     </repositories>
     <properties>
-        <maven.compiler.release>13</maven.compiler.release>
+        <maven.compiler.release>1.8</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <build>

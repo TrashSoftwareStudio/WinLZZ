@@ -515,8 +515,6 @@ class EncodeThread implements Runnable {
         Bytes.intToBytes24(beb.getOrigRowIndex(), numbers, 5);
 
         mapTime += System.currentTimeMillis() - t0;
-//        System.out.println(String.format("map time %d, nl %d, flags %d, map %d",
-//                mapTime, numbers.length, flagsMtf.length, cmpMap.length));
 
         out.write(numbers);
         out.write(flagsMtf);

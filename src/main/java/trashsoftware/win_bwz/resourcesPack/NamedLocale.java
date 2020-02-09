@@ -1,4 +1,4 @@
-package trashsoftware.win_bwz.resourcesPack.configLoader;
+package trashsoftware.win_bwz.resourcesPack;
 
 import java.util.Locale;
 
@@ -6,7 +6,7 @@ public class NamedLocale {
     private Locale locale;
     private String description;
 
-    NamedLocale(String language, String country, String description) {
+    public NamedLocale(String language, String country, String description) {
         this.locale = new Locale(language, country);
         this.description = description;
     }

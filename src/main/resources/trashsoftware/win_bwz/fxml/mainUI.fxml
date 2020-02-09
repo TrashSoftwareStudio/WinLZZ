@@ -70,10 +70,10 @@
 
     <TableView fx:id="table" GridPane.rowIndex="2" GridPane.columnIndex="1">
         <columns>
-            <TableColumn fx:id="nameCol" prefWidth="300.0" text="name"/>
-            <TableColumn fx:id="typeCol" prefWidth="120.0" text="type"/>
-            <TableColumn fx:id="sizeCol" prefWidth="120.0" text="size"/>
-            <TableColumn fx:id="timeCol" prefWidth="160.0" text="modified"/>
+            <TableColumn fx:id="nameCol" prefWidth="300.0" text="%fileName"/>
+            <TableColumn fx:id="typeCol" prefWidth="120.0" text="%type"/>
+            <TableColumn fx:id="sizeCol" prefWidth="120.0" text="%size"/>
+            <TableColumn fx:id="timeCol" prefWidth="160.0" text="%fileModTime"/>
         </columns>
     </TableView>
 </GridPane>

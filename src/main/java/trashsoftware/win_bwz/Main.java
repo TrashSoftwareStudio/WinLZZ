@@ -14,7 +14,7 @@ public class Main {
     /**
      * The software version, will be displayed in GUI.
      */
-    public static final String version = "1.0 Alpha 5";
+    public static final String version = "1.0 Alpha 6";
 
     /**
      * The main function of WinLZZ.

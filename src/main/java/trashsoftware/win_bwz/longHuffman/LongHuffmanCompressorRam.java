@@ -1,5 +1,7 @@
 package trashsoftware.win_bwz.longHuffman;
 
+import java.util.Arrays;
+
 /**
  * A huffman compression program that all operations take places in the random access memory.
  * <p>
@@ -49,8 +51,9 @@ public class LongHuffmanCompressorRam {
     }
 
     private void generateFreqMap() {
-        LongHuffmanUtil.addArrayToFreqMap(fullText, freqTable, textBegin, textSize);
+//        Arrays.fill(freqTable, 1);
         freqTable[endSig] = 1;
+        LongHuffmanUtil.addArrayToFreqMap(fullText, freqTable, textBegin, textSize);
     }
 
     private byte[] compressText() {

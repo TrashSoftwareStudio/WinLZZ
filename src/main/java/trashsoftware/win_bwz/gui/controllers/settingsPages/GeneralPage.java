@@ -7,7 +7,7 @@ import trashsoftware.win_bwz.gui.GUIClient;
 import trashsoftware.win_bwz.gui.controllers.SettingsMain;
 import trashsoftware.win_bwz.gui.graphicUtil.InfoBoxes;
 import trashsoftware.win_bwz.resourcesPack.configLoader.GeneralLoaders;
-import trashsoftware.win_bwz.resourcesPack.configLoader.NamedLocale;
+import trashsoftware.win_bwz.resourcesPack.NamedLocale;
 
 import java.io.IOException;
 import java.util.List;

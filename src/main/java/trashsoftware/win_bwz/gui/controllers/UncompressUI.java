@@ -372,7 +372,6 @@ public class UncompressUI implements Initializable {
         box.setSpacing(5.0);
 
         PasswordField pwdField = new PasswordField();
-        pwdField.setPrefWidth(100);
         Label prompt = new Label();
         Button confirm = new Button(bundle.getString("confirm"));
         box.getChildren().addAll(new Label(bundle.getString("pleaseInputPassword")), pwdField, prompt, confirm);
@@ -404,6 +403,9 @@ public class UncompressUI implements Initializable {
                 }
             });
         }
+
+        pwdField.setOnAction(event -> confirm.fire());  // press enter in password field
+
         stage.initModality(Modality.WINDOW_MODAL);
         stage.initOwner(this.stage);
         stage.showAndWait();

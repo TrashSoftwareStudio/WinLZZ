@@ -233,30 +233,34 @@ public class CompressUI implements Initializable {
 
     private void estimateMemoryUsage() {
         String alg = getAlgCode();
-        if (alg.equals("bwz")) {
-            updateMemoryLabels(
-                    BWZCompressor.estimateMemoryUsage(
-                            threads[currentThreadIndex],
-                            windowSizesBwz[currentWindowIndex],
-                            currentModeIndex
-                    )
-            );
-        } else if (alg.equals("fastLzz")) {
-            updateMemoryLabels(
-                    FastLzzCompressor.estimateMemoryUsage(
-                            threads[currentThreadIndex],
-                            windowSizesBwz[currentWindowIndex],
-                            currentModeIndex
-                    )
-            );
-        } else if (alg.equals("lzz2")) {
-            updateMemoryLabels(
-                    LZZ2Compressor.estimateMemoryUsage(
-                            threads[currentThreadIndex],
-                            windowSizesBwz[currentWindowIndex],
-                            currentModeIndex
-                    )
-            );
+        switch (alg) {
+            case "bwz":
+                updateMemoryLabels(
+                        BWZCompressor.estimateMemoryUsage(
+                                threads[currentThreadIndex],
+                                windowSizesBwz[currentWindowIndex],
+                                currentModeIndex
+                        )
+                );
+                break;
+            case "fastLzz":
+                updateMemoryLabels(
+                        FastLzzCompressor.estimateMemoryUsage(
+                                threads[currentThreadIndex],
+                                windowSizesBwz[currentWindowIndex],
+                                currentModeIndex
+                        )
+                );
+                break;
+            case "lzz2":
+                updateMemoryLabels(
+                        LZZ2Compressor.estimateMemoryUsage(
+                                threads[currentThreadIndex],
+                                windowSizesBwz[currentWindowIndex],
+                                currentModeIndex
+                        )
+                );
+                break;
         }
     }
 

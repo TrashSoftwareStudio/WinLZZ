@@ -46,8 +46,6 @@ public class FastLzzDecompressor implements DeCompressor {
     }
 
     private void uncompressMain(OutputStream fos) throws IOException {
-
-
         long lastCheckTime = System.currentTimeMillis();
         startTime = lastCheckTime;
         if (parent != null) timeOffset = lastCheckTime - parent.startTime;
@@ -92,10 +90,10 @@ public class FastLzzDecompressor implements DeCompressor {
                 fos.write(outBuffer);
                 fis.alignByte();
             }
-            if (parent != null && parent.isInterrupted) break;
             if (parent != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
                 updateInfo(totalUmpIndex + indexInBuffer, currentTime);
                 lastCheckTime = currentTime;
+                if (parent.isInterrupted) break;
             }
         }
         if (indexInBuffer > 0) {

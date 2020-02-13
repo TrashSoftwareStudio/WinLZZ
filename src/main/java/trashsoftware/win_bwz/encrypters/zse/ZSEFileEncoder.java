@@ -24,10 +24,6 @@ public class ZSEFileEncoder implements Encipher {
 
     private long encodeLength;
 
-    private Packer parent;
-
-    private long beforeLength;
-
     /**
      * Creates a new {ZSEFileEncoder} instance.
      * <p>
@@ -84,7 +80,5 @@ public class ZSEFileEncoder implements Encipher {
      */
     @Override
     public void setParent(Packer parent, long lengthBeforeEncryption) {
-        this.parent = parent;
-        this.beforeLength = lengthBeforeEncryption;
     }
 }

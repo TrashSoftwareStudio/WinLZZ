@@ -194,16 +194,17 @@ public class Packer {
 
             int currentCount = fileCount;
             assert sub != null;
-            ArrayList<IndexNode> tempList = new ArrayList<>();
+            IndexNode[] tempArr = new IndexNode[sub.length];
+            int arrIndex = 0;
             for (File f : sub) {
                 IndexNode in = new IndexNode(f.getName(), f);
-                tempList.add(in);
+                tempArr[arrIndex++] = in;
+                indexNodes.add(in);
                 fileCount += 1;
             }
             currentNode.setChildrenRange(currentCount, fileCount);
-            indexNodes.addAll(tempList);
-            for (int i = 0; i < sub.length; i++) if (!sub[i].isDirectory()) buildIndexTree(sub[i], tempList.get(i));
-            for (int i = 0; i < sub.length; i++) if (sub[i].isDirectory()) buildIndexTree(sub[i], tempList.get(i));
+            for (int i = 0; i < sub.length; i++) if (!sub[i].isDirectory()) buildIndexTree(sub[i], tempArr[i]);
+            for (int i = 0; i < sub.length; i++) if (sub[i].isDirectory()) buildIndexTree(sub[i], tempArr[i]);
         } else {
             long start = totalLength;
             totalLength += file.length();

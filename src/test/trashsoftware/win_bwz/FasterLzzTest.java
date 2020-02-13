@@ -2,6 +2,7 @@ package trashsoftware.win_bwz;
 
 import trashsoftware.win_bwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.win_bwz.core.fastLzz.FastLzzDecompressor;
+import trashsoftware.win_bwz.core.fasterLzz.FasterLzzCompressor;
 import trashsoftware.win_bwz.utility.Util;
 
 import java.io.BufferedInputStream;
@@ -10,10 +11,18 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.Arrays;
 
-public class FastLzzTest {
+public class FasterLzzTest {
 
     public static void main(String[] args) throws Exception {
         long start = System.currentTimeMillis();
+
+        byte[] extraLitBuf = new byte[64];
+        int litCount = 15 + 255;
+        int tokenLit;
+        int extraLitLen = 0, extraLenLen = 0;
+
+
+//        System.exit(0);
 
         String name;
         name = "dsCtrl.txt";
@@ -29,8 +38,8 @@ public class FastLzzTest {
 //        Vector<FileInputStream> v = new Vector<>();
 //        v.add(new FileInputStream(name));
 //        SequenceInputStream sis = new SequenceInputStream(v.elements());
-        int ws = 32768;
-        FastLzzCompressor c = new FastLzzCompressor(name, ws, 255);
+        int ws = 65536;
+        FasterLzzCompressor c = new FasterLzzCompressor(name, ws, 255);
         c.setThreads(1);
         c.setCompressionLevel(0);
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
@@ -50,7 +59,7 @@ public class FastLzzTest {
         String cpyName = Util.getOriginalCopyName(cmpName);
         FastLzzDecompressor d = new FastLzzDecompressor(cmpName, ws);
         FileOutputStream bos = new FileOutputStream(cpyName);
-        d.uncompress(bos);
+//        d.uncompress(bos);
         bos.close();
 
         long t2 = System.currentTimeMillis() - mid;

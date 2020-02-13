@@ -2,7 +2,6 @@ package trashsoftware.win_bwz.core.lzz2;
 
 import trashsoftware.win_bwz.core.bwz.MTFTransformByte;
 import trashsoftware.win_bwz.core.Compressor;
-import trashsoftware.win_bwz.core.lzz2.util.LZZ2Util;
 import trashsoftware.win_bwz.huffman.HuffmanCompressor;
 import trashsoftware.win_bwz.huffman.HuffmanCompressorBase;
 import trashsoftware.win_bwz.huffman.HuffmanCompressorTwoBytes;

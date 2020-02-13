@@ -82,8 +82,7 @@ public class FileBitInputStream {
 
     private int readBits(int bitsCount) throws IOException {
         loadBits(bitsCount);
-        int andEr = Bytes.getAndEr(bitsCount);
-        int res = (bits >> (bitPos - bitsCount)) & andEr;
+        int res = (bits >> (bitPos - bitsCount)) & Bytes.getAndEr(bitsCount);
         bitPos -= bitsCount;
         return res;
     }

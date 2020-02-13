@@ -2,7 +2,7 @@ package trashsoftware.win_bwz.encrypters.zse;
 
 import trashsoftware.win_bwz.utility.Util;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.zip.CRC32;
 
@@ -39,12 +39,7 @@ public class ZSEEncoder {
      * @return the encoded password
      */
     static int[] generatePassword(String pwd, int textLen) {
-        byte[] bytePwd = new byte[0];
-        try {
-            bytePwd = pwd.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        byte[] bytePwd = pwd.getBytes(StandardCharsets.UTF_8);
         int[] tempPwd = new int[bytePwd.length];
         int i = 0;
         CRC32 crc = new CRC32();

@@ -186,6 +186,20 @@ public abstract class Bytes {
     }
 
     /**
+     * Convert a 4-byte array into signed integer in big-endian.
+     *
+     * @param b     byte array.
+     * @param index the index in array
+     * @return signed integer.
+     */
+    public static long bytesToInt32(byte[] b, int index) {
+        return ((long) b[index] & 0xff) << 24 |
+                (b[index + 1] & 0xff) << 16 |
+                (b[index + 2] & 0xff) << 8 |
+                (b[index + 3] & 0xff);
+    }
+
+    /**
      * Convert a 4-byte array into signed integer in little-endian.
      *
      * @param b byte array.

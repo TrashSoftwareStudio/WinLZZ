@@ -1,4 +1,4 @@
-package trashsoftware.win_bwz.core.lzz2.util;
+package trashsoftware.win_bwz.core.lzz2;
 
 import trashsoftware.win_bwz.utility.FileBitInputStream;
 import trashsoftware.win_bwz.utility.FileBitOutputStream;

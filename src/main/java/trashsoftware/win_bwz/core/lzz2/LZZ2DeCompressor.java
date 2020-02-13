@@ -3,7 +3,6 @@ package trashsoftware.win_bwz.core.lzz2;
 import trashsoftware.win_bwz.core.bwz.MTFInverseByte;
 import trashsoftware.win_bwz.core.bwz.ZeroRLCDecoderByte;
 import trashsoftware.win_bwz.core.DeCompressor;
-import trashsoftware.win_bwz.core.lzz2.util.LZZ2Util;
 import trashsoftware.win_bwz.huffman.HuffmanCompressorTwoBytes;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapDeCompressor;
 import trashsoftware.win_bwz.packer.UnPacker;

@@ -24,6 +24,18 @@ WinLZZ is an open source data compression software.
 
 It's an GUI application. You should know how to use.
 
+# Main features
+
+### 3 unique compression algorithms:
+
+#### BWZ
+
+#### LZZ2
+
+#### FastLZZ
+
+### File manager:
+
 # Languages
 
 WinLZZ has builtin support of English and simplified Chinese. 

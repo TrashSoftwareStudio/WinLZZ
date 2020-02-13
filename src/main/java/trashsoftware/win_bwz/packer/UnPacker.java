@@ -376,19 +376,6 @@ public class UnPacker {
 
         DeCompressor mapDec;
         if (windowSize == 0) {
-//            switch (alg) {
-//                case "lzz2":
-//                    mapDec = new LZZ2DeCompressor(cmpMapName, Packer.defaultWindowSize);
-//                    break;
-//                case "fastLzz":
-//                    mapDec = new FastLzzDecompressor(cmpMapName, Packer.defaultWindowSize);
-//                    break;
-//                case "bwz":
-//                    mapDec = new BWZDeCompressor(cmpMapName, Packer.defaultWindowSize, 0);
-//                    break;
-//                default:
-//                    throw new NoSuchAlgorithmException("No such algorithm");
-//            }
             mapDec = getDeCompressor(cmpMapName, Packer.defaultWindowSize);
         } else {
             mapDec = getDeCompressor(cmpMapName, windowSize);
@@ -444,7 +431,6 @@ public class UnPacker {
 //            throw new ChecksumDoesNotMatchException("Context damaged");
             System.err.println("CRC32 Checksum does not match");
         }
-
     }
 
     private void buildContextTree(ContextNode node, IndexNodeUnp inu) {

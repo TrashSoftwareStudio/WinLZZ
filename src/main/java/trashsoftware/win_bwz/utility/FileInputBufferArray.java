@@ -56,7 +56,7 @@ public class FileInputBufferArray {
                     this.index += read;
                     remainSize = read;
                 } else if (read < 0) {
-                    throw new IndexOutOfBoundsException("Index out of range");
+                    throw new IndexOutOfBoundsException("Index out of file's length");
                 }
             } else {
                 int read = bis.read(array1);
@@ -64,7 +64,7 @@ public class FileInputBufferArray {
                     this.index += read;
                     remainSize = read;
                 } else if (read < 0) {
-                    throw new IndexOutOfBoundsException("Index out of range");
+                    throw new IndexOutOfBoundsException("Index out of file's length");
                 }
             }
             return getByte(index);

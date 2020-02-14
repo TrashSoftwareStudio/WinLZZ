@@ -1,6 +1,7 @@
 package trashsoftware.win_bwz.utility;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 
@@ -698,5 +699,37 @@ public abstract class Util {
             result[i] = Bytes.byteToBitString(array[i]);
         }
         return result;
+    }
+
+    public static boolean checkFileIdentical(String fileName1, String fileName2) {
+        try {
+            BufferedInputStream checkBis = new BufferedInputStream(new FileInputStream(fileName1));
+            BufferedInputStream checkBis2 = new BufferedInputStream(new FileInputStream(fileName2));
+            int read;
+            byte[] buffer = new byte[8192];
+            byte[] buffer2 = new byte[8192];
+            int begin = 0;
+            boolean suc = true;
+            while ((read = checkBis.read(buffer)) > 0) {
+                int read2 = checkBis2.read(buffer2);
+                if (read != read2) {
+                    System.out.println("Lengths not match");
+                    suc = false;
+                    break;
+                }
+                if (!Arrays.equals(buffer, buffer2)) {
+                    System.out.println("Content not match between " + begin + " and " + (begin + read));
+                    suc = false;
+                    break;
+                }
+
+                begin += read;
+            }
+            checkBis.close();
+            checkBis2.close();
+            return suc;
+        } catch (IOException e) {
+            return false;
+        }
     }
 }

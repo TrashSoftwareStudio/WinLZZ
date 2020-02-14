@@ -24,7 +24,7 @@ public class Console {
         try {
             String mode = args[0];
             if (mode.equals("-i")) {
-                System.out.println("WinLZZ " + Main.version);
+                System.out.println("WinLZZ " + Main.VERSION);
                 return;
             }
             String inFile = args[1];

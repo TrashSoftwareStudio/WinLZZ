@@ -19,7 +19,7 @@ public class AboutUI implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         this.bundle = resources;
-        versionLabel.setText(Main.version);
+        versionLabel.setText(Main.VERSION);
         coreVersionLabel.setText(Packer.getProgramFullVersion());
         fillText();
     }

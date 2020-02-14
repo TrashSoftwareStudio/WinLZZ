@@ -27,7 +27,7 @@ public class LZZ2Test {
 //        SequenceInputStream sis = new SequenceInputStream(v.elements());
         int ws = 32768;
         LZZ2Compressor c = new LZZ2Compressor(name, ws, 255);
-        c.setCompressionLevel(4);
+        c.setCompressionLevel(1);
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
             c.compress(fos);
@@ -54,5 +54,7 @@ public class LZZ2Test {
         long t2 = System.currentTimeMillis() - mid;
         System.out.println("Uncompress Time: " + t2 + " ms");
         System.out.println("C/U time ratio: " + (double) t1 / t2);
+
+        System.out.println(Util.checkFileIdentical(name, cpyName));
     }
 }

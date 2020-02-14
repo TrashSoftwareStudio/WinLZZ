@@ -4,3 +4,9 @@ out/
 pref.ini
 /target/
 /cf.zip
+
+# Compressed files #
+
+*.lzz2
+*.flz
+*.bwz

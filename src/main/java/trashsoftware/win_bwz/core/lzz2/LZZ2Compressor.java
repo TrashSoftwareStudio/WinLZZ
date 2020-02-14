@@ -14,6 +14,7 @@ import trashsoftware.win_bwz.utility.MultipleInputStream;
 import trashsoftware.win_bwz.utility.Util;
 
 import java.io.*;
+import java.util.Arrays;
 
 /**
  * LZZ2 (Lempel-Ziv-ZBH 2) compressor, implements {@code Compressor} interface.
@@ -30,9 +31,11 @@ public class LZZ2Compressor implements Compressor {
 
     public static final int MAIN_HUF_ALPHABET = 286;
 
-    final static int MINIMUM_MATCH_LEN = 3;
+    final static int MINIMUM_MATCH_LEN = 4;
 
     public static final int MAXIMUM_LENGTH = 286 + MINIMUM_MATCH_LEN;
+
+//    private static final long PRIME16 = 40499;
 
     private InputStream sis;
 
@@ -63,6 +66,8 @@ public class LZZ2Compressor implements Compressor {
     private int compressionLevel;
 
     private int dis, len;
+
+    private long[] tempArray;
 
     /**
      * Constructor of a new {@code LZZ2Compressor} instance.
@@ -133,7 +138,9 @@ public class LZZ2Compressor implements Compressor {
             dictSize = (int) totalLength - 1;
             bufferMaxSize = (int) totalLength - 1;
         }
-        FixedSliderLong slider = new FixedSliderLong(sliderArraySize(dictSize, compressionLevel));
+        int sliderArraySize = sliderArraySize(dictSize, compressionLevel);
+        FixedSliderLong slider = new FixedSliderLong(sliderArraySize);
+        tempArray = new long[sliderArraySize];
 
         long position = 0;  // The processing index. i.e. the border of buffer and slider.
 
@@ -151,7 +158,7 @@ public class LZZ2Compressor implements Compressor {
         if (parent != null) timeOffset = lastCheckTime - parent.startTime;
         long currentTime;
 
-        while (position < totalLength - 3) {
+        while (true) {
 
             int skip = search(fba, slider, position);
             long prevPos = position;
@@ -190,7 +197,7 @@ public class LZZ2Compressor implements Compressor {
                 lastDistances[(lastDisIndex++) & 0b11] = dis;
             }
 
-            if (position >= totalLength) break;
+            if (position >= totalLength - MINIMUM_MATCH_LEN) break;
             fillSlider(prevPos, position, fba, slider);
 
             if (parent != null && parent.isInterrupted) break;
@@ -235,22 +242,31 @@ public class LZZ2Compressor implements Compressor {
         return (b0 & 0xff) << 8 | (b1 & 0xff);
     }
 
+//    private static int hash4bytesToInt16(byte b0, byte b1, byte b2, byte b3) {
+//        long first = (long) (b0 & 0xff) << 24 | (b1 & 0xff) << 16 | (b2 & 0xff) << 8 | (b3 & 0xff);
+//        long hash = (first >> 16) ^ ((first & 0xffff) * PRIME16);
+//        return (int) (hash & 0xffff);
+//    }
+
     private void fillSlider(long from, long to, FileInputBufferArray fba, FixedSliderLong slider) throws IOException {
         int lastHash = -1;
         int repeatCount = 0;
         for (long j = from; j < to; j++) {
             byte b0 = fba.getByte(j);
             byte b1 = fba.getByte(j + 1);
+            byte b2 = fba.getByte(j + 2);
+            byte b3 = fba.getByte(j + 3);
             int hash = hash(b0, b1);
+            int nextHash = hash(b2, b3);
             if (hash == lastHash) {
                 repeatCount++;
             } else {
                 if (repeatCount > 0) {
                     repeatCount = 0;
-                    slider.addIndex(lastHash, j - 1);
+                    slider.addIndex(lastHash, j - 1, nextHash);
                 }
                 lastHash = hash;
-                slider.addIndex(hash, j);
+                slider.addIndex(hash, j, nextHash);
             }
         }
     }
@@ -309,20 +325,36 @@ public class LZZ2Compressor implements Compressor {
             len = 0;
             return;
         }
+        byte b2 = fba.getByte(index + 2);
+        byte b3 = fba.getByte(index + 3);
+        int nextHash = hash(b2, b3);
+        int indexInTemp = 0;
+        final int beginPos = positions.beginPos();
+        int tail = positions.tailPos();
         long windowBegin = Math.max(index - dictSize, 0);
 
-        int longest = 2;  // at least 2
-        final int beginPos = positions.beginPos();
-        int tail = positions.getTail();
-        long indexOfLongest = positions.getTail();
         for (int i = tail - 1; i >= beginPos; --i) {
-            long pos = positions.get(i);
-
+            int realIndex = i & slider.andEr;
+            long pos = positions.array[realIndex];
             if (pos <= windowBegin) break;
+            int posNextHash = positions.nextHashArray[realIndex];
+            if (nextHash == posNextHash) {
+                tempArray[indexInTemp++] = pos;
+            }
+        }
+        if (indexInTemp == 0) {
+            len = 0;
+            return;
+        }
 
-            int len = 2;
-            while (len < bufferMaxSize &&
-                    index + len < totalLength &&
+        int maxLen = Math.min(bufferMaxSize, (int) (totalLength - index));
+        int longest = 0;
+
+        long indexOfLongest = tempArray[0];
+        for (int i = 0; i < indexInTemp; ++i) {
+            long pos = tempArray[i];
+            int len = 2;  // reason of using 2 instead of 4: see {@code fillSlider}, problem in skipping bytes
+            while (len < maxLen &&
                     fba.getByte(pos + len) == fba.getByte(index + len)) {
                 len++;
             }
@@ -475,7 +507,8 @@ public class LZZ2Compressor implements Compressor {
         long cmpMem = 2048;  // objects
         cmpMem += windowSize * 2;  // input buffer array
         long sliderArraySize = sliderArraySize(windowSize, modeLevel);
-        long sliderMem = sliderArraySize * 65536 * 8;  // 8 is size of long
+        cmpMem += sliderArraySize * 8;  // temp array
+        long sliderMem = sliderArraySize * 65536 * 12;  // 12 is size of long + int
         cmpMem += sliderMem;
         cmpMem += 65536 * 32;  // FixedArrayDeque
         cmpMem += 16384;  // estimate mtf, huf
@@ -488,4 +521,24 @@ public class LZZ2Compressor implements Compressor {
 
         return new long[]{cmpMem, uncMem};
     }
+
+//    public static void main(String[] args) {
+//        int[] resCount = new int[65536];
+//        for (int i = 0; i < 16777216; ++i) {
+//            int h = hash4bytesToInt16(
+//                    (byte) (Math.random() * 256),
+//                    (byte) (Math.random() * 256),
+//                    (byte) (Math.random() * 256),
+//                    (byte) (Math.random() * 256)
+//            );
+//            resCount[h] += 1;
+//        }
+//        System.out.println(Arrays.toString(resCount));
+//        int max = 0, min = 16777216;
+//        for (int c : resCount) {
+//            if (c > max) max = c;
+//            if (c < min) min = c;
+//        }
+//        System.out.println(max + " " + min);
+//    }
 }

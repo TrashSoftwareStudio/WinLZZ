@@ -4,20 +4,22 @@ public class FixedSliderLong {
     private FixedArrayDeque[] array = new FixedArrayDeque[65536];
 
     private int arraySize;
-    private int andEr;
+    int andEr;
 
     public FixedSliderLong(int arraySize) {
         this.arraySize = arraySize;
         this.andEr = arraySize - 1;
     }
 
-    public void addIndex(int hashCode, long position) {
+    public void addIndex(int hashCode, long position, int nextHash) {
         FixedArrayDeque fad = array[hashCode];
         if (fad == null) {
             fad = new FixedArrayDeque(arraySize);
             array[hashCode] = fad;
         }
-        fad.array[(fad.tail++) & andEr] = position;
+        int index = (fad.tail++) & andEr;
+        fad.array[index] = position;
+        fad.nextHashArray[index] = nextHash;
     }
 
     public FixedArrayDeque get(int hashCode) {
@@ -28,18 +30,20 @@ public class FixedSliderLong {
 class FixedArrayDeque {
     private int arraySize;
     long[] array;
+    int[] nextHashArray;
     int tail = 0;
 
     FixedArrayDeque(int arraySize) {
         this.arraySize = arraySize;
         array = new long[arraySize];
+        nextHashArray = new int[arraySize];
     }
 
     int beginPos() {
         return tail >= arraySize ? tail - arraySize : 0;
     }
 
-    int getTail() {
+    int tailPos() {
         return tail;
     }
 

@@ -56,32 +56,21 @@ public class BWZDeCompressor implements DeCompressor {
     public BWZDeCompressor(String inFile, int windowSize, long startPos) throws IOException {
         this.windowSize = windowSize;
 
-//        initBytePos = startPos;
         fc = new FileInputStream(inFile).getChannel();
-//        fis = new FileInputStream(inFile);
-//        if (fis.skip(startPos) != startPos) throw new IOException("Error occurs while reading");
         fc.position(startPos);
-//        byte[] buffer1 = new byte[1];
         ByteBuffer buffer = ByteBuffer.allocate(1);
 
         int r;
         r = fc.read(buffer);
-//        r = fis.read(buffer1);
 
         if (r != 1) throw new IOException("Error occurs during reading");
         huffmanBlockMaxSize = (int) Math.pow(2, buffer.get(0));
 //        System.out.println(huffmanBlockMaxSize);
     }
 
-    private void fillMaps(byte[] block, int flagLen, int mapLen, int origRow) {
-        byte[] cmpFlags = new byte[flagLen];
+    private void fillMaps(byte[] block, int mapLen, int origRow) {
         byte[] cmpMap = new byte[mapLen];
-        System.arraycopy(block, 0, cmpFlags, 0, flagLen);
-        System.arraycopy(block, flagLen, cmpMap, 0, mapLen);
-
-        ZeroRLCDecoderByte rld = new ZeroRLCDecoderByte(cmpFlags);
-        byte[] rldFlags = rld.Decode();
-        byte[] flags = new MTFInverseByte(rldFlags).Inverse(256);
+        System.arraycopy(block, 0, cmpMap, 0, mapLen);
 
         byte[] uncMap = new MapDeCompressor(cmpMap).
                 Uncompress((windowSize / huffmanBlockMaxSize + 1) * 259, false);
@@ -89,18 +78,11 @@ public class BWZDeCompressor implements DeCompressor {
         byte[] mtfMap = new MTFInverseByte(rldMap).Inverse(18);
         byte[] maps = new BWTDecoderByte(mtfMap, origRow).Decode();
 
-        int fIndex = 0;
         int i = 0;
-        while (fIndex < flags.length) {
-            int flag = flags[fIndex++] & 0xff;
+        while (i < maps.length) {
             byte[] map = new byte[BWZCompressor.HUFFMAN_TABLE_SIZE];
-            if (flag == 0) {
-                System.arraycopy(maps, i, map, 0, BWZCompressor.HUFFMAN_TABLE_SIZE);
-                i += BWZCompressor.HUFFMAN_TABLE_SIZE;
-            } else {
-                int x = huffmanMaps.size() - flag;
-                System.arraycopy(huffmanMaps.get(x), 0, map, 0, BWZCompressor.HUFFMAN_TABLE_SIZE);
-            }
+            System.arraycopy(maps, i, map, 0, BWZCompressor.HUFFMAN_TABLE_SIZE);
+            i += BWZCompressor.HUFFMAN_TABLE_SIZE;
             huffmanMaps.addLast(map);
         }
     }
@@ -119,27 +101,27 @@ public class BWZDeCompressor implements DeCompressor {
         ArrayList<int[]> huffmanBlockList = new ArrayList<>();
 
         LongHuffmanInputStream his =
-                new LongHuffmanInputStream(fc, BWZCompressor.HUFFMAN_TABLE_SIZE, huffmanBlockMaxSize + 256);
+                new LongHuffmanInputStream(fc, BWZCompressor.HUFFMAN_TABLE_SIZE, windowSize);
         int[] huffmanResult;
         byte[] headBytes;
         byte[] blockBytes;
 
         while (true) {
             if (huffmanMaps.isEmpty()) {
-                headBytes = his.read(8);
+                headBytes = his.read(6);
 //                if (!Arrays.equals(headBytes, his.read(8))) System.out.println(111);
                 if (headBytes == null) break;  // Reach the end of the stream.
 
-                int flagLen = Bytes.bytesToShort(headBytes, 0);
-                int mapLen = Bytes.bytesToInt24(headBytes, 2);
-                int origRow = Bytes.bytesToInt24(headBytes, 5);
+//                int flagLen = Bytes.bytesToShort(headBytes, 0);
+                int mapLen = Bytes.bytesToInt24(headBytes, 0);
+                int origRow = Bytes.bytesToInt24(headBytes, 3);
 //                System.out.format("%d %d %d\n", flagLen, mapLen, origRow);
-                blockBytes = his.read(mapLen + flagLen);
+                blockBytes = his.read(mapLen);
                 if (blockBytes == null) {
                     throw new RuntimeException("Cannot read block");
                 }
 
-                fillMaps(blockBytes, flagLen, mapLen, origRow);
+                fillMaps(blockBytes, mapLen, origRow);
             }
             byte[] map = huffmanMaps.removeFirst();
 //            long t1 = System.currentTimeMillis();

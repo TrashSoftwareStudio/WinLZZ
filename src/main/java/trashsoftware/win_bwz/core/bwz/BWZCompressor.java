@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class BWZCompressor implements Compressor {
 
-    public static final int VERSION = 0;
+    public static final int VERSION = 1;
 
     private static final int DEFAULT_HUF_SIZE = 16384;
 
@@ -370,8 +370,8 @@ class EncodeThread implements Runnable {
 
     private byte[][] results;
     private byte[][] maps;
-    private byte[] flags;
     private BWZCompressor parent;
+    int hufBlocksCount;
 
     /**
      * Creates a new {@code EncodeThread} instance.
@@ -418,50 +418,82 @@ class EncodeThread implements Runnable {
 
         int lenAfterMtf = array.length;
 
-        int huffmanBlockNumber = lenAfterMtf % parent.maxHuffmanSize == 0 ?
+        LongHuffmanCompressorRam compressor = new LongHuffmanCompressorRam(
+                array,
+                BWZCompressor.HUFFMAN_TABLE_SIZE,
+                BWZCompressor.HUFFMAN_END_SIG
+        );
+
+        int maxHufBlockNumber = lenAfterMtf % parent.maxHuffmanSize == 0 ?
                 lenAfterMtf / parent.maxHuffmanSize : lenAfterMtf / parent.maxHuffmanSize + 1;
-        // The number of huffman blocks needed for this BWT trunk.
+        maps = new byte[maxHufBlockNumber][];
+        results = new byte[maxHufBlockNumber][];
 
-        maps = new byte[huffmanBlockNumber][];
-        results = new byte[huffmanBlockNumber][];
-        flags = new byte[huffmanBlockNumber];
+        int index1 = 0;
+        hufBlocksCount = 0;
+        while (index1 < array.length) {
+            int optimalLength = compressor.findOptimalLength(
+                    index1,
+                    parent.maxHuffmanSize
+            );
+            byte[] map = compressor.getMap();
+            byte[] cmpText = compressor.compress();
+            maps[hufBlocksCount] = map;
+            results[hufBlocksCount] = cmpText;
 
-//        int eachLength = array.length / huffmanBlockNumber;
-        int begin = 0;
-        for (int i = 0; i < huffmanBlockNumber; i++) {
-            int end = Math.min(begin + parent.maxHuffmanSize, lenAfterMtf);
-            int partSize = end - begin;
-
-            compressOneHufPart(i, array, begin, partSize);
-            begin += partSize;
+//            System.out.print(optimalLength + " ");
+            index1 += optimalLength;
+            hufBlocksCount++;
         }
+//        System.out.println();
+//        System.out.println("\nss: " + maxHufBlockNumber + ", " + hufBlocksCount + " rate: " +
+//                ((double) sizeAft / array.length));
 
         parent.pos += partSize * 0.2;  // Update progress again
 
         hufTime += System.currentTimeMillis() - t3;
-//        System.out.println(String.format("bwt: %d, mtf: %d, huf: %d", bwtTime, mtfTime, hufTime));
+
+//        int huffmanBlockNumber = lenAfterMtf % parent.maxHuffmanSize == 0 ?
+//                lenAfterMtf / parent.maxHuffmanSize : lenAfterMtf / parent.maxHuffmanSize + 1;
+//        // The number of huffman blocks needed for this BWT trunk.
+//
+//
+//        maps = new byte[huffmanBlockNumber][];
+//        results = new byte[huffmanBlockNumber][];
+//        flags = new byte[huffmanBlockNumber];
+//
+////        System.out.println(String.format("bwt: %d, mtf: %d, huf: %d", bwtTime, mtfTime, hufTime));
+//
+//        int begin = 0;
+//        for (int i = 0; i < huffmanBlockNumber; i++) {
+//            int end = Math.min(begin + parent.maxHuffmanSize, lenAfterMtf);
+//            int partSize = end - begin;
+//
+//            compressOneHufPart(i, array, begin, partSize);
+//            begin += partSize;
+//        }
     }
 
-    private void compressOneHufPart(int i, int[] fullText, int textBegin, int textSize) {
-//        System.out.println(textBegin + ", " + textSize);
-        LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(
-                fullText,
-                textBegin,
-                textSize,
-                BWZCompressor.HUFFMAN_TABLE_SIZE,
-                BWZCompressor.HUFFMAN_END_SIG
-        );
-        byte[] map = hcr.getMap(BWZCompressor.HUFFMAN_TABLE_SIZE);
-        int x = findAvailableOldMap(hcr, map, i);
-        flags[i] = (byte) x;
-        if (x > 0) {
-            maps[i] = new byte[0];
-            results[i] = hcr.compress(maps[i - x]);
-        } else {
-            maps[i] = map;
-            results[i] = hcr.compress();
-        }
-    }
+//    private void compressOneHufPart(int i, int[] fullText, int textBegin, int textSize) {
+////        System.out.println(textBegin + ", " + textSize);
+//        LongHuffmanCompressorRam hcr = new LongHuffmanCompressorRam(
+//                fullText,
+//                textBegin,
+//                textSize,
+//                BWZCompressor.HUFFMAN_TABLE_SIZE,
+//                BWZCompressor.HUFFMAN_END_SIG
+//        );
+//        byte[] map = hcr.getMap(BWZCompressor.HUFFMAN_TABLE_SIZE);
+//        int x = findAvailableOldMap(hcr, map, i);
+//        flags[i] = (byte) x;
+//        if (x > 0) {
+//            maps[i] = new byte[0];
+//            results[i] = hcr.compress(maps[i - x]);
+//        } else {
+//            maps[i] = map;
+//            results[i] = hcr.compress();
+//        }
+//    }
 
     /**
      * Writes the compressed data into the output stream <code>out</code>.
@@ -470,7 +502,8 @@ class EncodeThread implements Runnable {
      * @throws IOException if the <code>out</code> is not writable.
      */
     void writeTo(OutputStream out) throws IOException {
-        for (byte[] result : results) {
+        for (int i = 0; i < hufBlocksCount; ++i) {
+            byte[] result = results[i];
             parent.mainLen += result.length;
             out.write(result);
         }
@@ -485,16 +518,19 @@ class EncodeThread implements Runnable {
     void writeCompressedMap(OutputStream out) throws IOException {
         long t0 = System.currentTimeMillis();
         int mapLength = 0;
-        for (byte[] map : maps) mapLength += map.length;
+//        for (byte[] map : maps) mapLength += map.length;
+        for (int i = 0; i < hufBlocksCount; ++i) {
+            mapLength += maps[i].length;
+        }
         byte[] totalMap = new byte[mapLength];
         int i = 0, j = 0;
-        while (i < maps.length) {
+        while (i < hufBlocksCount) {
             System.arraycopy(maps[i], 0, totalMap, j, maps[i].length);
             j += maps[i].length;
             i += 1;
         }
 
-        byte[] flagsMtf = new MTFTransformByte(flags).Transform(256);
+//        byte[] flagsMtf = new MTFTransformByte(flags).Transform(256);
 
         BWTEncoderByte beb = new BWTEncoderByte(totalMap);
         byte[] bebMap = beb.Transform();
@@ -508,39 +544,39 @@ class EncodeThread implements Runnable {
          * 2 - 5 : length of compressed map
          * 5 - 8 : index of original row of bwt
          */
-        byte[] numbers = new byte[8];
+        byte[] numbers = new byte[6];
         // this value will not exceed 32768
-        Bytes.shortToBytes(flagsMtf.length, numbers, 0);
-        Bytes.intToBytes24(cmpMap.length, numbers, 2);
-        Bytes.intToBytes24(beb.getOrigRowIndex(), numbers, 5);
+//        Bytes.shortToBytes(flagsMtf.length, numbers, 0);
+        Bytes.intToBytes24(cmpMap.length, numbers, 0);
+        Bytes.intToBytes24(beb.getOrigRowIndex(), numbers, 3);
 
         mapTime += System.currentTimeMillis() - t0;
 
         out.write(numbers);
-        out.write(flagsMtf);
+//        out.write(flagsMtf);
         out.write(cmpMap);
 
-        parent.mainLen += (flagsMtf.length + cmpMap.length + 8);
+        parent.mainLen += (cmpMap.length + 6);
     }
 
-    private int findAvailableOldMap(LongHuffmanCompressorRam hcr, byte[] origMap, int currentIndex) {
-        long closest = 36;
-        int distance = 0;
-        for (int i = currentIndex - 1; i > currentIndex - 253; i--) {
-            if (i < 0) break;
-            if (maps[i].length > 0) {
-                long valid = hcr.calculateExpectLength(maps[i]);
-                if (valid > 0) {
-                    long diff = hcr.calculateExpectLength(maps[i]) - hcr.calculateExpectLength(origMap);
-                    if (diff < closest) {
-                        closest = diff;
-                        distance = currentIndex - i;
-                    }
-                }
-            }
-        }
-        return distance;
-    }
+//    private int findAvailableOldMap(LongHuffmanCompressorRam hcr, byte[] origMap, int currentIndex) {
+//        long closest = 36;
+//        int distance = 0;
+//        for (int i = currentIndex - 1; i > currentIndex - 253; i--) {
+//            if (i < 0) break;
+//            if (maps[i].length > 0) {
+//                long valid = hcr.calculateExpectLength(maps[i]);
+//                if (valid > 0) {
+//                    long diff = hcr.calculateExpectLength(maps[i]) - hcr.calculateExpectLength(origMap);
+//                    if (diff < closest) {
+//                        closest = diff;
+//                        distance = currentIndex - i;
+//                    }
+//                }
+//            }
+//        }
+//        return distance;
+//    }
 
     /**
      * Starts this {@code EncodeThread}.

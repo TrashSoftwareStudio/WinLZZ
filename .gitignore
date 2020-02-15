@@ -3,10 +3,14 @@
 out/
 pref.ini
 /target/
-/cf.zip
+/cache
 
 # Compressed files #
 
 *.lzz2
 *.flz
 *.bwz
+*.pz
+*.zip
+*.7z
+*.bz2

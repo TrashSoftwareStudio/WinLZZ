@@ -38,7 +38,7 @@ public class MTFTransformByte {
         int i = 0;
         int count = 0;
         while (i < origText.length) {
-            byte s = (byte) ld.findAndMove((short) (origText[i++] & 0xff));
+            byte s = (byte) ld.findAndMove(origText[i++] & 0xff);
             if (s == 0) {
                 count += 1;  // If the MTF result is 0, add one to the run-length.
             } else {

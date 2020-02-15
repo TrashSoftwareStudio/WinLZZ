@@ -51,6 +51,22 @@ public class BWTEncoder {
     }
 
     /**
+     * Creates a new {@code BWTEncoder} instance.
+     *
+     * @param fullText The text
+     */
+    public BWTEncoder(byte[] fullText) {
+        this.threadId = 0;
+        this.isDc3 = false;
+        int size = fullText.length;
+        this.text = new int[size + 1];
+        for (int i = 0; i < size; i++) this.text[i] = (fullText[i] & 0xff) + 1;  // Transform every byte
+        // to unsigned and plus one to make sure nothing is smaller than or equal to the EOF character.
+        this.text[this.text.length - 1] = 0;  // Add the EOF character (0) at the end of the original text.
+        // This is necessary for transforming suffix array into Burrows-Wheeler matrix.
+    }
+
+    /**
      * Returns the text after transformation, including the record of {@code origRowIndex}.
      *
      * @return the text after transformation, including the record of {@code origRowIndex}.
@@ -59,12 +75,35 @@ public class BWTEncoder {
         return transform();
     }
 
-    static long saTime, transTime;
+    public int[] pureTransform(int alphabetSize) {
+        int[] suffixArray;
+
+        if (isDc3) {
+            SuffixArrayDC3 sa = new SuffixArrayDC3(text, alphabetSize);
+            suffixArray = sa.getSa();
+        } else {
+            SuffixArrayDoubling sa = new SuffixArrayDoubling(text, threadId);
+            sa.build(alphabetSize);
+            suffixArray = sa.getSa();
+        }
+
+        int len = suffixArray.length;
+        assert len == text.length;
+
+        int[] result = new int[len];
+        for (int i = 0; i < len; i++) {
+            int pos = (suffixArray[i] + len - 1) % len;
+            result[i] = text[pos];
+            if (suffixArray[i] == 0) origRowIndex = i;
+        }
+
+        return result;
+    }
+
+//    static long saTime, transTime;
 
     private int[] transform() {
         int[] suffixArray;
-
-        long t0 = System.currentTimeMillis();
 
         if (isDc3) {
             SuffixArrayDC3 sa = new SuffixArrayDC3(text, 257);
@@ -78,8 +117,6 @@ public class BWTEncoder {
         int len = suffixArray.length;
         assert len == text.length;
 
-        long t1 = System.currentTimeMillis();
-
         int[] result = new int[len + 3];
         for (int i = 0; i < len; i++) {
             int pos = (suffixArray[i] + len - 1) % len;
@@ -88,12 +125,12 @@ public class BWTEncoder {
         }
 
         Bytes.intToByte24(origRowIndex, result, 0);
-
-        long t2 = System.currentTimeMillis();
-        saTime += t1 - t0;
-        transTime += t2 - t1;
 //        System.out.println("sa: " + saTime + " move: " + transTime);
 
         return result;
+    }
+
+    public int getOrigRowIndex() {
+        return origRowIndex;
     }
 }

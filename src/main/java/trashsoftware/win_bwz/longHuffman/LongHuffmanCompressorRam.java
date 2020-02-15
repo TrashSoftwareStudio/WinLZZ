@@ -28,7 +28,7 @@ public class LongHuffmanCompressorRam {
     /**
      * The maximum height (depth) of the huffman tree.
      */
-    private static int maxHeight = 15;
+    private static int maxHeight = 29;  // map alphabet size: 30
 
     /**
      * The signal that marks the
@@ -41,7 +41,7 @@ public class LongHuffmanCompressorRam {
      * LongHuffmanCompressor deals text from range 0 to 32767.
      * This compressor works completely in random access memory.
      *
-     * @param fullText
+     * @param fullText     the total text
      * @param alphabetSize the alphabet size, with endSig and other included
      * @param endSig       the mark of the end of stream.
      */

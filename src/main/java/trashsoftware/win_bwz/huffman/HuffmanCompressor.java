@@ -46,6 +46,13 @@ public class HuffmanCompressor extends HuffmanCompressorBase {
         }
     }
 
+    public static void addArrayToFreqMap(int[] array, int[] freqMap, int range) {
+        for (int i = 0; i < range; i++) {
+            int b = array[i];
+            freqMap[b] += 1;
+        }
+    }
+
     public void SepCompress(OutputStream out) throws IOException {
 //        compressedLength = 1;
 //        out.write((byte) lengthRemainder);

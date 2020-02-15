@@ -35,6 +35,17 @@ public class BWTDecoder {
     }
 
     /**
+     * Creates a new {@code BWTDecoder} instance.
+     *
+     * @param cmpText the text after bwt transformation.
+     * @param origIndex the index of the original flag row
+     */
+    public BWTDecoder(int[] cmpText, int origIndex) {
+        this.origIndex = origIndex;
+        this.cmpText = cmpText;
+    }
+
+    /**
      * Inverses the BWT.
      * <p>
      * Algorithm found in:

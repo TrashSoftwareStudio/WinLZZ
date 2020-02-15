@@ -3,6 +3,7 @@ package trashsoftware.win_bwz.core.bwz;
 import trashsoftware.win_bwz.core.DeCompressor;
 import trashsoftware.win_bwz.core.bwz.bwt.BWTDecoder;
 import trashsoftware.win_bwz.core.bwz.bwt.BWTDecoderByte;
+import trashsoftware.win_bwz.huffman.BwzMapCompressor.BwzMapDeCompressor;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapDeCompressor;
 import trashsoftware.win_bwz.longHuffman.LongHuffmanInputStream;
 import trashsoftware.win_bwz.packer.UnPacker;
@@ -16,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
@@ -72,11 +74,16 @@ public class BWZDeCompressor implements DeCompressor {
         byte[] cmpMap = new byte[mapLen];
         System.arraycopy(block, 0, cmpMap, 0, mapLen);
 
-        byte[] uncMap = new MapDeCompressor(cmpMap).
-                Uncompress((windowSize / huffmanBlockMaxSize + 1) * 259, false);
-        byte[] rldMap = new ZeroRLCDecoderByte(uncMap).Decode();
-        byte[] mtfMap = new MTFInverseByte(rldMap).Inverse(18);
-        byte[] maps = new BWTDecoderByte(mtfMap, origRow).Decode();
+        int maxMapsLen = (windowSize / huffmanBlockMaxSize + 1) * 259;
+        byte[] uncMap = new BwzMapDeCompressor(cmpMap).
+                Uncompress(maxMapsLen, 32);
+        int[] uncMapInt = new int[uncMap.length];
+        for (int i = 0; i < uncMap.length; ++i) {
+            uncMapInt[i] = uncMap[i] & 0xff;
+        }
+        int[] rldMap = new ZeroRLCDecoder(uncMapInt, maxMapsLen).Decode();
+        int[] mftMap = new MTFInverse(rldMap).decode();
+        byte[] maps = new BWTDecoder(mftMap, origRow).Decode();
 
         int i = 0;
         while (i < maps.length) {

@@ -13,6 +13,7 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import trashsoftware.win_bwz.core.Compressor;
 import trashsoftware.win_bwz.core.bwz.bwt.BWTEncoder;
 import trashsoftware.win_bwz.core.bwz.bwt.BWTEncoderByte;
+import trashsoftware.win_bwz.huffman.BwzMapCompressor.BwzMapCompressor;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapCompressor;
 import trashsoftware.win_bwz.longHuffman.LongHuffmanCompressorRam;
 import trashsoftware.win_bwz.longHuffman.LongHuffmanUtil;
@@ -412,7 +413,7 @@ class EncodeThread implements Runnable {
         if (parent.parent != null) parent.parent.progress.set(parent.pos);  // Update progress
 
         MTFTransform mtf = new MTFTransform(bwtResult);
-        int[] array = mtf.Transform();  // Also contains RLC Result.
+        int[] array = mtf.Transform(257);  // Also contains RLC Result.
         long t3 = System.currentTimeMillis();
         mtfTime += t3 - t2;
 
@@ -532,11 +533,11 @@ class EncodeThread implements Runnable {
 
 //        byte[] flagsMtf = new MTFTransformByte(flags).Transform(256);
 
-        BWTEncoderByte beb = new BWTEncoderByte(totalMap);
-        byte[] bebMap = beb.Transform();
-        byte[] mapMtf = new MTFTransformByte(bebMap).Transform(18);  // the result alphabet size is 19
-        byte[] cmpMap = new MapCompressor(mapMtf).Compress(false);
-//        System.out.println(Arrays.toString(cmpMap));
+        // totalMap alphabet size: 30
+        BWTEncoder beb = new BWTEncoder(totalMap);
+        int[] bebMap = beb.pureTransform(30);  // alphabet size after beb: 31
+        int[] mapMtf = new MTFTransform(bebMap).Transform(31);  // the result alphabet size is 32
+        byte[] cmpMap = new BwzMapCompressor(mapMtf).Compress(32);
 
         /*
          * Block structure:
@@ -545,15 +546,12 @@ class EncodeThread implements Runnable {
          * 5 - 8 : index of original row of bwt
          */
         byte[] numbers = new byte[6];
-        // this value will not exceed 32768
-//        Bytes.shortToBytes(flagsMtf.length, numbers, 0);
         Bytes.intToBytes24(cmpMap.length, numbers, 0);
         Bytes.intToBytes24(beb.getOrigRowIndex(), numbers, 3);
 
         mapTime += System.currentTimeMillis() - t0;
 
         out.write(numbers);
-//        out.write(flagsMtf);
         out.write(cmpMap);
 
         parent.mainLen += (cmpMap.length + 6);

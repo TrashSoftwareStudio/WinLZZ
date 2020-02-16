@@ -57,7 +57,7 @@ public class LongHuffmanCompressorRam {
     }
 
     private byte[] compressText() {
-        byte[] out = new byte[textSize + 256];  // assume the compression result will not exceed the orig len + 256
+        byte[] out = new byte[(int) ((double) alphabetSize / 256 * textSize) + 1];  // The max possible result length
         int bits = 0;
         int bitPos = 0;
         int resIndex = 0;
@@ -245,8 +245,8 @@ public class LongHuffmanCompressorRam {
 
             if (mergedExpectLength > twoPartsExpectLength) {
 //                if (curLength != minLength) System.out.print("gg");
-//                lastFreqTable = newPartFreq;
-//                lastLengthTable = newPartCodeLengths;
+                lastFreqTable = newPartFreq;
+                lastLengthTable = newPartCodeLengths;
                 break;
             } else {
                 expectLength = mergedExpectLength;

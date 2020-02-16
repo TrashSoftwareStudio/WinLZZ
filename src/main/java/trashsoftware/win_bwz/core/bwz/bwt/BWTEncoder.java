@@ -123,7 +123,6 @@ public class BWTEncoder {
             result[i + 3] = text[pos];
             if (suffixArray[i] == 0) origRowIndex = i;
         }
-
         Bytes.intToByte24(origRowIndex, result, 0);
 //        System.out.println("sa: " + saTime + " move: " + transTime);
 

@@ -4,6 +4,7 @@ import trashsoftware.win_bwz.utility.Bytes;
 import trashsoftware.win_bwz.utility.Util;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 
 /**
  * A inverse transformer of Burrows-Wheeler Transform.

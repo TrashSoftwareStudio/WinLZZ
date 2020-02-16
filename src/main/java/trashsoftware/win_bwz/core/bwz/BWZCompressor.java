@@ -315,7 +315,8 @@ public class BWZCompressor implements Compressor {
         }
         cmpEachThread += (windowSize * 2 + 257) * 4;  // mtf transformation
         int hufBlocks = modeLevel == 1 ? windowSize / DEFAULT_HUF_SIZE : 1;
-        cmpEachThread += hufBlocks * 24 * 3;
+        cmpEachThread += hufBlocks * 24 * 3;  // the huf compressor memory is not completely included since they
+        // can be freed after next step
 
         cmpEachThread = getCmpMapMemoryEachThread(cmpEachThread, hufBlocks);
 
@@ -434,12 +435,13 @@ class EncodeThread implements Runnable {
                     index1,
                     parent.maxHuffmanSize
             );
+            System.out.println(optimalLength);
             byte[] map = compressor.getMap();
             byte[] cmpText = compressor.compress();
             maps[hufBlocksCount] = map;
             results[hufBlocksCount] = cmpText;
 
-//            System.out.print(optimalLength + " ");
+//            System.out.println(" " + cmpText.length);
             index1 += optimalLength;
             hufBlocksCount++;
         }

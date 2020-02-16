@@ -206,6 +206,7 @@ public class BWZCompressor implements Compressor {
         es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads complete.
 
         for (EncodeThread et : threads) {
+            et.generateCompressedMap();
             et.writeCompressedMap(out);
             et.writeTo(out);
         }
@@ -373,6 +374,9 @@ class EncodeThread implements Runnable {
     private BWZCompressor parent;
     int hufBlocksCount;
 
+    private byte[] cmpMap;
+    private byte[] headNumbers;
+
     /**
      * Creates a new {@code EncodeThread} instance.
      *
@@ -449,6 +453,20 @@ class EncodeThread implements Runnable {
         hufTime += System.currentTimeMillis() - t3;
     }
 
+    @SuppressWarnings("unused")
+    int sizeBeforeCompression() {
+        return partSize;
+    }
+
+    @SuppressWarnings("unused")
+    int sizeAfterCompression() {
+        int totalLen = cmpMap.length + 6;
+        for (int i = 0; i < hufBlocksCount; ++i) {
+            totalLen += results[i].length;
+        }
+        return totalLen;
+    }
+
     /**
      * Writes the compressed data into the output stream <code>out</code>.
      *
@@ -463,13 +481,7 @@ class EncodeThread implements Runnable {
         }
     }
 
-    /**
-     * Writes the compressed huffman head into the output stream <code>out</code>.
-     *
-     * @param out the target output stream
-     * @throws IOException if the <code>out</code> is not writable.
-     */
-    void writeCompressedMap(OutputStream out) throws IOException {
+    void generateCompressedMap() {
         long t0 = System.currentTimeMillis();
         int mapLength = 0;
         for (int i = 0; i < hufBlocksCount; ++i) {
@@ -487,7 +499,7 @@ class EncodeThread implements Runnable {
         BWTEncoder beb = new BWTEncoder(totalMap);
         int[] bebMap = beb.pureTransform(30);  // alphabet size after beb: 31
         int[] mapMtf = new MTFTransform(bebMap).Transform(31);  // the result alphabet size is 32
-        byte[] cmpMap = new BwzMapCompressor(mapMtf).Compress(32);
+        cmpMap = new BwzMapCompressor(mapMtf).Compress(32);
 
         /*
          * Block structure:
@@ -495,13 +507,22 @@ class EncodeThread implements Runnable {
          * 2 - 5 : length of compressed map
          * 5 - 8 : index of original row of bwt
          */
-        byte[] numbers = new byte[6];
-        Bytes.intToBytes24(cmpMap.length, numbers, 0);
-        Bytes.intToBytes24(beb.getOrigRowIndex(), numbers, 3);
+        headNumbers = new byte[6];
+        Bytes.intToBytes24(cmpMap.length, headNumbers, 0);
+        Bytes.intToBytes24(beb.getOrigRowIndex(), headNumbers, 3);
 
         mapTime += System.currentTimeMillis() - t0;
+    }
 
-        out.write(numbers);
+    /**
+     * Writes the compressed huffman head into the output stream <code>out</code>.
+     *
+     * @param out the target output stream
+     * @throws IOException if the <code>out</code> is not writable.
+     */
+    void writeCompressedMap(OutputStream out) throws IOException {
+
+        out.write(headNumbers);
         out.write(cmpMap);
 
         parent.mainLen += (cmpMap.length + 6);

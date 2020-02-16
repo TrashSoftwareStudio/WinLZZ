@@ -15,8 +15,6 @@ public class HuffmanDeCompressor {
 
     private String inFile;
 
-    private int lengthRemainder;
-
     private int maxCodeLen = 0;
 
     private int average = 8;
@@ -133,7 +131,7 @@ public class HuffmanDeCompressor {
 
         byte[] firstByte = new byte[1];
         if (fis.read(firstByte) != 1) throw new IOException("Error occurs while reading");
-        lengthRemainder = firstByte[0] & 0xff;
+        int lengthRemainder = firstByte[0] & 0xff;
 
         int alphabetSize = map.length;
         lengthMap = recoverLengthCode(map);

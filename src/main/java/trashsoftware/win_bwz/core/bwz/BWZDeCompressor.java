@@ -2,9 +2,7 @@ package trashsoftware.win_bwz.core.bwz;
 
 import trashsoftware.win_bwz.core.DeCompressor;
 import trashsoftware.win_bwz.core.bwz.bwt.BWTDecoder;
-import trashsoftware.win_bwz.core.bwz.bwt.BWTDecoderByte;
-import trashsoftware.win_bwz.huffman.BwzMapCompressor.BwzMapDeCompressor;
-import trashsoftware.win_bwz.huffman.MapCompressor.MapDeCompressor;
+import trashsoftware.win_bwz.huffman.MapCompressor.BwzMapDeCompressor;
 import trashsoftware.win_bwz.longHuffman.LongHuffmanInputStream;
 import trashsoftware.win_bwz.packer.UnPacker;
 import trashsoftware.win_bwz.utility.Bytes;
@@ -17,7 +15,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
@@ -70,7 +67,7 @@ public class BWZDeCompressor implements DeCompressor {
 //        System.out.println(huffmanBlockMaxSize);
     }
 
-    private void fillMaps(byte[] block, int mapLen, int origRow) {
+    private void fillMaps(byte[] block, int mapLen, int origRow) throws IOException {
         byte[] cmpMap = new byte[mapLen];
         System.arraycopy(block, 0, cmpMap, 0, mapLen);
 

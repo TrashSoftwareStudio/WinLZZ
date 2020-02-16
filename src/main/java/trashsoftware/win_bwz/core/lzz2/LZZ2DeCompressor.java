@@ -98,13 +98,13 @@ public class LZZ2DeCompressor implements DeCompressor {
         byte[] csq = new byte[csqLen];
         if (bis.read(csq) != csqLen) throw new IOException("Error occurs while reading");
         MapDeCompressor mdc = new MapDeCompressor(csq);
-        byte[] rlcMain = mdc.Uncompress(1024, false);
+        byte[] rlcMain = mdc.Uncompress(1024, LZZ2_HUF_HEAD_ALPHABET);
 
         int[] rlcMainInt = new int[rlcMain.length];
         for (int i = 0; i < rlcMain.length; ++i) rlcMainInt[i] = rlcMain[i] & 0xff;
 
         int[] rlc = new ZeroRLCDecoder(rlcMainInt, MAIN_HUF_ALPHABET + 64).Decode();
-        int[] totalMap = new MTFInverse(rlc).decode(18);
+        int[] totalMap = new MTFInverse(rlc).decode(LZZ2_HUF_HEAD_ALPHABET - 1);
 //        byte[] rlc = new ZeroRLCDecoderByte(rlcMain).Decode();
 //        byte[] totalMap = new MTFInverseByte(rlc).Inverse(18);
 

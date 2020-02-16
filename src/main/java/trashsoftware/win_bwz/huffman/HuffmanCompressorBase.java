@@ -46,40 +46,6 @@ public abstract class HuffmanCompressorBase {
 
     protected abstract void generateFreqMap() throws IOException;
 
-    public static HashMap<Byte, String> generateCanonicalCode(HashMap<Byte, Integer> lengthCode) {
-        HashMap<Byte, String> canonicalCode = new HashMap<>();
-
-        ArrayList<HuffmanTuple> tupleList = new ArrayList<>();
-
-        for (byte key : lengthCode.keySet()) {
-            HuffmanTuple current = new HuffmanTuple(key, lengthCode.get(key));
-            tupleList.add(current);
-        }
-        Collections.sort(tupleList);
-
-        HuffmanTuple first = new HuffmanTuple(tupleList.get(0).getValue(), tupleList.get(0).getLength());
-        canonicalCode.put((byte) first.getValue(), Bytes.charMultiply('0', first.getLength()));
-
-        int code = 0;
-        for (int i = 1; i < tupleList.size(); i++) {
-            code = (code + 1) << (tupleList.get(i).getLength() - tupleList.get(i - 1).getLength());
-            String co = Integer.toBinaryString(code);
-            if (co.length() < tupleList.get(i).getLength())
-                co = Bytes.charMultiply('0', tupleList.get(i).getLength() - co.length()) + co;
-            canonicalCode.put((byte) tupleList.get(i).getValue(), co);
-        }
-        return canonicalCode;
-    }
-
-
-    private static byte[] generateCanonicalCodeBlock(int[] lengthCode, int alphabetSize) {
-        byte[] result = new byte[alphabetSize];
-        for (int i = 0; i < alphabetSize; i++) {
-            result[i] = (byte) lengthCode[i];
-        }
-        return result;
-    }
-
     protected abstract void compressText(int[] huffmanCode, int[] lengthCode, OutputStream fos) throws IOException;
 
     public int[] getMap(int alphabetSize) throws IOException {

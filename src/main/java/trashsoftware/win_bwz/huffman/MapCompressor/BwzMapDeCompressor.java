@@ -12,36 +12,30 @@ import java.util.Arrays;
  * @author zbh
  * @since 0.4
  */
-public class MapDeCompressor extends MapDecompressorBase {
+public class BwzMapDeCompressor extends MapDecompressorBase {
 
     /**
      * Creates a new instance of a MapDeCompressor Object.
      *
      * @param csq the compressed text.
      */
-    public MapDeCompressor(byte[] csq) throws IOException {
+    public BwzMapDeCompressor(byte[] csq) throws IOException {
         fbi = new FileBitInputStream(new ByteArrayInputStream(csq));
-        cclNum = fbi.read(4) + 4;
+        cclNum = fbi.read(5);
         lengthRemainder = fbi.read(3);
     }
 
     protected int getEachCclLength() {
-        return 3;
+        return 4;
     }
-
-//    private int[] swapCCl(int[] ccl) {
-//        int[] origCCL = new int[19];
-//        for (int i = 0; i < 19; i++) origCCL[MapCompressor.positions[i]] = ccl[i];
-//        return origCCL;
-//    }
 
     public static void main(String[] args) throws IOException {
         int[] map = {1, 3, 7, 2, 6, 9, 15, 12, 14, 0, 0, 0, 1, 2, 4, 8, 14};
-        MapCompressor mc = new MapCompressor(map);
-        byte[] cmp = mc.Compress(19);
+        BwzMapCompressor mc = new BwzMapCompressor(map);
+        byte[] cmp = mc.Compress(32);
 
-        MapDeCompressor mdc = new MapDeCompressor(cmp);
-        byte[] r = mdc.Uncompress(64, 19);
+        BwzMapDeCompressor mdc = new BwzMapDeCompressor(cmp);
+        byte[] r = mdc.Uncompress(64, 32);
         System.out.println(Arrays.toString(r));
     }
 }

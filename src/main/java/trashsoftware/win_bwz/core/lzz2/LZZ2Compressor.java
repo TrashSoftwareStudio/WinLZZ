@@ -27,13 +27,15 @@ import java.util.Arrays;
  */
 public class LZZ2Compressor implements Compressor {
 
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
 
     public static final int MAIN_HUF_ALPHABET = 286;
 
     final static int MINIMUM_MATCH_LEN = 4;
 
     public static final int MAXIMUM_LENGTH = 286 + MINIMUM_MATCH_LEN;
+
+    static final int LZZ2_HUF_HEAD_ALPHABET = 19;
 
 //    private static final long PRIME16 = 40499;
 
@@ -451,10 +453,10 @@ public class LZZ2Compressor implements Compressor {
         System.arraycopy(mtcMap, 0, totalMap, 64, MAIN_HUF_ALPHABET);
 
 //        byte[] rlcMain = new MTFTransformByte(totalMap).Transform(18);
-        int[] rlcMain = new MTFTransform(totalMap).Transform(18);
+        int[] rlcMain = new MTFTransform(totalMap).Transform(LZZ2_HUF_HEAD_ALPHABET - 1);
 
         MapCompressor mc = new MapCompressor(rlcMain);
-        byte[] csq = mc.Compress(false);
+        byte[] csq = mc.Compress(LZZ2_HUF_HEAD_ALPHABET);
 
         outFile.write(csq);
 

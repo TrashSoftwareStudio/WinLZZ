@@ -1,6 +1,7 @@
 package trashsoftware.win_bwz.utility;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -12,7 +13,7 @@ import java.io.InputStream;
  */
 public class FileBitInputStream {
 
-    private BufferedInputStream bis;
+    private InputStream bis;
 
     /**
      * The current reading byte.
@@ -34,19 +35,20 @@ public class FileBitInputStream {
      * @param fis the {@code InputStream} which this {@code FileBitInputStream} reads data from
      */
     public FileBitInputStream(InputStream fis) {
-        if (fis instanceof BufferedInputStream) this.bis = (BufferedInputStream) fis;
+        if (fis instanceof BufferedInputStream ||
+                fis instanceof ByteArrayInputStream) this.bis = fis;
         else this.bis = new BufferedInputStream(fis);
     }
 
     /**
      * Returns the combination of the next <code>length</code> bits.
      *
-     * @param length the length to of the reading
+     * @param bitLength the length to of the reading
      * @return the combination of the next <code>length</code> bits
      * @throws IOException if the stream is not readable
      */
-    public int read(int length) throws IOException {
-        return readBits(length);
+    public int read(int bitLength) throws IOException {
+        return readBits(bitLength);
     }
 
     /**

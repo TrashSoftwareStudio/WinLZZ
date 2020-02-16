@@ -82,7 +82,7 @@ public class BWZDeCompressor implements DeCompressor {
             uncMapInt[i] = uncMap[i] & 0xff;
         }
         int[] rldMap = new ZeroRLCDecoder(uncMapInt, maxMapsLen).Decode();
-        int[] mftMap = new MTFInverse(rldMap).decode();
+        int[] mftMap = new MTFInverse(rldMap).decode(257);
         byte[] maps = new BWTDecoder(mftMap, origRow).Decode();
 
         int i = 0;
@@ -116,10 +116,8 @@ public class BWZDeCompressor implements DeCompressor {
         while (true) {
             if (huffmanMaps.isEmpty()) {
                 headBytes = his.read(6);
-//                if (!Arrays.equals(headBytes, his.read(8))) System.out.println(111);
                 if (headBytes == null) break;  // Reach the end of the stream.
 
-//                int flagLen = Bytes.bytesToShort(headBytes, 0);
                 int mapLen = Bytes.bytesToInt24(headBytes, 0);
                 int origRow = Bytes.bytesToInt24(headBytes, 3);
 //                System.out.format("%d %d %d\n", flagLen, mapLen, origRow);
@@ -292,7 +290,7 @@ class DecodeThread implements Runnable {
         long t2 = System.currentTimeMillis();
         parent.pos += rld.length / 2;
         if (parent.parent != null) parent.parent.progress.set(parent.pos);
-        int[] mtf = new MTFInverse(rld).decode();
+        int[] mtf = new MTFInverse(rld).decode(257);
         long t3 = System.currentTimeMillis();
         result = new BWTDecoder(mtf).Decode();
         long t4 = System.currentTimeMillis();

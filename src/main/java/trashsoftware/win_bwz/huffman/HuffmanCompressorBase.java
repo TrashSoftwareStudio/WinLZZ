@@ -82,7 +82,7 @@ public abstract class HuffmanCompressorBase {
 
     protected abstract void compressText(int[] huffmanCode, int[] lengthCode, OutputStream fos) throws IOException;
 
-    public byte[] getMap(int alphabetSize) throws IOException {
+    public int[] getMap(int alphabetSize) throws IOException {
         freqMap = new int[alphabetSize];
         generateFreqMap();
         HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freqMap);
@@ -91,7 +91,7 @@ public abstract class HuffmanCompressorBase {
 
         LongHuffmanUtil.heightControl(lengthCode, freqMap, MAX_HEIGHT);
         huffmanCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
-        return generateCanonicalCodeBlock(lengthCode, alphabetSize);
+        return lengthCode;
     }
 
     public abstract void SepCompress(OutputStream out) throws IOException;

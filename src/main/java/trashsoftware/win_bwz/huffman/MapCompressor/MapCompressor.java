@@ -1,7 +1,6 @@
 package trashsoftware.win_bwz.huffman.MapCompressor;
 
 import trashsoftware.win_bwz.huffman.HuffmanCompressor;
-import trashsoftware.win_bwz.huffman.HuffmanCompressorBase;
 import trashsoftware.win_bwz.longHuffman.HuffmanNode;
 import trashsoftware.win_bwz.longHuffman.LongHuffmanUtil;
 
@@ -17,7 +16,7 @@ import trashsoftware.win_bwz.longHuffman.LongHuffmanUtil;
  */
 public class MapCompressor {
 
-    private byte[] map;
+    private int[] map;
     private final static int MAX_HEIGHT = 7;
     static final int[] positions = new int[]{16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
 //    private int[] freqMap;
@@ -30,7 +29,7 @@ public class MapCompressor {
      *
      * @param mapBytes the content to be compressed.
      */
-    public MapCompressor(byte[] mapBytes) {
+    public MapCompressor(int[] mapBytes) {
         this.map = mapBytes;
     }
 
@@ -136,14 +135,5 @@ public class MapCompressor {
 
 //        System.out.println(Arrays.toString(map));
         return result;
-
-//        StringBuilder builder = new StringBuilder();
-//        builder.append(hcLen);
-//        builder.append(Bytes.numberToBitString(cmpMap.length() % 8, 3));  // Record length remainder.
-//
-//        for (byte b : CCL) builder.append(Bytes.numberToBitString((b & 0xff), 3));
-//        builder.append(cmpMap);
-//
-//        return Bytes.stringBuilderToBytesFull(builder);
     }
 }

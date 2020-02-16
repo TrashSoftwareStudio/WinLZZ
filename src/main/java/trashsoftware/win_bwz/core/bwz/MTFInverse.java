@@ -10,7 +10,7 @@ import trashsoftware.win_bwz.core.bwz.util.SplitLinkedList;
  * @author zbh
  * @since 0.5
  */
-class MTFInverse {
+public class MTFInverse {
 
     private int[] text;
 
@@ -19,7 +19,7 @@ class MTFInverse {
      *
      * @param text the text to be inverse transformed.
      */
-    MTFInverse(int[] text) {
+    public MTFInverse(int[] text) {
         this.text = text;
     }
 
@@ -28,11 +28,12 @@ class MTFInverse {
      * <p>
      * This method uses an array as the dictionary, which takes O(1) to access and O(n) to move.
      *
+     * @param alphabetSize the alphabet size
      * @return the text after the inverse transform.
      */
-    int[] decode() {
-        int[] dictionary = new int[257];
-        for (int i = 0; i < 257; i++) dictionary[i] = i;
+    public int[] decode(int alphabetSize) {
+        int[] dictionary = new int[alphabetSize];
+        for (int i = 0; i < alphabetSize; i++) dictionary[i] = i;
         int[] result = new int[text.length];
         int index = 0;
         for (int b : text) {

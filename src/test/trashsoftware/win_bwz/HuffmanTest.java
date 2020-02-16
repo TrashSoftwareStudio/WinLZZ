@@ -29,7 +29,7 @@ public class HuffmanTest {
         ByteArrayOutputStream bao = new ByteArrayOutputStream();
 
         HuffmanCompressorTwoBytes hct = new HuffmanCompressorTwoBytes(name1);
-        byte[] map = hct.getMap(257);
+//        byte[] map = hct.getMap(257);
         hct.SepCompress(bao);
         bao.flush();
         bao.close();
@@ -40,13 +40,13 @@ public class HuffmanTest {
 
         ByteArrayInputStream bis = new ByteArrayInputStream(array);
 
-        Lzz2HuffmanInputStream his = new Lzz2HuffmanInputStream(map, bis);
-        while (true) {
-            int r = his.readNext();
-            if (r == 256) {
-                break;
-            }
-        }
-        his.close();
+//        Lzz2HuffmanInputStream his = new Lzz2HuffmanInputStream(map, bis);
+//        while (true) {
+//            int r = his.readNext();
+//            if (r == 256) {
+//                break;
+//            }
+//        }
+//        his.close();
     }
 }

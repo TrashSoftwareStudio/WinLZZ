@@ -1,7 +1,7 @@
 package trashsoftware.win_bwz.core.lzz2;
 
-import trashsoftware.win_bwz.core.bwz.MTFInverseByte;
-import trashsoftware.win_bwz.core.bwz.ZeroRLCDecoderByte;
+import trashsoftware.win_bwz.core.bwz.MTFInverse;
+import trashsoftware.win_bwz.core.bwz.ZeroRLCDecoder;
 import trashsoftware.win_bwz.core.DeCompressor;
 import trashsoftware.win_bwz.huffman.HuffmanCompressorTwoBytes;
 import trashsoftware.win_bwz.huffman.MapCompressor.MapDeCompressor;
@@ -47,8 +47,8 @@ public class LZZ2DeCompressor implements DeCompressor {
 
     private long timeOffset;
 
-    private byte[] mainMap;
-    private byte[] disHeadMap;
+    private int[] mainMap;
+    private int[] disHeadMap;
 
     public LZZ2DeCompressor(String inFile, int windowSize) throws IOException {
         this.inFile = inFile;
@@ -100,11 +100,16 @@ public class LZZ2DeCompressor implements DeCompressor {
         MapDeCompressor mdc = new MapDeCompressor(csq);
         byte[] rlcMain = mdc.Uncompress(1024, false);
 
-        byte[] rlc = new ZeroRLCDecoderByte(rlcMain).Decode();
-        byte[] totalMap = new MTFInverseByte(rlc).Inverse(18);
+        int[] rlcMainInt = new int[rlcMain.length];
+        for (int i = 0; i < rlcMain.length; ++i) rlcMainInt[i] = rlcMain[i] & 0xff;
 
-        disHeadMap = new byte[64];
-        mainMap = new byte[MAIN_HUF_ALPHABET];
+        int[] rlc = new ZeroRLCDecoder(rlcMainInt, MAIN_HUF_ALPHABET + 64).Decode();
+        int[] totalMap = new MTFInverse(rlc).decode(18);
+//        byte[] rlc = new ZeroRLCDecoderByte(rlcMain).Decode();
+//        byte[] totalMap = new MTFInverseByte(rlc).Inverse(18);
+
+        disHeadMap = new int[64];
+        mainMap = new int[MAIN_HUF_ALPHABET];
 
         System.arraycopy(totalMap, 0, disHeadMap, 0, 64);
         System.arraycopy(totalMap, 64, mainMap, 0, MAIN_HUF_ALPHABET);

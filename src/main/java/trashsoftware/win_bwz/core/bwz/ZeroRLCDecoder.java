@@ -10,7 +10,7 @@ import trashsoftware.win_bwz.core.bwz.util.BWZUtil;
  * @author zbh
  * @since 0.5
  */
-class ZeroRLCDecoder {
+public class ZeroRLCDecoder {
 
     private int[] text;
     private int maxBlockLength;
@@ -21,7 +21,7 @@ class ZeroRLCDecoder {
      * @param text           the text after zero rlc coding.
      * @param maxBlockLength the maximum possible length after decode.
      */
-    ZeroRLCDecoder(int[] text, int maxBlockLength) {
+    public ZeroRLCDecoder(int[] text, int maxBlockLength) {
         this.text = text;
         this.maxBlockLength = maxBlockLength;
     }
@@ -31,7 +31,7 @@ class ZeroRLCDecoder {
      *
      * @return the decoded text.
      */
-    int[] Decode() {
+    public int[] Decode() {
         int[] temp = new int[maxBlockLength];
         int index = 0;
         int[] buffer = new int[100];

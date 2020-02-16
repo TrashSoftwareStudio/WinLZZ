@@ -10,7 +10,7 @@ import trashsoftware.win_bwz.core.bwz.util.BWZUtil;
  * @author zbh
  * @since 0.5
  */
-class MTFTransform {
+public class MTFTransform {
 
     private int[] origText;
 
@@ -19,7 +19,7 @@ class MTFTransform {
      *
      * @param text the text to be transformed.
      */
-    MTFTransform(int[] text) {
+    public MTFTransform(int[] text) {
         this.origText = text;
     }
 
@@ -29,7 +29,7 @@ class MTFTransform {
      * @param alphabetSize the alphabet size
      * @return the text after mtf transformation and zero run length coding..
      */
-    int[] Transform(int alphabetSize) {
+    public int[] Transform(int alphabetSize) {
         ArrayDictionary ld = new ArrayDictionary(alphabetSize);
         int[] result = new int[origText.length];
         int index = 0;

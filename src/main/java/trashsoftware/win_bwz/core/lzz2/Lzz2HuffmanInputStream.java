@@ -28,19 +28,17 @@ public class Lzz2HuffmanInputStream {
 
     private boolean streamEnds = false;
 
-    public Lzz2HuffmanInputStream(byte[] map, InputStream bis) {
+    public Lzz2HuffmanInputStream(int[] map, InputStream bis) {
         this.bis = bis;
-        lengthCode = recoverLengthCode(map);
+        lengthCode = map;
+        calculateCodeLengths();
         int[] canonicalCode = LongHuffmanUtil.generateCanonicalCode(lengthCode);
         generateIdenticalMap(lengthCode, canonicalCode);
     }
 
-    private int[] recoverLengthCode(byte[] map) {
-        int[] lengthCode = new int[map.length];
-        for (int i = 0; i < map.length; ++i) {
-            int len = map[i] & 0xff;
+    private void calculateCodeLengths() {
+        for (int len : lengthCode) {
             if (len > 0) {
-                lengthCode[i] = len;
                 if (len > maxCodeLen) maxCodeLen = len;
             }
         }
@@ -50,7 +48,6 @@ public class Lzz2HuffmanInputStream {
         bigMapLonger = maxCodeLen - average;
         averageAndEr = Bytes.getAndEr(average);
         bigMapLongerAndEr = Bytes.getAndEr(bigMapLonger);
-        return lengthCode;
     }
 
     private void generateIdenticalMap(int[] lengthCode, int[] canonicalCode) {

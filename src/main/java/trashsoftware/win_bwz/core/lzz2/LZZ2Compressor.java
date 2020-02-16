@@ -1,6 +1,6 @@
 package trashsoftware.win_bwz.core.lzz2;
 
-import trashsoftware.win_bwz.core.bwz.MTFTransformByte;
+import trashsoftware.win_bwz.core.bwz.MTFTransform;
 import trashsoftware.win_bwz.core.Compressor;
 import trashsoftware.win_bwz.huffman.HuffmanCompressor;
 import trashsoftware.win_bwz.huffman.HuffmanCompressorBase;
@@ -439,18 +439,19 @@ public class LZZ2Compressor implements Compressor {
         if (isNotCompressible(outFile)) return;
 
         HuffmanCompressorBase dhc = new HuffmanCompressor(disHeadTempName);
-        byte[] dhcMap = dhc.getMap(64);
+        int[] dhcMap = dhc.getMap(64);
 
         HuffmanCompressorBase mtc = new HuffmanCompressorTwoBytes(mainTempName);
-        byte[] mtcMap = mtc.getMap(MAIN_HUF_ALPHABET);
+        int[] mtcMap = mtc.getMap(MAIN_HUF_ALPHABET);
 
 //        System.out.println(Arrays.toString(dhcMap));
 
-        byte[] totalMap = new byte[MAIN_HUF_ALPHABET + 64];
+        int[] totalMap = new int[MAIN_HUF_ALPHABET + 64];
         System.arraycopy(dhcMap, 0, totalMap, 0, 64);
         System.arraycopy(mtcMap, 0, totalMap, 64, MAIN_HUF_ALPHABET);
 
-        byte[] rlcMain = new MTFTransformByte(totalMap).Transform(18);
+//        byte[] rlcMain = new MTFTransformByte(totalMap).Transform(18);
+        int[] rlcMain = new MTFTransform(totalMap).Transform(18);
 
         MapCompressor mc = new MapCompressor(rlcMain);
         byte[] csq = mc.Compress(false);

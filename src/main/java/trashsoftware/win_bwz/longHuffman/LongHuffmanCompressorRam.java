@@ -262,4 +262,18 @@ public class LongHuffmanCompressorRam {
 
         return curLength;
     }
+
+    public void generateSingleMap() {
+        textBegin = 0;
+        textSize = fullText.length;
+        int[] freq = new int[alphabetSize];
+        lengthTable = new int[alphabetSize];
+        freq[endSig] = 1;
+        LongHuffmanUtil.addArrayToFreqMap(fullText, freq, textBegin, textSize);
+
+        HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freq);
+        LongHuffmanUtil.generateCodeLengthMap(lengthTable, rootNode, 0);
+
+        LongHuffmanUtil.heightControl(lengthTable, freq, maxHeight);
+    }
 }

@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -435,19 +436,13 @@ class EncodeThread implements Runnable {
                     index1,
                     parent.maxHuffmanSize
             );
-            System.out.println(optimalLength);
             byte[] map = compressor.getMap();
             byte[] cmpText = compressor.compress();
             maps[hufBlocksCount] = map;
             results[hufBlocksCount] = cmpText;
-
-//            System.out.println(" " + cmpText.length);
             index1 += optimalLength;
             hufBlocksCount++;
         }
-//        System.out.println();
-//        System.out.println("\nss: " + maxHufBlockNumber + ", " + hufBlocksCount + " rate: " +
-//                ((double) sizeAft / array.length));
 
         parent.pos += partSize * 0.2;  // Update progress again
 

@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
@@ -126,6 +127,7 @@ public class BWZDeCompressor implements DeCompressor {
                 fillMaps(blockBytes, mapLen, origRow);
             }
             byte[] map = huffmanMaps.removeFirst();
+//            System.out.println(Arrays.toString(map));
 //            long t1 = System.currentTimeMillis();
             huffmanResult = his.read(map, BWZCompressor.HUFFMAN_END_SIG);
 //            hufTotal += System.currentTimeMillis() - t1;

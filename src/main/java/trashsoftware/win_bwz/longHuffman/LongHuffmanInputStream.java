@@ -5,7 +5,6 @@ import trashsoftware.win_bwz.utility.Bytes;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -122,6 +121,7 @@ public class LongHuffmanInputStream {
         if (shortCodeLen > maxCodeLen) {
             shortCodeLen = maxCodeLen;
         }
+//        longCodeLen = maxCodeLen;
         longCodeLen = Math.min(maxCodeLen, CODE_LEN_LIMIT);
         return lengthCode;
     }
@@ -129,6 +129,7 @@ public class LongHuffmanInputStream {
     private void generateIdenticalMap(int[] lengthCode, int[] canonicalCode) {
         identicalMap = new int[1 << longCodeLen];
 //        System.out.println(identicalMap.length);
+        extraMap.clear();
 
         for (int i = 0; i < alphabetSize; ++i) {
             LongHuffmanUtil.identicalMapOneLoop(
@@ -173,6 +174,7 @@ public class LongHuffmanInputStream {
         int bigMapLonger = longCodeLen - shortCodeLen;
         int bigMapLongerAndEr = Bytes.getAndEr(bigMapLonger);
         int averageAndEr = Bytes.getAndEr(shortCodeLen);
+        int maxLonger = maxCodeLen - longCodeLen;
 
         while (true) {
             loadBits(shortCodeLen);
@@ -188,22 +190,20 @@ public class LongHuffmanInputStream {
                 bitPos -= bigMapLonger;
                 code = identicalMap[index];
                 if (code == 0) { //  not in long map, look for extra map
-                    int andEr = bigMapLongerAndEr;
-                    codeLen = longCodeLen;
+                    loadBits(maxLonger);
+                    int exceedLen = 1;
                     while (true) {
-                        andEr <<= 1;
-                        andEr |= 1;
-                        loadBits(1);
                         index <<= 1;
-                        index |= ((bits >> (bitPos - 1)) & andEr);
-                        bitPos -= 1;
-                        codeLen += 1;
+                        index |= (bits >> (bitPos - exceedLen)) & 1;
                         Integer extraCode = extraMap.get(index);
+                        codeLen = longCodeLen + exceedLen;
                         if (extraCode != null && lengthMap[extraCode] == codeLen) {
                             code = extraCode;
                             break;
                         }
+                        exceedLen++;
                     }
+                    bitPos -= exceedLen;
                 } else {  // in long map
                     code -= 1;
                     codeLen = lengthMap[code];

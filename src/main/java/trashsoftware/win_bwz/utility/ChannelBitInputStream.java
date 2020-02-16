@@ -1,19 +1,10 @@
 package trashsoftware.win_bwz.utility;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 
-/**
- * An input stream which reads a file in bit level.
- *
- * @author zbh
- * @since 0.4
- */
-public class FileBitInputStream extends BitInputStream {
-
-    private InputStream bis;
+public class ChannelBitInputStream extends BitInputStream {
 
     /**
      * The current reading byte.
@@ -25,19 +16,25 @@ public class FileBitInputStream extends BitInputStream {
      */
     private int bitPos;
 
-    private byte[] buffer1 = new byte[1];
+    private FileChannel fc;
+
+    private ByteBuffer buffer = ByteBuffer.allocate(1);
 
     private boolean streamEnds = false;
 
-    /**
-     * Creates a new instance of {@code FileBitInputStream}.
-     *
-     * @param fis the {@code InputStream} which this {@code FileBitInputStream} reads data from
-     */
-    public FileBitInputStream(InputStream fis) {
-        if (fis instanceof BufferedInputStream ||
-                fis instanceof ByteArrayInputStream) this.bis = fis;
-        else this.bis = new BufferedInputStream(fis);
+    public ChannelBitInputStream(FileChannel fileChannel) {
+        this.fc = fileChannel;
+    }
+
+    @Override
+    public int read() throws IOException {
+        int res = readBits(1);
+        return streamEnds ? 2 : res;
+    }
+
+    @Override
+    public void alignByte() {
+        bitPos = 0;
     }
 
     /**
@@ -51,34 +48,27 @@ public class FileBitInputStream extends BitInputStream {
         return readBits(bitLength);
     }
 
-    /**
-     * Returns the next bit in the stream {@code bis}, or {@code 2} if the stream ends.
-     *
-     * @return the next bit in the stream {@code bis}, or {@code 2} if the stream ends.
-     * @throws IOException if the input stream is not readable
-     */
-    public int read() throws IOException {
-        int i = readBits(1);
-        return streamEnds ? 2 : i;
+    public boolean isStreamEnds() {
+        return streamEnds;
     }
 
     public byte readByte() throws IOException {
         return (byte) readBits(8);
     }
 
-    /**
-     * Skips the bits currently in buffer
-     */
-    public void alignByte() {
-        bitPos = 0;
+    public void revert(int bitCount) {
+        bitPos += bitCount;
     }
 
     private void loadBits(int leastBitsCount) throws IOException {
         while (bitPos < leastBitsCount) {
             bitPos += 8;
             bits <<= 8;
-            if (bis.read(buffer1) != 1) streamEnds = true;
-            bits |= (buffer1[0] & 0xff);
+            if (fc.read(buffer) != 1) {
+                buffer.flip();
+                streamEnds = true;
+            }
+            bits |= (buffer.get(0) & 0xff);
         }
     }
 
@@ -95,6 +85,6 @@ public class FileBitInputStream extends BitInputStream {
      * @throws IOException if the {@code bis} cannot be closed
      */
     public void close() throws IOException {
-        bis.close();
+        fc.close();
     }
 }

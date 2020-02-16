@@ -2,6 +2,7 @@ package trashsoftware.win_bwz.longHuffman;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Map;
 
 public abstract class LongHuffmanUtil {
 
@@ -130,36 +131,64 @@ public abstract class LongHuffmanUtil {
         return i;
     }
 
+    public static void identicalMapOneLoop(int[] lengthCode,
+                                           int[] canonicalCode,
+                                           int plainSymbol,
+                                           int shortCodeLen,
+                                           int[] shortMapArr,
+                                           int longCodeLen,
+                                           int[] longMapArr) {
+        identicalMapOneLoop(
+                lengthCode,
+                canonicalCode,
+                plainSymbol,
+                shortCodeLen,
+                shortMapArr,
+                longCodeLen,
+                longMapArr,
+                0,
+                null
+        );
+    }
 
     public static void identicalMapOneLoop(int[] lengthCode,
                                            int[] canonicalCode,
-                                           int i,
-                                           int average,
+                                           int plainSymbol,
+                                           int shortCodeLen,
                                            int[] shortMapArr,
+                                           int longCodeLen,
+                                           int[] longMapArr,
                                            int maxCodeLen,
-                                           int[] longMapArr) {
-        int len = lengthCode[i];
-//        int shortMapLen = shortMapArr.length;  // the long map is all zero in the first <shortMapLen> positions
+                                           Map<Integer, Integer> extraMap) {
+        int len = lengthCode[plainSymbol];
         if (len > 0) {
-            int code = canonicalCode[i];
-            if (len < average) {
-                int sup_len = average - len;
+            int code = canonicalCode[plainSymbol];
+            if (len < shortCodeLen) {
+                int sup_len = shortCodeLen - len;
                 int sup_pow = 1 << sup_len;
                 int res = code << sup_len;
                 for (int j = 0; j < sup_pow; ++j) {
-                    shortMapArr[res + j] = i + 1;  // 0 reserved for not found
+                    shortMapArr[res + j] = plainSymbol + 1;  // 0 reserved for not found
                 }
-            } else if (len == average) {
-                shortMapArr[code] = i + 1;  // 0 reserved for not found
-            } else if (len < maxCodeLen) {
-                int sup_len = maxCodeLen - len;
+            } else if (len == shortCodeLen) {
+                shortMapArr[code] = plainSymbol + 1;  // 0 reserved for not found
+            } else if (len < longCodeLen) {
+                int sup_len = longCodeLen - len;
                 int sup_pow = 1 << sup_len;
                 int res = code << sup_len;
                 for (int j = 0; j < sup_pow; ++j) {
-                    longMapArr[res + j] = i;
+                    if (maxCodeLen == 0)
+                        longMapArr[res + j] = plainSymbol;
+                    else
+                        longMapArr[res + j] = plainSymbol + 1;  // 0 reserved for not found
                 }
-            } else if (len == maxCodeLen) {
-                longMapArr[code] = i;
+            } else if (len == longCodeLen) {
+                if (maxCodeLen == 0)
+                    longMapArr[code] = plainSymbol;
+                else
+                    longMapArr[code] = plainSymbol + 1;  // 0 reserved for not found
+            } else if (len <= maxCodeLen) {
+                extraMap.put(code, plainSymbol);
             } else {
                 throw new RuntimeException("Code too long");
             }
@@ -167,7 +196,7 @@ public abstract class LongHuffmanUtil {
     }
 
     public static int hufDecompressorMem() {
-        return (int) Math.pow(2, 15) * 4 +  // identical map
+        return (int) Math.pow(2, 16) * 4 +  // identical map
                 300 * 4;  // length map
     }
 }

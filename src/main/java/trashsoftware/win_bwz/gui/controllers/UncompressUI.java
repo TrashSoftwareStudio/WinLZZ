@@ -96,8 +96,6 @@ public class UncompressUI implements Initializable {
                         Packer.getProgramFullVersion(),
                         bundle.getString("uncNeedCoreVer"),
                         unPacker.getArchiveFullVersion()));
-//                alert.setContentText(lanLoader.get(353) + Packer.getProgramFullVersion() + lanLoader.get(354) +
-//                        unPacker.getArchiveFullVersion());
                 alert.showAndWait();
                 stage.close();
                 return;
@@ -269,7 +267,8 @@ public class UncompressUI implements Initializable {
 
     private void uncompressAndOpen(ContextNode openNode) throws IOException {
         checkPassword();
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/trashsoftware/win_bwz/fxml/uncompressingUI.fxml"));
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/trashsoftware/win_bwz/fxml/uncompressingUI.fxml"), bundle);
         Parent root = loader.load();
         Stage stage = new Stage();
 

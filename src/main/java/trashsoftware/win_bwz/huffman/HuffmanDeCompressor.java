@@ -9,8 +9,6 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-import static trashsoftware.win_bwz.longHuffman.LongHuffmanUtil.identicalMapOneLoop;
-
 public class HuffmanDeCompressor {
 
     private String inFile;
@@ -106,7 +104,7 @@ public class HuffmanDeCompressor {
         identicalMap = new int[1 << maxCodeLen];
 
         for (int i = 0; i < lengthCode.length; ++i) {
-            identicalMapOneLoop(lengthCode, canonicalCode, i, average, identicalMap, maxCodeLen, identicalMap);
+            LongHuffmanUtil.identicalMapOneLoop(lengthCode, canonicalCode, i, average, identicalMap, maxCodeLen, identicalMap);
         }
     }
 

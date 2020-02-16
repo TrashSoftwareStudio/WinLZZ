@@ -6,8 +6,6 @@ import trashsoftware.win_bwz.utility.Bytes;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static trashsoftware.win_bwz.longHuffman.LongHuffmanUtil.identicalMapOneLoop;
-
 public class Lzz2HuffmanInputStream {
 
     private int maxCodeLen;
@@ -54,7 +52,15 @@ public class Lzz2HuffmanInputStream {
         identicalMap = new int[1 << maxCodeLen];
 
         for (int i = 0; i < lengthCode.length; ++i) {
-            identicalMapOneLoop(lengthCode, canonicalCode, i, average, identicalMap, maxCodeLen, identicalMap);
+            LongHuffmanUtil.identicalMapOneLoop(
+                    lengthCode,
+                    canonicalCode,
+                    i,
+                    average,
+                    identicalMap,
+                    maxCodeLen,
+                    identicalMap
+            );
         }
     }
 

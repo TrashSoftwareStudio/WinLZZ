@@ -5,8 +5,9 @@ import trashsoftware.win_bwz.utility.Bytes;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-
-import static trashsoftware.win_bwz.longHuffman.LongHuffmanUtil.identicalMapOneLoop;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * A Independent input stream that takes an input stream and uncompress data from stream using huffman algorithm.
@@ -21,6 +22,11 @@ public class LongHuffmanInputStream {
      */
     private static final int bufferSize = 8192;
 
+    /**
+     * Code exceeds this length would be stored in extra map, not identical map.
+     */
+    private static final int CODE_LEN_LIMIT = 16;
+
     private FileChannel fc;
 
     /**
@@ -34,14 +40,28 @@ public class LongHuffmanInputStream {
     private int endSig;
 
     /**
-     * The maximum code length.
+     * The maximum code length storing in the identical map.
      */
-    private int maxCodeLen = 0;
+    private int longCodeLen = 0;
 
     /**
      * The average code length
      */
-    private int average = 8;
+    private int shortCodeLen = 8;
+
+    /**
+     * The maximum code length.
+     * <p>
+     * If this value is greater than {@code CODE_LEN_LIMIT}, then extra map {@code extraMap} is used.
+     */
+    private int maxCodeLen = 0;
+
+    /**
+     * Map storing codes that longer than {@code CODE_LEN_LIMIT}.
+     * <p>
+     * Use tree map data structure because the extra map usually contains few elements, but with big value keys.
+     */
+    private Map<Integer, Integer> extraMap = new TreeMap<>();
 
     /**
      * This map is a combination of two maps.
@@ -99,21 +119,33 @@ public class LongHuffmanInputStream {
                 if (len > maxCodeLen) maxCodeLen = len;
             }
         }
-        if (average > maxCodeLen) {
-            average = maxCodeLen;
+        if (shortCodeLen > maxCodeLen) {
+            shortCodeLen = maxCodeLen;
         }
+        longCodeLen = Math.min(maxCodeLen, CODE_LEN_LIMIT);
         return lengthCode;
     }
 
     private void generateIdenticalMap(int[] lengthCode, int[] canonicalCode) {
-        identicalMap = new int[1 << maxCodeLen];
+        identicalMap = new int[1 << longCodeLen];
+//        System.out.println(identicalMap.length);
 
         for (int i = 0; i < alphabetSize; ++i) {
-            identicalMapOneLoop(lengthCode, canonicalCode, i, average, identicalMap, maxCodeLen, identicalMap);
+            LongHuffmanUtil.identicalMapOneLoop(
+                    lengthCode,
+                    canonicalCode,
+                    i,
+                    shortCodeLen,
+                    identicalMap,
+                    longCodeLen,
+                    identicalMap,
+                    maxCodeLen,
+                    extraMap
+            );
         }
     }
 
-    private void readBits(int leastPos) throws IOException {
+    private void loadBits(int leastPos) throws IOException {
 
         while (bitPos < leastPos) {
             bitPos += 8;
@@ -122,7 +154,6 @@ public class LongHuffmanInputStream {
             if (bufferIndex >= bufferSize) {
                 readBuffer.clear();
                 if (fc.read(readBuffer) <= 0) {
-
                 }
                 readBuffer.flip();
                 bufferIndex = 0;
@@ -139,29 +170,49 @@ public class LongHuffmanInputStream {
         readBuffer.flip();
         bufferIndex = 0;
 
-        int bigMapLonger = maxCodeLen - average;
+        int bigMapLonger = longCodeLen - shortCodeLen;
         int bigMapLongerAndEr = Bytes.getAndEr(bigMapLonger);
-        int averageAndEr = Bytes.getAndEr(average);
+        int averageAndEr = Bytes.getAndEr(shortCodeLen);
 
         while (true) {
-            readBits(average);
-            int index = (bits >> (bitPos - average)) & averageAndEr;
-            bitPos -= average;
+            loadBits(shortCodeLen);
+            int index = (bits >> (bitPos - shortCodeLen)) & averageAndEr;
+            bitPos -= shortCodeLen;
 
             int codeLen;
             int code = identicalMap[index];
-            if (code == 0) {  // not in short map
-                readBits(bigMapLonger);
+            if (code == 0) {  // not in short map, look for long map
+                loadBits(bigMapLonger);
                 index <<= bigMapLonger;
                 index |= ((bits >> (bitPos - bigMapLonger)) & bigMapLongerAndEr);
                 bitPos -= bigMapLonger;
                 code = identicalMap[index];
-                codeLen = lengthMap[code];
-                bitPos += (maxCodeLen - codeLen);
+                if (code == 0) { //  not in long map, look for extra map
+                    int andEr = bigMapLongerAndEr;
+                    codeLen = longCodeLen;
+                    while (true) {
+                        andEr <<= 1;
+                        andEr |= 1;
+                        loadBits(1);
+                        index <<= 1;
+                        index |= ((bits >> (bitPos - 1)) & andEr);
+                        bitPos -= 1;
+                        codeLen += 1;
+                        Integer extraCode = extraMap.get(index);
+                        if (extraCode != null && lengthMap[extraCode] == codeLen) {
+                            code = extraCode;
+                            break;
+                        }
+                    }
+                } else {  // in long map
+                    code -= 1;
+                    codeLen = lengthMap[code];
+                    bitPos += (longCodeLen - codeLen);
+                }
             } else {
                 code -= 1;
                 codeLen = lengthMap[code];
-                bitPos += (average - codeLen);
+                bitPos += (shortCodeLen - codeLen);
             }
             compressedBitLength += codeLen;
 

@@ -36,11 +36,11 @@
         <!--        </dependency>-->
 
         <!-- https://mvnrepository.com/artifact/org.json/json -->
-<!--        <dependency>-->
-<!--            <groupId>org.json</groupId>-->
-<!--            <artifactId>json</artifactId>-->
-<!--            <version>20190722</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.json</groupId>-->
+        <!--            <artifactId>json</artifactId>-->
+        <!--            <version>20190722</version>-->
+        <!--        </dependency>-->
 
         <!-- https://mvnrepository.com/artifact/com.googlecode.json-simple/json-simple -->
         <dependency>
@@ -70,9 +70,10 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <release>8</release>
+                    <release>1.8</release>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>

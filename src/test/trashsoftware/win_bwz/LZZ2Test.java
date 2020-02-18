@@ -27,7 +27,7 @@ public class LZZ2Test {
 //        SequenceInputStream sis = new SequenceInputStream(v.elements());
         int ws = 32768;
         LZZ2Compressor c = new LZZ2Compressor(name, ws, 255);
-        c.setCompressionLevel(1);
+        c.setCompressionLevel(4);
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
             c.compress(fos);

@@ -67,10 +67,6 @@ public class LZZ2Compressor implements Compressor {
 
     private int compressionLevel;
 
-    private int dis, len;
-
-    private long[] tempArray;
-
     /**
      * Constructor of a new {@code LZZ2Compressor} instance.
      *
@@ -133,16 +129,28 @@ public class LZZ2Compressor implements Compressor {
         }
     }
 
-    protected void compressText() throws IOException {
-        FileInputBufferArray fba = new FileInputBufferArray(sis, totalLength, windowSize);
-
+    private void setUpWindow() {
         if (totalLength <= bufferMaxSize) {
             dictSize = (int) totalLength - 1;
             bufferMaxSize = (int) totalLength - 1;
         }
+    }
+
+    protected void compressText() throws IOException {
+        FileInputBufferArray fba = new FileInputBufferArray(sis, totalLength, windowSize);
+
+        setUpWindow();
+
         int sliderArraySize = sliderArraySize(dictSize, compressionLevel);
-        FixedSliderLong slider = new FixedSliderLong(sliderArraySize);
-        tempArray = new long[sliderArraySize];
+
+        Lzz2Matcher matcher;
+        if (compressionLevel < 2) {
+            matcher = new GreedyMatcher(sliderArraySize, dictSize, bufferMaxSize, totalLength);
+        } else if (compressionLevel < 4) {
+            matcher = new NonGreedyMatcherOneStep(sliderArraySize, dictSize, bufferMaxSize, totalLength);
+        } else {
+            matcher = new NonGreedyMatcherMultiStep(sliderArraySize, dictSize, bufferMaxSize, totalLength);
+        }
 
         long position = 0;  // The processing index. i.e. the border of buffer and slider.
 
@@ -162,8 +170,11 @@ public class LZZ2Compressor implements Compressor {
 
         while (true) {
 
-            int skip = search(fba, slider, position);
+            int skip = matcher.search(fba, position);
             long prevPos = position;
+
+            int len = matcher.getLength();
+            int dis = matcher.getDistance();
 
             if (len < MINIMUM_MATCH_LEN) {
                 // Not a match
@@ -200,7 +211,7 @@ public class LZZ2Compressor implements Compressor {
             }
 
             if (position >= totalLength - MINIMUM_MATCH_LEN) break;
-            fillSlider(prevPos, position, fba, slider);
+            matcher.fillSlider(prevPos, position, fba);
 
             if (parent != null && parent.isInterrupted) break;
             if (parent != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
@@ -240,135 +251,15 @@ public class LZZ2Compressor implements Compressor {
         bbb.close();
     }
 
-    private static int hash(byte b0, byte b1) {
-        return (b0 & 0xff) << 8 | (b1 & 0xff);
-    }
+//    private static int hash(byte b0, byte b1) {
+//        return (b0 & 0xff) << 8 | (b1 & 0xff);
+//    }
 
 //    private static int hash4bytesToInt16(byte b0, byte b1, byte b2, byte b3) {
 //        long first = (long) (b0 & 0xff) << 24 | (b1 & 0xff) << 16 | (b2 & 0xff) << 8 | (b3 & 0xff);
 //        long hash = (first >> 16) ^ ((first & 0xffff) * PRIME16);
 //        return (int) (hash & 0xffff);
 //    }
-
-    private void fillSlider(long from, long to, FileInputBufferArray fba, FixedSliderLong slider) throws IOException {
-        int lastHash = -1;
-        int repeatCount = 0;
-        for (long j = from; j < to; j++) {
-            byte b0 = fba.getByte(j);
-            byte b1 = fba.getByte(j + 1);
-            byte b2 = fba.getByte(j + 2);
-            byte b3 = fba.getByte(j + 3);
-            int hash = hash(b0, b1);
-            int nextHash = hash(b2, b3);
-            if (hash == lastHash) {
-                repeatCount++;
-            } else {
-                if (repeatCount > 0) {
-                    repeatCount = 0;
-                    slider.addIndex(lastHash, j - 1, nextHash);
-                }
-                lastHash = hash;
-                slider.addIndex(hash, j, nextHash);
-            }
-        }
-    }
-
-    private int search(FileInputBufferArray fba, FixedSliderLong slider, long index) throws IOException {
-        if (compressionLevel < 2) {
-            calculateLongestMatch(fba, slider, index);
-            return 0;
-        } else if (compressionLevel < 4) {
-            return search1(fba, slider, index);
-        } else {
-            return searchMore(fba, slider, index);
-        }
-    }
-
-    private int search1(FileInputBufferArray fba, FixedSliderLong slider, long index) throws IOException {
-        calculateLongestMatch(fba, slider, index);
-        int dis1 = dis;
-        int len1 = len;
-        calculateLongestMatch(fba, slider, index + 1);
-        if (len > len1 + 1) {
-            return 1;
-        } else {
-            dis = dis1;
-            len = len1;
-            return 0;
-        }
-    }
-
-    private int searchMore(FileInputBufferArray fba, FixedSliderLong slider, long index) throws IOException {
-        int skip = 1;
-        calculateLongestMatch(fba, slider, index);
-        int lastDis = dis;
-        int lastLen = len;
-        while (true) {
-            calculateLongestMatch(fba, slider, index + skip);
-            if (len > lastLen + skip) {
-                lastDis = dis;
-                lastLen = len;
-                skip++;
-            } else {
-                dis = lastDis;
-                len = lastLen;
-                return skip - 1;
-            }
-        }
-    }
-
-    private void calculateLongestMatch(FileInputBufferArray fba, FixedSliderLong slider, long index)
-            throws IOException {
-        byte b0 = fba.getByte(index);
-        byte b1 = fba.getByte(index + 1);
-        int hash = hash(b0, b1);
-        FixedArrayDeque positions = slider.get(hash);
-        if (positions == null) {  // not a match
-            len = 0;
-            return;
-        }
-        byte b2 = fba.getByte(index + 2);
-        byte b3 = fba.getByte(index + 3);
-        int nextHash = hash(b2, b3);
-        int indexInTemp = 0;
-        final int beginPos = positions.beginPos();
-        int tail = positions.tailPos();
-        long windowBegin = Math.max(index - dictSize, 0);
-
-        for (int i = tail - 1; i >= beginPos; --i) {
-            int realIndex = i & slider.andEr;
-            long pos = positions.array[realIndex];
-            if (pos <= windowBegin) break;
-            int posNextHash = positions.nextHashArray[realIndex];
-            if (nextHash == posNextHash) {
-                tempArray[indexInTemp++] = pos;
-            }
-        }
-        if (indexInTemp == 0) {
-            len = 0;
-            return;
-        }
-
-        int maxLen = Math.min(bufferMaxSize, (int) (totalLength - index));
-        int longest = 0;
-
-        long indexOfLongest = tempArray[0];
-        for (int i = 0; i < indexInTemp; ++i) {
-            long pos = tempArray[i];
-            int len = 2;  // reason of using 2 instead of 4: see {@code fillSlider}, problem in skipping bytes
-            while (len < maxLen &&
-                    fba.getByte(pos + len) == fba.getByte(index + len)) {
-                len++;
-            }
-            if (len > longest) {  // Later match is preferred
-                longest = len;
-                indexOfLongest = pos;
-            }
-        }
-
-        dis = (int) (index - indexOfLongest);
-        len = longest;
-    }
 
     private int reverseIndexInQueue(int[] lastDistances, int index, int target) {
         int beginIndex = index < 4 ? 0 : index - 4;

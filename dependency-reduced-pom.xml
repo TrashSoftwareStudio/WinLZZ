@@ -28,7 +28,7 @@
         <configuration>
           <transformers>
             <transformer>
-              <mainClass>trashsoftware.win_bwz.Main</mainClass>
+              <mainClass>trashsoftware.winBwz.Main</mainClass>
             </transformer>
           </transformers>
         </configuration>

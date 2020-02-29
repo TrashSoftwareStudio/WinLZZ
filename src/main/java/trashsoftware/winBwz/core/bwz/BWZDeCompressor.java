@@ -8,9 +8,7 @@ import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
@@ -64,7 +62,6 @@ public class BWZDeCompressor implements DeCompressor {
 
         if (r != 1) throw new IOException("Error occurs during reading");
         huffmanBlockMaxSize = (int) Math.pow(2, buffer.get(0));
-//        System.out.println(huffmanBlockMaxSize);
     }
 
     private void fillMaps(byte[] block, int mapLen, int origRow) throws IOException {
@@ -179,6 +176,19 @@ public class BWZDeCompressor implements DeCompressor {
         }
 
         fc.close();
+    }
+
+    /**
+     * Uncompress to the output stream.
+     *
+     * @param outFile the target output file
+     * @throws Exception if the stream is not writable.
+     */
+    public void uncompress(String outFile) throws Exception {
+        FileOutputStream fos = new FileOutputStream(outFile);
+        uncompress(fos);
+        fos.flush();
+        fos.close();
     }
 
     /**

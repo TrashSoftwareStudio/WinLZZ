@@ -62,11 +62,6 @@ public class Packer {
     public final static int PART_SIGNATURE = 0x016416DA;
 
     /**
-     * Set 1999-12-31 19:00 as the initial time.
-     */
-    final static long dateOffset = 946684800000L;
-
-    /**
      * The default size of sliding window/block for sliding-window-based or block-based compression algorithm.
      * <p>
      * The value will be applied only if the user sets the {@code windowSize} to 0.
@@ -549,7 +544,7 @@ public class Packer {
         } else raf = new RandomAccessFile(outFile, "rw");
 
         raf.seek(9);
-        int currentTimeInt = (int) ((System.currentTimeMillis() - dateOffset) / 1000);  // Creation time,
+        int currentTimeInt = Bytes.getCurrentTimeInInt();  // Creation time,
         // rounded to second. Starting from 1999-12-31 19:00
         raf.writeInt(currentTimeInt);
         raf.write(contextCrcArray);

@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.resourcesPack.configLoader;
 
+import javafx.scene.image.Image;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -21,6 +22,11 @@ public abstract class GeneralLoaders {
     private static final String PREF_FILE = "pref.cfg";
     private static final String CACHE_DIR = "cache";
     private static final String CACHE = CACHE_DIR + File.separator + "cache.json";
+    private static final String THUMBNAIL_DIR = CACHE_DIR + File.separator + "thumbnails";
+
+    public static void load() {
+
+    }
 
     /**
      * Returns the current selected locale.
@@ -256,6 +262,49 @@ public abstract class GeneralLoaders {
             array.add(absPath);
             writeCache("annotations", array);
         }
+    }
+
+    /**
+     * Returns the cached thumbnail file of the image with absolute path {@code imageFileOrigName}
+     *
+     * @param imageFileOrigName the absolute path of the original image
+     * @return the cached thumbnail, {@code null} if does not exist
+     */
+    public static Image getThumbnailByOrigName(String imageFileOrigName) {
+        String thumbnailName = nameToThumbnailName(imageFileOrigName);
+        return getThumbnail(thumbnailName);
+    }
+
+    /**
+     * Returns the cached thumbnail file with absolute path {@code thumbnailName}
+     *
+     * @param thumbnailName the absolute path of the thumbnail image
+     * @return the cached thumbnail, {@code null} if does not exist
+     */
+    public static Image getThumbnail(String thumbnailName) {
+        File file = new File(thumbnailName);
+        if (file.exists()) {
+            try {
+                FileInputStream inputStream = new FileInputStream(file);
+                Image image = new Image(inputStream);
+                inputStream.close();
+                return image;
+            } catch (IOException e) {
+                return null;
+            }
+        }
+        else {
+            File thumbDir = new File(THUMBNAIL_DIR);
+            if (!thumbDir.exists())
+                if (!thumbDir.mkdirs())
+                    System.out.println("Failed to create thumbnail directory");
+            return null;
+        }
+    }
+
+    public static String nameToThumbnailName(String origName) {
+        String name = origName.replace(File.separatorChar, '.').replace(':', ';');
+        return String.format("%s%s~%s.thumbnail", THUMBNAIL_DIR, File.separator, name);
     }
 
     /**

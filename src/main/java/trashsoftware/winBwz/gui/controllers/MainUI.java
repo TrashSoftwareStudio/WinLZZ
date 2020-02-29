@@ -1,5 +1,9 @@
 package trashsoftware.winBwz.gui.controllers;
 
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import trashsoftware.trashGraphics.core.ImageViewer;
+import trashsoftware.trashGraphics.gui.TrashGraphicsClient;
 import trashsoftware.winBwz.gui.GUIClient;
 import trashsoftware.winBwz.gui.graphicUtil.*;
 import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
@@ -74,7 +78,7 @@ public class MainUI implements Initializable {
     private HBox currentDirBox;
 
     @FXML
-    private MenuItem  pasteHere;
+    private MenuItem pasteHere;
 
     private String currentDir;
 
@@ -104,6 +108,7 @@ public class MainUI implements Initializable {
         setTreeListener();
         rootTree.getRoot().setExpanded(true);
         setNameColHoverFactory();
+        setSizeColHoverFactory();
         nameCol.setCellValueFactory(new PropertyValueFactory<>("Name"));
         typeCol.setCellValueFactory(new PropertyValueFactory<>("Type"));
         sizeCol.setCellValueFactory(new PropertyValueFactory<>("Size"));
@@ -134,7 +139,7 @@ public class MainUI implements Initializable {
     /* Actions and handlers */
 
     @FXML
-    public void aboutAction() throws IOException {
+    void aboutAction() throws IOException {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/winBwz/fxml/aboutUI.fxml"), bundle);
         Parent root = loader.load();
@@ -146,7 +151,7 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    private void licenceAction() {
+    void licenceAction() {
         Pane root = new Pane();
         Stage dialog = new Stage();
         Scene scene = new Scene(root);
@@ -168,7 +173,7 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    private void changelogAction() throws IOException {
+    void changelogAction() throws IOException {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/winBwz/fxml/changelogViewer.fxml"), bundle);
         Parent root = loader.load();
@@ -180,7 +185,12 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    private void settingsAction() throws IOException {
+    void openTrashGraphics() throws IOException {
+        showTrashGraphics();
+    }
+
+    @FXML
+    void settingsAction() throws IOException {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/winBwz/fxml/settingsMain.fxml"), bundle);
         Parent root = loader.load();
@@ -197,7 +207,7 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    private void compressMode() throws Exception {
+    void compressMode() throws Exception {
         ObservableList<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
         File[] selected = new File[selections.size()];
         for (int i = 0; i < selections.size(); i++) selected[i] = selections.get(i).getFile();
@@ -223,18 +233,21 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    private void backAction() {
+    void backAction() {
         currentSelection = new RegularFileNode(currentSelection.getFile().getParentFile(), bundle);
         fillTable();
         backButtonListener();
     }
 
     @FXML
-    private void openAction() throws Exception {
+    void openAction() throws Exception {
         RegularFileNode rfn = table.getSelectionModel().getSelectedItem();
         if (rfn.getFile().exists()) {
-            if ("pz".equals(rfn.getExtension())) {
+            String ext = rfn.getExtension();
+            if ("pz".equals(ext)) {
                 uncompressMode(rfn.getFile());
+            } else if (Util.arrayContains(ImageViewer.ALL_FORMATS_READ, ext, false)) {
+                showTrashGraphicsWithImage(rfn.getFile());
             } else {
                 try {
                     Desktop.getDesktop().open(rfn.getFile());
@@ -268,7 +281,7 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    private void desktopOpenAction() {
+    void desktopOpenAction() {
         try {
             String dir = currentDir;
             if (dir.length() > 0) {
@@ -282,16 +295,24 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    private void exitAction() {
+    void exitAction() {
         thisStage.close();
     }
 
     @FXML
-    public void restartAction() {
+    void restartAction() {
         guiClient.restart(thisStage);
     }
 
     /* Functional methods */
+
+    private void showTrashGraphics() throws IOException {
+        new TrashGraphicsClient().runClient(bundle, this);
+    }
+
+    private void showTrashGraphicsWithImage(File file) throws IOException {
+        new TrashGraphicsClient().runClientWithImage(bundle, this, file);
+    }
 
     private void refreshDirButtons() {
         currentDirBox.getChildren().clear();
@@ -611,6 +632,37 @@ public class MainUI implements Initializable {
     /**
      * Sets up the hover property listener of the TableColumn object "nameCol".
      */
+    private void setSizeColHoverFactory() {
+        sizeCol.setCellFactory((TableColumn<RegularFileNode, ReadableSize> tc) ->
+                new TableCell<RegularFileNode, ReadableSize>() {
+                    @Override
+                    protected void updateItem(ReadableSize item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (item == null || empty) {
+                            setText(null);
+                        } else {
+                            setText(item.toString());
+                            hoverProperty().addListener((ObservableValue<? extends Boolean> obs, Boolean wasHovered,
+                                                         Boolean isNowHovered) -> {
+                                if (isNowHovered && !isEmpty()) {
+                                    String sizeInByte = getItem().getSizeInByte(bundle);
+                                    Tooltip tp = new Tooltip();
+                                    tp.setText(sizeInByte);
+                                    table.setTooltip(tp);
+                                } else {
+                                    table.setTooltip(null);
+                                }
+                            });
+                        }
+                    }
+
+
+                });
+    }
+
+    /**
+     * Sets up the hover property listener of the TableColumn object "nameCol".
+     */
     private void setNameColHoverFactory() {
         nameCol.setCellFactory((TableColumn<RegularFileNode, String> tc) -> new TableCell<RegularFileNode, String>() {
             @Override
@@ -622,10 +674,20 @@ public class MainUI implements Initializable {
                     setText(item);
                     hoverProperty().addListener((ObservableValue<? extends Boolean> obs, Boolean wasHovered,
                                                  Boolean isNowHovered) -> {
-                        if (isNowHovered && !isEmpty() && getText().length() > 40) {
-                            Tooltip tp = new Tooltip();
-                            tp.setText(getText());
-                            table.setTooltip(tp);
+                        if (isNowHovered && !isEmpty()) {
+                            String fileNameText = getText();
+                            int dotIndex = fileNameText.lastIndexOf('.');
+                            String ext = "";
+                            if (dotIndex >= 0) {
+                                ext = fileNameText.substring(dotIndex + 1);
+                            }
+                            if (Util.arrayContains(ImageViewer.ALL_FORMATS_READ, ext, false)) {
+                                showThumbnail(fileNameText);
+                            } else if (fileNameText.length() > 40) {
+                                Tooltip tp = new Tooltip();
+                                tp.setText(getText());
+                                table.setTooltip(tp);
+                            }
                         } else {
                             table.setTooltip(null);
                         }
@@ -635,6 +697,31 @@ public class MainUI implements Initializable {
 
 
         });
+    }
+
+    private void showThumbnail(String fileName) {
+        String fullName = currentDir + File.separator + fileName;
+        Image thumbImage = GeneralLoaders.getThumbnailByOrigName(fullName);
+        if (thumbImage == null) {
+            String thumbName = createThumbnail(fullName);
+            thumbImage = GeneralLoaders.getThumbnail(thumbName);
+            if (thumbImage == null) {  // something went wrong
+                System.out.println("Cannot produce thumbnail");
+                return;
+            }
+        }
+        ImageView imageView = new ImageView(thumbImage);
+        Tooltip tp = new Tooltip();
+        tp.setGraphic(imageView);
+        table.setTooltip(tp);
+    }
+
+    private String createThumbnail(String fullName) {
+        String thumbName = GeneralLoaders.nameToThumbnailName(fullName);
+        if (!ImageViewer.produceThumbnail(fullName, thumbName, 200)) {
+            System.out.println("Failed to produce thumbnail");
+        }
+        return thumbName;
     }
 
     /**

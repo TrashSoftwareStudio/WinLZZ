@@ -1,5 +1,7 @@
 package trashsoftware.winBwz.utility;
 
+import trashsoftware.winBwz.packer.Packer;
+
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -9,6 +11,24 @@ import java.nio.charset.StandardCharsets;
  */
 @SuppressWarnings("unused")
 public abstract class Bytes {
+
+    /**
+     * Set 1999-12-31 19:00 as the initial time.
+     */
+    public final static long DATE_OFFSET = 946684800000L;
+
+    /**
+     * Returns the 4-bytes int time, started from {@code DATE_OFFSET}, in seconds.
+     *
+     * @return the 4-bytes int time, started from {@code DATE_OFFSET}, in seconds.
+     */
+    public static int getCurrentTimeInInt() {
+        return (int) ((System.currentTimeMillis() - DATE_OFFSET) / 1000);
+    }
+
+    public static long recoverTimeMillsFromInt(int timeInt) {
+        return (long) timeInt * 1000 + DATE_OFFSET;
+    }
 
     /**
      * Returns the String that consists of <code>times</code> character <code>c</code>.
@@ -210,13 +230,44 @@ public abstract class Bytes {
     }
 
     /**
+     * Convert a 4-byte array into signed integer in little-endian.
+     *
+     * @param b      byte array.
+     * @param offset the beginning index of the 4-bytes data in byte array
+     * @return signed integer.
+     */
+    public static int bytesToInt32Little(byte[] b, int offset) {
+        return (b[offset + 3] & 0xff) << 24 |
+                (b[offset + 2] & 0xff) << 16 |
+                (b[offset + 1] & 0xff) << 8 |
+                (b[offset] & 0xff);
+    }
+
+    /**
      * Convert an integer into a 4-byte array in big-endian.
      *
      * @param i the integer.
      * @return 4-byte array.
      */
     public static byte[] intToBytes32(int i) {
-        return new byte[]{(byte) ((i >> 24) & 0xff), (byte) ((i >> 16) & 0xff), (byte) ((i >> 8) & 0xff), (byte) (i & 0xff)};
+        return new byte[]{(byte) ((i >> 24) & 0xff),
+                (byte) ((i >> 16) & 0xff),
+                (byte) ((i >> 8) & 0xff),
+                (byte) (i & 0xff)};
+    }
+
+    /**
+     * Convert an integer into a 4-byte array in big-endian.
+     *
+     * @param i      the integer.
+     * @param array  the output array
+     * @param offset the beginning index to put the result in the output array
+     */
+    public static void intToBytes32(long i, byte[] array, int offset) {
+        array[offset] = (byte) (i >>> 24);
+        array[offset + 1] = (byte) (i >>> 16);
+        array[offset + 2] = (byte) (i >>> 8);
+        array[offset + 3] = (byte) (i & 0xff);
     }
 
     /**
@@ -227,6 +278,20 @@ public abstract class Bytes {
      */
     public static byte[] intToBytes32Little(int i) {
         return new byte[]{(byte) (i & 0xff), (byte) ((i >> 8) & 0xff), (byte) ((i >> 16) & 0xff), (byte) ((i >> 24) & 0xff)};
+    }
+
+    /**
+     * Convert an integer into a 4-byte array in little-endian.
+     *
+     * @param i      the integer.
+     * @param array  the target array
+     * @param offset the offset in array
+     */
+    public static void intToBytes32Little(int i, byte[] array, int offset) {
+        array[offset] = (byte) (i & 0xff);
+        array[offset + 1] = (byte) (i >>> 8);
+        array[offset + 2] = (byte) (i >>> 16);
+        array[offset + 3] = (byte) (i >>> 24);
     }
 
     /**

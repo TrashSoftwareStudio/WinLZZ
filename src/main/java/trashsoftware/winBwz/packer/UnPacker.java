@@ -277,7 +277,7 @@ public class UnPacker {
 
         byte[] creationTimeByte = new byte[4];
         if (bis.read(creationTimeByte) != 4) throw new IOException("Error occurs while reading");
-        creationTime = (long) Bytes.bytesToInt32(creationTimeByte) * 1000 + Packer.dateOffset;
+        creationTime = Bytes.recoverTimeMillsFromInt(Bytes.bytesToInt32(creationTimeByte));
 
         if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
         byte[] fullCRC32Bytes1 = new byte[8];

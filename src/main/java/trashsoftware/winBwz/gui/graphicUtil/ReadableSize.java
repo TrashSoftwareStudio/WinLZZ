@@ -3,6 +3,7 @@ package trashsoftware.winBwz.gui.graphicUtil;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.File;
+import java.util.ResourceBundle;
 
 /**
  * A representation of the size of a file, which is both comparable and easy to read.
@@ -45,5 +46,9 @@ public class ReadableSize implements Comparable<ReadableSize> {
     @Override
     public int compareTo(ReadableSize o) {
         return Long.compare(size, o.size);
+    }
+
+    public String getSizeInByte(ResourceBundle bundle) {
+        return Util.numToReadable2Decimal(size) + " " + bundle.getString("byte");
     }
 }

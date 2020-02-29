@@ -267,8 +267,8 @@ public class CompressUI implements Initializable {
     private void updateMemoryLabels(long[] memoryUse) {
         int cmpInMb = (int) Math.ceil((double) memoryUse[0] / 1048576);
         int uncInMb = (int) Math.ceil((double) memoryUse[1] / 1048576);
-        memoryNeedComLabel.setText(Util.numToReadable(cmpInMb) + " MB");
-        memoryNeedUncLabel.setText(Util.numToReadable(uncInMb) + " MB");
+        memoryNeedComLabel.setText(Util.numToReadable2Decimal(cmpInMb) + " MB");
+        memoryNeedUncLabel.setText(Util.numToReadable2Decimal(uncInMb) + " MB");
     }
 
     private String getAlgCode() {

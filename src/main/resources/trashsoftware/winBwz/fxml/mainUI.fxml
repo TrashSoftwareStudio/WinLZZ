@@ -48,6 +48,9 @@
             <MenuItem mnemonicParsing="false" onAction="#licenceAction" text="%license"/>
             <MenuItem mnemonicParsing="false" onAction="#changelogAction" text="%viewChangelog"/>
         </Menu>
+        <Menu mnemonicParsing="false" text="%trashGraphics">
+            <MenuItem mnemonicParsing="false" onAction="#openTrashGraphics" text="%trashGraphics"/>
+        </Menu>
     </MenuBar>
 
     <HBox alignment="CENTER_LEFT" spacing="5.0" GridPane.rowIndex="1">

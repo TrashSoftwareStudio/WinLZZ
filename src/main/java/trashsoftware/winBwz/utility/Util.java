@@ -1,9 +1,12 @@
 package trashsoftware.winBwz.utility;
 
+import trashsoftware.winBwz.gui.GUIClient;
+
 import java.io.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.ResourceBundle;
 
 /**
  * A class that consists of common utility methods.
@@ -381,14 +384,27 @@ public abstract class Util {
      * <p>
      * This method shows a number that at most 1,024 and a corresponding suffix
      *
-     * @param size the size to be converted
+     * @param size   the size to be converted
      * @return the readable {@code String}
      */
     public static String sizeToReadable(long size) {
-        if (size < Math.pow(2, 10)) return numToReadable((int) size) + " 字节";
-        else if (size < Math.pow(2, 20)) return numToReadable((double) size / 1024 + 1) + " KB";
-        else if (size < Math.pow(2, 30)) return numToReadable((double) size / 1048576 + 1) + " MB";
-        else return numToReadable((double) size / 1073741824 + 1) + "GB";
+        return sizeToReadable(size, GUIClient.getBundle());
+    }
+
+    /**
+     * Returns the readable {@code String} of <code>size</code>, representing the size of a file.
+     * <p>
+     * This method shows a number that at most 1,024 and a corresponding suffix
+     *
+     * @param size   the size to be converted
+     * @param bundle the resource bundle used to display text
+     * @return the readable {@code String}
+     */
+    public static String sizeToReadable(long size, ResourceBundle bundle) {
+        if (size < Math.pow(2, 10)) return numToReadable2Decimal((int) size) + " " + bundle.getString("byte");
+        else if (size < Math.pow(2, 20)) return numToReadable2Decimal((double) size / 1024) + " KB";
+        else if (size < Math.pow(2, 30)) return numToReadable2Decimal((double) size / 1048576) + " MB";
+        else return numToReadable2Decimal((double) size / 1073741824) + "GB";
     }
 
     /**
@@ -426,21 +442,8 @@ public abstract class Util {
         return builder.toString();
     }
 
-    public static String numToReadable(double num) {
+    public static String numToReadable2Decimal(double num) {
         return num == (int) num ? String.format("%,d", (int) num) : String.format("%,.2f", num);
-//        if (num >= 1048576) throw new IndexOutOfBoundsException("Number Too large");
-//        int decimalNum = (int) num;
-//        String decimal = String.valueOf(decimalNum);
-//        double fractionalNum = (double) Math.round((num - decimalNum) * 1000) / 1000;
-//        String fractional = String.valueOf(fractionalNum);
-//        String decimalWithComma;
-//        if (decimal.length() <= 3) decimalWithComma = decimal;
-//        else {
-//            int split = decimal.length() - 3;
-//            decimalWithComma = decimal.substring(0, split) + "," + decimal.substring(split);
-//        }
-//        if (fractionalNum == 0) return decimalWithComma;
-//        else return decimalWithComma + "." + fractional.substring(2);
     }
 
     /**
@@ -731,5 +734,25 @@ public abstract class Util {
         } catch (IOException e) {
             return false;
         }
+    }
+
+    /**
+     * Returns whether there is a String in the array that equals to the pattern.
+     *
+     * @param array         the array
+     * @param pattern       the string to be searched
+     * @param caseSensitive whether the case affects the result
+     * @return {@code true} iff there is at least one {@code String} in {@code array} that {@code equals()} the
+     * string {@code pattern}
+     */
+    public static boolean arrayContains(String[] array, String pattern, boolean caseSensitive) {
+        for (String s : array) {
+            if (caseSensitive) {
+                if (s.equals(pattern)) return true;
+            } else {
+                if (s.toLowerCase().equals(pattern.toLowerCase())) return true;
+            }
+        }
+        return false;
     }
 }

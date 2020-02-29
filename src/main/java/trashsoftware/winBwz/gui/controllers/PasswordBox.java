@@ -124,14 +124,4 @@ public class PasswordBox implements Initializable {
             if (!showPasswordBox.isSelected()) plainPasswordField.setText(newValue);
         });
     }
-
-//    private void fillText() {
-//        inputPassword.setText(lanLoader.get(400));
-//        confirmLabel.setText(lanLoader.get(401));
-//        showPasswordBox.setText(lanLoader.get(402));
-//        encryptNameBox.setText(lanLoader.get(403));
-//        confirmButton.setText(lanLoader.get(1));
-//        algLabel.setText(lanLoader.get(405));
-//        passAlgLabel.setText(lanLoader.get(406));
-//    }
 }

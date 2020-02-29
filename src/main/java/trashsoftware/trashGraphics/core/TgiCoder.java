@@ -13,11 +13,6 @@ import java.io.IOException;
  */
 public class TgiCoder {
 
-    public static final int bgr_8_BITS = 1;
-    public static final int bgr_24_BITS = 2;
-    public static final int bgrA_32_BITS = 3;
-    public static final int GRAYSCALE_8_BITS = 4;
-
     public static final long SIGNATURE = 0x5447494D;
 
     static final int FILE_HEADER_SIZE = 12;
@@ -109,6 +104,7 @@ public class TgiCoder {
         BufferedOutputStream tempOut = new BufferedOutputStream(new FileOutputStream(tempDataName));
 
         byte[] imageBgrData = imageViewer.getComposedBgrData();
+//        byte[] alphaChannel = imageViewer.getComposedBgrData();
         int dimension = width * height;
 
         if (bitDepth == 4) {

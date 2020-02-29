@@ -90,6 +90,12 @@ public class ImageViewer {
         return graphicLayers.get(0).getHeight();
     }
 
+    public void toAntiColor() {
+        for (GraphicLayer graphicLayer : graphicLayers) {
+            graphicLayer.antiColor();
+        }
+    }
+
     private int maxWidth() {
         int max = 0;
         for (GraphicLayer graphicLayer : graphicLayers) {

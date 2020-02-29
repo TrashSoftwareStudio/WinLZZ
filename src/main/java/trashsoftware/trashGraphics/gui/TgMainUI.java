@@ -23,7 +23,6 @@ import trashsoftware.trashGraphics.core.TgiCoder;
 import trashsoftware.winBwz.gui.controllers.MainUI;
 import trashsoftware.winBwz.gui.graphicUtil.InfoBoxes;
 import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
-import trashsoftware.winBwz.utility.Util;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,14 +34,17 @@ public class TgMainUI implements Initializable {
     @FXML
     ImageView imageView;
 
-//    @FXML
-//    Label loadingLabel;
+    @FXML
+    Label msgLabel;
 
     @FXML
     MenuItem showHideToolbar;
 
     @FXML
-    HBox toolbar;
+    VBox toolbar;
+
+    @FXML
+    HBox filtersBar;
 
     @FXML
     RowConstraints toolbarRow;
@@ -89,6 +91,7 @@ public class TgMainUI implements Initializable {
         Thread loadThread = new Thread(() -> {
             if (!baseImageViewer.addLayer(file.getAbsolutePath())) {
                 System.out.println("Error initializing image");
+                loadFailed();
                 return;
             }
             initFileName = file.getName();
@@ -96,20 +99,33 @@ public class TgMainUI implements Initializable {
                 refreshImage();
             } catch (IOException e) {
                 e.printStackTrace();
+                loadFailed();
             }
         });
         loadThread.start();
     }
 
     public void showLoadingBlocker() {
-        blockerLabel.setText(bundle.getString("loading"));
-        blocker.show();
+        showBlocker(bundle.getString("loading"));
     }
 
     public void refreshImage() throws IOException {
         baseImageViewer.show(imageView);
+        loadSuccess();
+    }
+
+    private void loadSuccess() {
         Platform.runLater(() -> {
 //            loadingLabel.setVisible(false);
+            blocker.close();
+        });
+    }
+
+    private void loadFailed() {
+        Platform.runLater(() -> {
+            msgLabel.setText(bundle.getString("cannotShowImage"));
+            msgLabel.setVisible(true);
+            msgLabel.setManaged(true);
             blocker.close();
         });
     }
@@ -229,6 +245,36 @@ public class TgMainUI implements Initializable {
 
     }
 
+    @FXML
+    void showFilterBarAction() {
+        if (!filtersBar.isVisible()) {
+            toolbarRow.setPrefHeight(toolbarRow.getPrefHeight() + 40.0);
+            filtersBar.setManaged(true);
+            filtersBar.setVisible(true);
+        }
+    }
+
+    @FXML
+    void hideFilterBarAction() {
+        filtersBar.setManaged(false);
+        filtersBar.setVisible(false);
+        toolbarRow.setPrefHeight(toolbarRow.getPrefHeight() - 40.0);
+    }
+
+    @FXML
+    void grayScaleAction() throws IOException {
+        showBlocker(bundle.getString("processingImage"));
+
+        refreshImage();
+    }
+
+    @FXML
+    void antiColorAction() throws IOException {
+        showBlocker(bundle.getString("processingImage"));
+        baseImageViewer.toAntiColor();
+        refreshImage();
+    }
+
     private void zoomImage() {
         int origW = baseImageViewer.getBaseWidth();
         int newW = (int) (zoomLevels[currentZoomIndex] / 100 * origW);
@@ -252,9 +298,13 @@ public class TgMainUI implements Initializable {
         }
     }
 
-    private void showSavingBlocker() {
-        blockerLabel.setText(bundle.getString("saving"));
+    private void showBlocker(String text) {
+        blockerLabel.setText(text);
         blocker.show();
+    }
+
+    private void showSavingBlocker() {
+        showBlocker(bundle.getString("saving"));
     }
 
     private void saveAsTgiImage(int bitDepth, boolean colored, File savedFile) throws Exception {

@@ -35,18 +35,28 @@
     </MenuBar>
 
     <!--Toolbar-->
-    <HBox fx:id="toolbar" alignment="CENTER_LEFT" GridPane.rowIndex="1" spacing="5.0" prefHeight="30.0"
+    <VBox fx:id="toolbar" alignment="CENTER_LEFT" GridPane.rowIndex="1" spacing="10.0"
           visible="false" managed="false">
-        <Button text="+" fx:id="zoomInBtn" onAction="#zoomInAction"/>
-        <Label text="100%" fx:id="zoomRatioLabel"/>
-        <Button text="-" fx:id="zoomOutBtn" onAction="#zoomOutAction"/>
-        <Button text="(i)" onAction="#infoAction"/>
-    </HBox>
+        <HBox spacing="5.0" prefHeight="30.0" alignment="CENTER_LEFT">
+            <Button text="+" fx:id="zoomInBtn" onAction="#zoomInAction"/>
+            <Label text="100%" fx:id="zoomRatioLabel"/>
+            <Button text="-" fx:id="zoomOutBtn" onAction="#zoomOutAction"/>
+            <Button text="(i)" onAction="#infoAction"/>
+            <Button text="%graphicFilter" onAction="#showFilterBarAction"/>
+        </HBox>
+
+        <HBox fx:id="filtersBar" spacing="5.0" prefHeight="30.0" alignment="CENTER_LEFT" visible="false"
+              managed="false">
+            <Button text="^" onAction="#hideFilterBarAction"/>
+            <Button text="%grayScale" onAction="#grayScaleAction"/>
+            <Button text="%antiColor" onAction="#antiColorAction"/>
+        </HBox>
+    </VBox>
 
     <ScrollPane GridPane.rowIndex="2" fitToHeight="true" fitToWidth="true" pannable="true">
         <StackPane>
             <ImageView pickOnBounds="true" preserveRatio="true" fx:id="imageView"/>
-<!--            <Label fx:id="loadingLabel" text="%loading"/>-->
+            <Label fx:id="msgLabel" managed="false" visible="false"/>
         </StackPane>
     </ScrollPane>
 

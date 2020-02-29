@@ -58,6 +58,12 @@ public class GraphicLayer {
         return hasAlpha;
     }
 
+    public void antiColor() {
+        for (int i = 0; i < bgrData.length; ++i) {
+            bgrData[i] = (byte) (255 - bgrData[i] & 0xff);
+        }
+    }
+
     //    public ByteArrayInputStream getBitmapAsStream() {
 //        ByteArrayInputStream inputStream = new ByteArrayInputStream(header);
 //

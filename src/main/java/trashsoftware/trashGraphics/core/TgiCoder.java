@@ -7,6 +7,7 @@ import trashsoftware.winBwz.utility.Util;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * Encoder for "Trash Graphics Image"
@@ -19,10 +20,16 @@ public class TgiCoder {
 
     static final int COMPRESS_WINDOW_SIZE = 524288;
 
+    public static final int COMPRESSION_NO = 0;
+    public static final int COMPRESSION_BWZ = 1;
+    public static final int COMPRESSION_DELTA_BWZ = 3;
+
     private int width, height;
     private ImageViewer imageViewer;
 
     private String tempDataName;
+
+    private int compressionMethod = COMPRESSION_BWZ;
 
     public TgiCoder(ImageViewer imageViewer) {
         width = imageViewer.getBaseWidth();
@@ -45,6 +52,10 @@ public class TgiCoder {
         bufferedOutputStream.flush();
         bufferedOutputStream.close();
         Util.deleteFile(tempDataName);
+    }
+
+    public void setCompressionMethod(int compressionMethod) {
+        this.compressionMethod = compressionMethod;
     }
 
     /**
@@ -83,7 +94,7 @@ public class TgiCoder {
 
         byte[] info = new byte[infoHeadSize];
         info[0] = (byte) bitDepth;
-        int colorCompression = (colored ? 1 : 0) << 4 | 1;
+        int colorCompression = (colored ? 1 : 0) << 4 | compressionMethod;
         info[1] = (byte) colorCompression;
 
         Bytes.intToBytes32(width, info, 2);
@@ -101,17 +112,17 @@ public class TgiCoder {
     }
 
     private void writeImageToTemp(int bitDepth, boolean colored) throws IOException {
-        BufferedOutputStream tempOut = new BufferedOutputStream(new FileOutputStream(tempDataName));
+        OutputStream tempOut = new BufferedOutputStream(new FileOutputStream(tempDataName));
 
         byte[] imageBgrData = imageViewer.getComposedBgrData();
 //        byte[] alphaChannel = imageViewer.getComposedBgrData();
-        int dimension = width * height;
+        int pixelsCount = width * height;
 
         if (bitDepth == 4) {
             if (colored) {
                 throw new RuntimeException();
             } else {
-                int halfDim = dimension / 2;
+                int halfDim = pixelsCount / 2;
                 for (int i = 0; i < halfDim; ++i) {
                     int bgrSum1 = (imageBgrData[i * 6] & 0xff) +
                             (imageBgrData[i * 6 + 1] & 0xff) +
@@ -127,7 +138,7 @@ public class TgiCoder {
             }
         } else if (bitDepth == 8) {
             if (colored) {
-                for (int i = 0; i < dimension; ++i) {
+                for (int i = 0; i < pixelsCount; ++i) {
                     int b = imageBgrData[i * 3] & 0xff;
                     int g = imageBgrData[i * 3 + 1] & 0xff;
                     int r = imageBgrData[i * 3 + 2] & 0xff;
@@ -136,7 +147,7 @@ public class TgiCoder {
                     tempOut.write((byte) res);
                 }
             } else {
-                for (int i = 0; i < dimension; ++i) {
+                for (int i = 0; i < pixelsCount; ++i) {
                     int bgrSum = (imageBgrData[i * 3] & 0xff) +
                             (imageBgrData[i * 3 + 1] & 0xff) +
                             (imageBgrData[i * 3 + 2] & 0xff);
@@ -146,7 +157,7 @@ public class TgiCoder {
             }
         } else if (bitDepth == 16) {
             if (colored) {
-                for (int i = 0; i < dimension; ++i) {
+                for (int i = 0; i < pixelsCount; ++i) {
                     int b = imageBgrData[i * 3] & 0xff;
                     int g = imageBgrData[i * 3 + 1] & 0xff;
                     int r = imageBgrData[i * 3 + 2] & 0xff;
@@ -162,7 +173,11 @@ public class TgiCoder {
             }
         } else if (bitDepth == 24) {
             if (colored) {
-                tempOut.write(imageBgrData);
+                if (compressionMethod == COMPRESSION_DELTA_BWZ) {
+                    deltaBwzCompress24bits(imageBgrData, tempOut);
+                } else {
+                    tempOut.write(imageBgrData);
+                }
             } else {
                 throw new TgiException("Unsupported encoding");
             }
@@ -174,5 +189,27 @@ public class TgiCoder {
 
         tempOut.flush();
         tempOut.close();
+    }
+
+    private void deltaBwzCompress24bits(byte[] imageBgrData, OutputStream tempOut) throws IOException {
+
+        // transfer to integrated data
+        // e.g. bgrbgrbgr to bbbgggrrr
+        byte[] bgrIntegrateData = new byte[imageBgrData.length];
+        int pixelsCount = imageBgrData.length / 3;
+        int rBegin = pixelsCount * 2;
+        for (int i = 0; i < pixelsCount; ++i) {
+            bgrIntegrateData[i] = imageBgrData[i * 3];  // blue
+            bgrIntegrateData[i + pixelsCount] = imageBgrData[i * 3 + 1];  // green
+            bgrIntegrateData[i + rBegin] = imageBgrData[i * 3 + 2];  //red
+        }
+
+        // delta encoding
+        int current = 0;
+        for (byte bgrIntegrateDatum : bgrIntegrateData) {
+            int next = bgrIntegrateDatum & 0xff;
+            int delta = next - current;
+            tempOut.write((byte) delta);
+        }
     }
 }

@@ -238,7 +238,7 @@ public class UncompressUI implements Initializable {
     @FXML
     public void fileInfoAction() throws IOException {
         FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/trashsoftware/win_bwz/fxml/fileInfoUI.fxml"), bundle);
+                getClass().getResource("/trashsoftware/winBwz/fxml/fileInfoUI.fxml"), bundle);
         Parent root = loader.load();
         Stage stage = new Stage();
         stage.setTitle("WinLZZ");
@@ -267,7 +267,7 @@ public class UncompressUI implements Initializable {
     private void uncompressAndOpen(ContextNode openNode) throws IOException {
         checkPassword();
         FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/trashsoftware/win_bwz/fxml/uncompressingUI.fxml"), bundle);
+                getClass().getResource("/trashsoftware/winBwz/fxml/uncompressingUI.fxml"), bundle);
         Parent root = loader.load();
         Stage stage = new Stage();
 
@@ -302,7 +302,7 @@ public class UncompressUI implements Initializable {
         File selected = dc.showDialog(null);
         if (selected != null) {
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/trashsoftware/win_bwz/fxml/uncompressingUI.fxml"), bundle);
+                    getClass().getResource("/trashsoftware/winBwz/fxml/uncompressingUI.fxml"), bundle);
             Parent root = loader.load();
             Stage stage = new Stage();
 
@@ -325,7 +325,7 @@ public class UncompressUI implements Initializable {
 
     private void testHandler() throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource(
-                "/trashsoftware/win_bwz/fxml/uncompressingUI.fxml"), bundle);
+                "/trashsoftware/winBwz/fxml/uncompressingUI.fxml"), bundle);
         Parent root = loader.load();
         Stage stage = new Stage();
 

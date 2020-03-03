@@ -180,7 +180,7 @@ public class BWZCompressor implements Compressor {
         else threadsNeed = read / windowSize + 1;
 
         EncodeThread[] threads = new EncodeThread[threadsNeed];
-        ExecutorService es = Executors.newCachedThreadPool();
+        ExecutorService es = Executors.newFixedThreadPool(threadsNeed);
         int begin = 0;
         for (int i = 0; i < threads.length; i++) {  // sets up threads
             int end = Math.min(begin + windowSize, read);

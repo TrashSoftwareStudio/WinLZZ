@@ -327,7 +327,7 @@ public class CompressUI implements Initializable {
     @FXML
     void showPasswordBox() throws IOException {
         FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/trashsoftware/win_bwz/fxml/passwordBox.fxml"), bundle);
+                getClass().getResource("/trashsoftware/winBwz/fxml/passwordBox.fxml"), bundle);
 
         Parent root = loader.load();
         Stage stage = new Stage();
@@ -347,7 +347,7 @@ public class CompressUI implements Initializable {
     @FXML
     void showAnnotationWindow() throws IOException {
         FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/trashsoftware/win_bwz/fxml/annotationUI.fxml"), bundle);
+                getClass().getResource("/trashsoftware/winBwz/fxml/annotationUI.fxml"), bundle);
 
         Parent root = loader.load();
         Stage stage = new Stage();
@@ -415,7 +415,7 @@ public class CompressUI implements Initializable {
         }
 
         FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/trashsoftware/win_bwz/fxml/compressingUI.fxml"), bundle);
+                getClass().getResource("/trashsoftware/winBwz/fxml/compressingUI.fxml"), bundle);
 
         Parent root = loader.load();
         Stage stage = new Stage();

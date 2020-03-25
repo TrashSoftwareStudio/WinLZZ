@@ -1,15 +1,14 @@
 package trashsoftware.winBwz.gui.controllers;
 
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
+import javafx.scene.layout.RowConstraints;
 import trashsoftware.trashGraphics.core.ImageViewer;
 import trashsoftware.trashGraphics.gui.TrashGraphicsClient;
 import trashsoftware.winBwz.gui.GUIClient;
 import trashsoftware.winBwz.gui.graphicUtil.*;
+import trashsoftware.winBwz.gui.widgets.FileView;
+import trashsoftware.winBwz.gui.widgets.TableFileView;
 import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
 import trashsoftware.winBwz.utility.Util;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -22,15 +21,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.util.Callback;
 
 import java.awt.*;
 import java.io.File;
@@ -62,17 +58,20 @@ public class MainUI implements Initializable {
     @FXML
     private TreeView<File> rootTree;
 
-    @FXML
-    private TableView<RegularFileNode> table;
-
-    @FXML
-    private TableColumn<RegularFileNode, String> nameCol, typeCol, timeCol;
-
-    @FXML
-    private TableColumn<RegularFileNode, ReadableSize> sizeCol;
+//    @FXML
+//    private TableView<RegularFileNode> table;
+//
+//    @FXML
+//    private TableColumn<RegularFileNode, String> nameCol, typeCol, timeCol;
+//
+//    @FXML
+//    private TableColumn<RegularFileNode, ReadableSize> sizeCol;
 
     @FXML
     private Button backButton, refreshButton, compressButton, uncompressButton;
+
+    @FXML
+    private Button showHideToolbarBtn;
 
     @FXML
     private HBox currentDirBox;
@@ -80,7 +79,21 @@ public class MainUI implements Initializable {
     @FXML
     private MenuItem pasteHere;
 
-    private String currentDir;
+    @FXML
+    private RowConstraints toolbarRow;
+
+    @FXML
+    private HBox toolbar;
+
+    @FXML
+    private TabPane rootTabPane;
+
+    @FXML
+    private TableFileView tableFileView;
+
+    private FileView activeFileView;
+
+//    private String currentDir;
 
     private boolean isClickingDirBox;
 
@@ -93,7 +106,7 @@ public class MainUI implements Initializable {
     private Stage thisStage;
     private GUIClient guiClient;
 
-    private Label placeHolder = new Label();
+//    private Label placeHolder = new Label();
     private ContextMenu rightPopupMenu = new ContextMenu();
 
     private RegularFileNode currentSelection;
@@ -101,32 +114,40 @@ public class MainUI implements Initializable {
     private char[] nameExclusion = new char[]{'\\', '/', ':', '*', '?', '"', '<', '>', '|'};
     private FileMover[] clipBoard;
 
+    private boolean toolbarShown = false;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         this.bundle = resources;
+
+        activeFileView = tableFileView;
+        tableFileView.setParent(this);
+
         setTree();
         setTreeListener();
         rootTree.getRoot().setExpanded(true);
-        setNameColHoverFactory();
-        setSizeColHoverFactory();
-        nameCol.setCellValueFactory(new PropertyValueFactory<>("Name"));
-        typeCol.setCellValueFactory(new PropertyValueFactory<>("Type"));
-        sizeCol.setCellValueFactory(new PropertyValueFactory<>("Size"));
-        timeCol.setCellValueFactory(new PropertyValueFactory<>("LastModified"));
-        setTableListener();
-        table.setPlaceholder(placeHolder);
+//        setNameColHoverFactory();
+//        setSizeColHoverFactory();
+
+//        nameCol.setCellValueFactory(new PropertyValueFactory<>("Name"));
+//        typeCol.setCellValueFactory(new PropertyValueFactory<>("Type"));
+//        sizeCol.setCellValueFactory(new PropertyValueFactory<>("Size"));
+//        timeCol.setCellValueFactory(new PropertyValueFactory<>("LastModified"));
+//        setTableListener();
+//        table.setPlaceholder(placeHolder);
         File f = GeneralLoaders.readLastDir();
         if (f != null) {
             currentSelection = new RegularFileNode(f, bundle);
+            activeFileView.setDir(currentSelection.getFullPath());
             fillTable();
-            backButtonListener();
+            changeBackBtnStatus();
             try {
                 expandTill(f);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
         }
-        table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+//        table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setRightPopupMenu();
         changeClipBoardStatus();
     }
@@ -207,8 +228,9 @@ public class MainUI implements Initializable {
     }
 
     @FXML
-    void compressMode() throws Exception {
-        ObservableList<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+    public void compressMode() throws Exception {
+//        ObservableList<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+        List<RegularFileNode> selections = activeFileView.getSelections();
         File[] selected = new File[selections.size()];
         for (int i = 0; i < selections.size(); i++) selected[i] = selections.get(i).getFile();
         if (selected.length > 0) {
@@ -236,12 +258,13 @@ public class MainUI implements Initializable {
     void backAction() {
         currentSelection = new RegularFileNode(currentSelection.getFile().getParentFile(), bundle);
         fillTable();
-        backButtonListener();
+        changeBackBtnStatus();
     }
 
     @FXML
-    void openAction() throws Exception {
-        RegularFileNode rfn = table.getSelectionModel().getSelectedItem();
+    public void openAction() throws Exception {
+//        RegularFileNode rfn = table.getSelectionModel().getSelectedItem();
+        RegularFileNode rfn = activeFileView.getSelection();
         if (rfn.getFile().exists()) {
             String ext = rfn.getExtension();
             if ("pz".equals(ext)) {
@@ -274,16 +297,16 @@ public class MainUI implements Initializable {
      */
     @FXML
     public void refreshAction() {
-        String dir = currentDir;
+        String dir = activeFileView.getCurrentDir();
         if (dir.length() > 0) currentSelection = new RegularFileNode(new File(dir), bundle);
         else currentSelection = null;
         fillTable();
     }
 
     @FXML
-    void desktopOpenAction() {
+    public void desktopOpenAction() {
         try {
-            String dir = currentDir;
+            String dir = activeFileView.getCurrentDir();
             if (dir.length() > 0) {
                 Desktop.getDesktop().open(new File(dir));
             } else {
@@ -316,6 +339,7 @@ public class MainUI implements Initializable {
 
     private void refreshDirButtons() {
         currentDirBox.getChildren().clear();
+        String currentDir = activeFileView.getCurrentDir();
         if (currentDir.length() > 0) {
             String split = Pattern.quote(System.getProperty("file.separator"));
             String[] dirs = currentDir.split(split);
@@ -324,7 +348,7 @@ public class MainUI implements Initializable {
                 cumulativeDir.append(pattern).append(File.separator);
                 DirButton db = new DirButton(cumulativeDir.toString(), pattern);
                 db.setOnAction(e -> {
-                    currentDir = db.getFullPath();
+                    activeFileView.setDir(db.getFullPath());
                     isClickingDirBox = true;
                     fillTable();
                 });
@@ -368,7 +392,7 @@ public class MainUI implements Initializable {
         }
     }
 
-    private void showFileProperty() throws IOException {
+    public void showFileProperty() throws IOException {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/winBwz/fxml/filePropertiesUI.fxml"), bundle);
 
@@ -380,14 +404,15 @@ public class MainUI implements Initializable {
 
         FilePropertiesUI pui = loader.getController();
 
-        ObservableList<RegularFileNode> files = table.getSelectionModel().getSelectedItems();
+//        ObservableList<RegularFileNode> files = table.getSelectionModel().getSelectedItems();
+        List<RegularFileNode> files = activeFileView.getSelections();
         File[] fileArray = new File[files.size()];
         for (int i = 0; i < fileArray.length; i++)
             fileArray[i] = files.get(i).getFile();
         InfoNode node;
         if (fileArray.length == 1) {
             node = new InfoNode(fileArray[0]);
-        } else if (fileArray.length == 0) node = new InfoNode(new File(currentDir));
+        } else if (fileArray.length == 0) node = new InfoNode(new File(activeFileView.getCurrentDir()));
         else node = new InfoNode(fileArray);
         pui.setFiles(node);
         pui.display();
@@ -396,8 +421,9 @@ public class MainUI implements Initializable {
         stage.show();
     }
 
-    private void deleteAction() {
-        ObservableList<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+    public void deleteAction() {
+//        ObservableList<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+        List<RegularFileNode> selections = activeFileView.getSelections();
         File[] files = new File[selections.size()];
         for (int i = 0; i < files.length; i++)
             files[i] = selections.get(i).getFile();
@@ -433,8 +459,9 @@ public class MainUI implements Initializable {
         }
     }
 
-    private void renameAction() {
-        File f = table.getSelectionModel().getSelectedItem().getFile();
+    public void renameAction() {
+//        File f = table.getSelectionModel().getSelectedItem().getFile();
+        File f = activeFileView.getSelection().getFile();
         VBox vbox = new VBox();
         Stage st = new Stage();
         st.setTitle(f.getName());
@@ -486,15 +513,18 @@ public class MainUI implements Initializable {
         st.showAndWait();
     }
 
-    private void copyAction() {
-        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+    public void copyAction() {
+//        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+        List<RegularFileNode> selections = activeFileView.getSelections();
         clipBoard = new FileMover[selections.size()];
-        for (int i = 0; i < clipBoard.length; i++) clipBoard[i] = new FileMover(selections.get(i).getFile(), true);
+        for (int i = 0; i < clipBoard.length; i++)
+            clipBoard[i] = new FileMover(selections.get(i).getFile(), true);
         changeClipBoardStatus();
     }
 
-    private void cutAction() {
-        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+    public void cutAction() {
+//        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+        List<RegularFileNode> selections = activeFileView.getSelections();
         clipBoard = new FileMover[selections.size()];
         for (int i = 0; i < clipBoard.length; i++) clipBoard[i] = new FileMover(selections.get(i).getFile(), false);
         changeClipBoardStatus();
@@ -505,16 +535,48 @@ public class MainUI implements Initializable {
      */
     @FXML
     private void pasteHereAction() {
-        File destDir = new File(currentDir);
+        File destDir = new File(activeFileView.getCurrentDir());
         paste(destDir);
+    }
+
+    @FXML
+    private void showHideToolbarAction() {
+        if (toolbarShown) {
+            showHideToolbarBtn.setText("⮟");
+            toolbarRow.setPrefHeight(0.0);
+            toolbar.setVisible(false);
+        } else {
+            showHideToolbarBtn.setText("⮝");
+            toolbarRow.setPrefHeight(50.0);
+            toolbar.setVisible(true);
+        }
+        toolbarShown = !toolbarShown;
+    }
+
+    public void selectFile(RegularFileNode newValue) {
+        if (newValue != null) {
+            File file = newValue.getFile();
+            if (file.isDirectory()) {
+                currentSelection = newValue;
+                uncompressButton.setDisable(true);
+            } else {
+                uncompressButton.setDisable(false);
+            }
+            compressButton.setDisable(false);
+        } else {
+            compressButton.setDisable(true);
+            uncompressButton.setDisable(true);
+        }
+        changeBackBtnStatus();
     }
 
     /**
      * Pastes the files on {@code clipBoard} to the selected directory, if there is exactly one selection and it
      * is a directory.
      */
-    private void pasteAction() {
-        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+    public void pasteAction() {
+//        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
+        List<RegularFileNode> selections = activeFileView.getSelections();
         if (selections.size() == 1 && selections.get(0).getFile().isDirectory()) paste(selections.get(0).getFile());
         else pasteHereAction();
     }
@@ -573,156 +635,156 @@ public class MainUI implements Initializable {
 
     /* Listeners */
 
-    /**
-     * Sets up the selection listener of the TableView object "table".
-     */
-    private void setTableListener() {
-        table.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                File file = newValue.getFile();
-                if (file.isDirectory()) {
-                    currentSelection = newValue;
-                    uncompressButton.setDisable(true);
-                } else {
-                    uncompressButton.setDisable(false);
-                }
-                compressButton.setDisable(false);
-            } else {
-                compressButton.setDisable(true);
-                uncompressButton.setDisable(true);
-            }
-            backButtonListener();
-        });
+//    /**
+//     * Sets up the selection listener of the TableView object "table".
+//     */
+//    private void setTableListener() {
+//        table.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+//            if (newValue != null) {
+//                File file = newValue.getFile();
+//                if (file.isDirectory()) {
+//                    currentSelection = newValue;
+//                    uncompressButton.setDisable(true);
+//                } else {
+//                    uncompressButton.setDisable(false);
+//                }
+//                compressButton.setDisable(false);
+//            } else {
+//                compressButton.setDisable(true);
+//                uncompressButton.setDisable(true);
+//            }
+//            backButtonListener();
+//        });
+//
+//        table.setRowFactory(new Callback<TableView<RegularFileNode>, TableRow<RegularFileNode>>() {
+//            @Override
+//            public TableRow<RegularFileNode> call(TableView<RegularFileNode> param) {
+//                return new TableRow<RegularFileNode>() {
+//                    @Override
+//                    protected void updateItem(RegularFileNode item, boolean empty) {
+//                        super.updateItem(item, empty);
+//
+//                        setOnMouseClicked(click -> {
+//                            if (click.getClickCount() == 2) {
+//                                if (item != null) {
+//                                    if (item.getFile().isDirectory()) {
+//                                        fillTable();
+//                                    } else {
+//                                        try {
+//                                            openAction();
+//                                        } catch (Exception e) {
+//                                            e.printStackTrace();
+//                                        }
+//                                    }
+//                                }
+//                            }
+//
+//                            if (click.getButton() == MouseButton.SECONDARY) {
+//                                if (item == null) table.getSelectionModel().clearSelection();
+//                                changeRightMenu();
+//                                rightPopupMenu.show(table, click.getScreenX(), click.getScreenY());
+//                            } else rightPopupMenu.hide();
+//                        });
+//                    }
+//                };
+//            }
+//        });
+//    }
 
-        table.setRowFactory(new Callback<TableView<RegularFileNode>, TableRow<RegularFileNode>>() {
-            @Override
-            public TableRow<RegularFileNode> call(TableView<RegularFileNode> param) {
-                return new TableRow<RegularFileNode>() {
-                    @Override
-                    protected void updateItem(RegularFileNode item, boolean empty) {
-                        super.updateItem(item, empty);
-
-                        setOnMouseClicked(click -> {
-                            if (click.getClickCount() == 2) {
-                                if (item != null) {
-                                    if (item.getFile().isDirectory()) {
-                                        fillTable();
-                                    } else {
-                                        try {
-                                            openAction();
-                                        } catch (Exception e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (click.getButton() == MouseButton.SECONDARY) {
-                                if (item == null) table.getSelectionModel().clearSelection();
-                                changeRightMenu();
-                                rightPopupMenu.show(table, click.getScreenX(), click.getScreenY());
-                            } else rightPopupMenu.hide();
-                        });
-                    }
-                };
-            }
-        });
-    }
-
-    /**
-     * Sets up the hover property listener of the TableColumn object "nameCol".
-     */
-    private void setSizeColHoverFactory() {
-        sizeCol.setCellFactory((TableColumn<RegularFileNode, ReadableSize> tc) ->
-                new TableCell<RegularFileNode, ReadableSize>() {
-                    @Override
-                    protected void updateItem(ReadableSize item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (item == null || empty) {
-                            setText(null);
-                        } else {
-                            setText(item.toString());
-                            hoverProperty().addListener((ObservableValue<? extends Boolean> obs, Boolean wasHovered,
-                                                         Boolean isNowHovered) -> {
-                                if (isNowHovered && !isEmpty()) {
-                                    String sizeInByte = getItem().getSizeInByte(bundle);
-                                    Tooltip tp = new Tooltip();
-                                    tp.setText(sizeInByte);
-                                    table.setTooltip(tp);
-                                } else {
-                                    table.setTooltip(null);
-                                }
-                            });
-                        }
-                    }
-
-
-                });
-    }
-
-    /**
-     * Sets up the hover property listener of the TableColumn object "nameCol".
-     */
-    private void setNameColHoverFactory() {
-        nameCol.setCellFactory((TableColumn<RegularFileNode, String> tc) -> new TableCell<RegularFileNode, String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (item == null || empty) {
-                    setText(null);
-                } else {
-                    setText(item);
-                    hoverProperty().addListener((ObservableValue<? extends Boolean> obs, Boolean wasHovered,
-                                                 Boolean isNowHovered) -> {
-                        if (isNowHovered && !isEmpty()) {
-                            String fileNameText = getText();
-                            int dotIndex = fileNameText.lastIndexOf('.');
-                            String ext = "";
-                            if (dotIndex >= 0) {
-                                ext = fileNameText.substring(dotIndex + 1);
-                            }
-                            if (Util.arrayContains(ImageViewer.ALL_FORMATS_READ, ext, false)) {
-                                showThumbnail(fileNameText);
-                            } else if (fileNameText.length() > 40) {
-                                Tooltip tp = new Tooltip();
-                                tp.setText(getText());
-                                table.setTooltip(tp);
-                            }
-                        } else {
-                            table.setTooltip(null);
-                        }
-                    });
-                }
-            }
-
-
-        });
-    }
-
-    private void showThumbnail(String fileName) {
-        String fullName = currentDir + File.separator + fileName;
-        Image thumbImage = GeneralLoaders.getThumbnailByOrigName(fullName);
-        if (thumbImage == null) {
-            String thumbName = createThumbnail(fullName);
-            thumbImage = GeneralLoaders.getThumbnail(thumbName);
-            if (thumbImage == null) {  // something went wrong
-                System.out.println("Cannot produce thumbnail");
-                return;
-            }
-        }
-        ImageView imageView = new ImageView(thumbImage);
-        Tooltip tp = new Tooltip();
-        tp.setGraphic(imageView);
-        table.setTooltip(tp);
-    }
-
-    private String createThumbnail(String fullName) {
-        String thumbName = GeneralLoaders.nameToThumbnailName(fullName);
-        if (!ImageViewer.produceThumbnail(fullName, thumbName, 200)) {
-            System.out.println("Failed to produce thumbnail");
-        }
-        return thumbName;
-    }
+//    /**
+//     * Sets up the hover property listener of the TableColumn object "nameCol".
+//     */
+//    private void setSizeColHoverFactory() {
+//        sizeCol.setCellFactory((TableColumn<RegularFileNode, ReadableSize> tc) ->
+//                new TableCell<RegularFileNode, ReadableSize>() {
+//                    @Override
+//                    protected void updateItem(ReadableSize item, boolean empty) {
+//                        super.updateItem(item, empty);
+//                        if (item == null || empty) {
+//                            setText(null);
+//                        } else {
+//                            setText(item.toString());
+//                            hoverProperty().addListener((ObservableValue<? extends Boolean> obs, Boolean wasHovered,
+//                                                         Boolean isNowHovered) -> {
+//                                if (isNowHovered && !isEmpty()) {
+//                                    String sizeInByte = getItem().getSizeInByte(bundle);
+//                                    Tooltip tp = new Tooltip();
+//                                    tp.setText(sizeInByte);
+//                                    table.setTooltip(tp);
+//                                } else {
+//                                    table.setTooltip(null);
+//                                }
+//                            });
+//                        }
+//                    }
+//
+//
+//                });
+//    }
+//
+//    /**
+//     * Sets up the hover property listener of the TableColumn object "nameCol".
+//     */
+//    private void setNameColHoverFactory() {
+//        nameCol.setCellFactory((TableColumn<RegularFileNode, String> tc) -> new TableCell<RegularFileNode, String>() {
+//            @Override
+//            protected void updateItem(String item, boolean empty) {
+//                super.updateItem(item, empty);
+//                if (item == null || empty) {
+//                    setText(null);
+//                } else {
+//                    setText(item);
+//                    hoverProperty().addListener((ObservableValue<? extends Boolean> obs, Boolean wasHovered,
+//                                                 Boolean isNowHovered) -> {
+//                        if (isNowHovered && !isEmpty()) {
+//                            String fileNameText = getText();
+//                            int dotIndex = fileNameText.lastIndexOf('.');
+//                            String ext = "";
+//                            if (dotIndex >= 0) {
+//                                ext = fileNameText.substring(dotIndex + 1);
+//                            }
+//                            if (Util.arrayContains(ImageViewer.ALL_FORMATS_READ, ext, false)) {
+//                                showThumbnail(fileNameText);
+//                            } else if (fileNameText.length() > 40) {
+//                                Tooltip tp = new Tooltip();
+//                                tp.setText(getText());
+//                                table.setTooltip(tp);
+//                            }
+//                        } else {
+//                            table.setTooltip(null);
+//                        }
+//                    });
+//                }
+//            }
+//
+//
+//        });
+//    }
+//
+//    private void showThumbnail(String fileName) {
+//        String fullName = currentDir + File.separator + fileName;
+//        Image thumbImage = GeneralLoaders.getThumbnailByOrigName(fullName);
+//        if (thumbImage == null) {
+//            String thumbName = createThumbnail(fullName);
+//            thumbImage = GeneralLoaders.getThumbnail(thumbName);
+//            if (thumbImage == null) {  // something went wrong
+//                System.out.println("Cannot produce thumbnail");
+//                return;
+//            }
+//        }
+//        ImageView imageView = new ImageView(thumbImage);
+//        Tooltip tp = new Tooltip();
+//        tp.setGraphic(imageView);
+//        table.setTooltip(tp);
+//    }
+//
+//    private String createThumbnail(String fullName) {
+//        String thumbName = GeneralLoaders.nameToThumbnailName(fullName);
+//        if (!ImageViewer.produceThumbnail(fullName, thumbName, 200)) {
+//            System.out.println("Failed to produce thumbnail");
+//        }
+//        return thumbName;
+//    }
 
     /**
      * Sets up the change listener of the directory tree.
@@ -737,11 +799,11 @@ public class MainUI implements Initializable {
             } else {
                 currentSelection = null;
             }
-            backButtonListener();
+            changeBackBtnStatus();
         });
     }
 
-    private void backButtonListener() {
+    private void changeBackBtnStatus() {
         if (currentSelection != null && !currentSelection.isRoot()) backButton.setDisable(false);
         else backButton.setDisable(true);
     }
@@ -751,41 +813,61 @@ public class MainUI implements Initializable {
     /**
      * Fills the file detail table when a directory is selected.
      */
-    private void fillTable() {
+    public void fillTable() {
         refreshButton.setDisable(false);
-        table.getItems().clear();
         if (isClickingDirBox) {
             isClickingDirBox = false;
-            File f = new File(currentDir);
-            fillFrom(f);
+            File tarFile = new File(activeFileView.getCurrentDir());
+            fillFromDir(tarFile);
+            GeneralLoaders.writeLastDir(tarFile);
         } else if (currentSelection != null) {
-            currentDir = currentSelection.getFullPath();
+            activeFileView.setDir(currentSelection.getFullPath());
             File node = currentSelection.getFile();
             try {
-                fillFrom(node);
+                fillFromDir(node);
+                GeneralLoaders.writeLastDir(currentSelection.getFile());
             } catch (NullPointerException npe) {
-                placeHolder.setText(bundle.getString("cannotAccess"));
+                npe.printStackTrace();
+//                placeHolder.setText(bundle.getString("cannotAccess"));
             }
         } else {
-            currentDir = "";
-            for (File d : File.listRoots())
-                table.getItems().add(new RegularFileNode(d, bundle));
+            activeFileView.setDir("");
+            activeFileView.drawFiles(null);
             GeneralLoaders.writeLastDir(null);
         }
         refreshDirButtons();
-        if (table.getItems().size() == 0) placeHolder.setText(bundle.getString("emptyFolder"));
-        else placeHolder.setText("");
+//        table.getItems().clear();
+//        if (isClickingDirBox) {
+//            isClickingDirBox = false;
+//            File f = new File(currentDir);
+//            fillFromDir(f);
+//        } else if (currentSelection != null) {
+//            currentDir = currentSelection.getFullPath();
+//            File node = currentSelection.getFile();
+//            try {
+//                fillFromDir(node);
+//            } catch (NullPointerException npe) {
+//                placeHolder.setText(bundle.getString("cannotAccess"));
+//            }
+//        } else {
+//            currentDir = "";
+//            for (File d : File.listRoots())
+//                table.getItems().add(new RegularFileNode(d, bundle));
+//            GeneralLoaders.writeLastDir(null);
+//        }
+//        refreshDirButtons();
+//        if (table.getItems().size() == 0) placeHolder.setText(bundle.getString("emptyFolder"));
+//        else placeHolder.setText("");
     }
 
-    private void fillFrom(File node) {
-        ArrayList<RegularFileNode> nonDirectories = new ArrayList<>();
-        for (File f : Objects.requireNonNull(node.listFiles())) {
-            if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, bundle));
-            else nonDirectories.add(new RegularFileNode(f, bundle));
-        }
-        table.getItems().addAll(nonDirectories);
-        GeneralLoaders.writeLastDir(currentSelection.getFile());
-
+    private void fillFromDir(File node) {
+        activeFileView.drawFiles(node);
+//        ArrayList<RegularFileNode> nonDirectories = new ArrayList<>();
+//        for (File f : Objects.requireNonNull(node.listFiles())) {
+//            if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, bundle));
+//            else nonDirectories.add(new RegularFileNode(f, bundle));
+//        }
+//        table.getItems().addAll(nonDirectories);
     }
 
     private void expandTill(File file) throws FileNotFoundException {
@@ -842,7 +924,7 @@ public class MainUI implements Initializable {
         rootTree.setRoot(rootNode);
     }
 
-    private void setRightPopupMenu() {
+    public void setRightPopupMenu() {
         openR = new MenuItem(bundle.getString("open"));
         openR.setOnAction(e -> {
             try {
@@ -889,10 +971,10 @@ public class MainUI implements Initializable {
         });
     }
 
-    private void changeRightMenu() {
+    public void changeRightMenu() {
         rightPopupMenu.getItems().clear();
-        int selectionNumber = table.getSelectionModel().getSelectedItems().size();
-        if (currentDir.length() == 0) {
+        int selectionNumber = activeFileView.getSelections().size();
+        if (activeFileView.getCurrentDir().length() == 0) {
             // The current opening directory is the system root
             if (selectionNumber != 0) rightPopupMenu.getItems().addAll(openR, openDirR, new SeparatorMenuItem(),
                     propertyR);
@@ -912,6 +994,7 @@ public class MainUI implements Initializable {
     }
 
     private void changeClipBoardStatus() {
+        // TODO: this
         if (clipBoard == null) {
             pasteR.setDisable(true);
             pasteHere.setDisable(true);
@@ -919,5 +1002,9 @@ public class MainUI implements Initializable {
             pasteR.setDisable(false);
             pasteHere.setDisable(false);
         }
+    }
+
+    public ContextMenu getRightPopupMenu() {
+        return rightPopupMenu;
     }
 }

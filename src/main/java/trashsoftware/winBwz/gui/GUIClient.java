@@ -53,7 +53,7 @@ public class GUIClient extends Application {
         MainUI controller = loader.getController();
         controller.setStageAndParent(primaryStage, this);
 
-        primaryStage.setTitle("WinLZZ");
+        primaryStage.setTitle(bundle.getString("winLzzFileManager"));
         primaryStage.setScene(new Scene(root));
         primaryStage.setResizable(false);
         primaryStage.show();

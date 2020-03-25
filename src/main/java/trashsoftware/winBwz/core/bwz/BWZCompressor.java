@@ -510,6 +510,8 @@ class EncodeThread implements Runnable {
         Bytes.intToBytes24(cmpMap.length, headNumbers, 0);
         Bytes.intToBytes24(beb.getOrigRowIndex(), headNumbers, 3);
 
+//        System.out.println("avg map len " + ((double) cmpMap.length / hufBlocksCount));
+
         mapTime += System.currentTimeMillis() - t0;
     }
 

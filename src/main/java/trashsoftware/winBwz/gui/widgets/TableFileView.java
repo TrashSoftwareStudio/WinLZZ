@@ -134,7 +134,9 @@ public class TableFileView extends FileView {
                             if (click.getClickCount() == 2) {
                                 if (item != null) {
                                     if (item.getFile().isDirectory()) {
-                                        getFileManager().showDirectory();
+//                                        parentPage.forwardDir();
+                                        parentPage.setDir(item.getFullPath());
+                                        getFileManager().gotoDirectory();
                                     } else {
                                         try {
                                             getFileManager().openAction();

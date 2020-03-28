@@ -66,7 +66,13 @@ public class MainUI implements Initializable {
 //    private TableColumn<RegularFileNode, ReadableSize> sizeCol;
 
     @FXML
-    private Button backButton, refreshButton, compressButton, uncompressButton;
+    private Button backButton, refreshButton;
+
+    /**
+     * Toolbar buttons
+     */
+    @FXML
+    private Button compressButton, uncompressButton, iconListButton;
 
     @FXML
     private Button showHideToolbarBtn;
@@ -104,7 +110,7 @@ public class MainUI implements Initializable {
     private Stage thisStage;
     private GUIClient guiClient;
 
-//    private Label placeHolder = new Label();
+    //    private Label placeHolder = new Label();
     private ContextMenu rightPopupMenu = new ContextMenu();
 
     private RegularFileNode currentSelection;
@@ -260,6 +266,13 @@ public class MainUI implements Initializable {
         currentSelection = new RegularFileNode(currentSelection.getFile().getParentFile(), bundle);
         fillTable();
         changeBackBtnStatus();
+    }
+
+    @FXML
+    private void iconListAction() {
+        FileManagerPage active = getActiveFileViewPage();
+        if (active != null)
+            active.switchViewMethod();
     }
 
     @FXML
@@ -823,26 +836,23 @@ public class MainUI implements Initializable {
 
     public void showOneFilePage() {
         Tab openedTab = null;
-        String path = currentSelection.getFullPath();
-        for (Tab tab: rootTabPane.getTabs()) {
+        String path = currentSelection == null ? "" : currentSelection.getFullPath();
+        for (Tab tab : rootTabPane.getTabs()) {
             FileManagerPage fmp = (FileManagerPage) tab.getContent();
             if (fmp.getCurrentDir().equals(path)) openedTab = tab;
         }
         if (openedTab == null) {
             // create a new tab
-            FileManagerPage page = new FileManagerPage();
-            page.setParent(this);
-            page.setDir(path);
-            page.refresh();
+            FileManagerPage page = new FileManagerPage(this, path);
 
-            openedTab = new Tab(currentSelection.getName());
+            openedTab = new Tab(page.getName());
             openedTab.setContent(page);
             rootTabPane.getTabs().add(openedTab);
         }
         rootTabPane.getSelectionModel().select(openedTab);
     }
 
-    public void showDirectory() {
+    public void gotoDirectory() {
         fillTable();
         renameActiveTab();
     }
@@ -856,45 +866,18 @@ public class MainUI implements Initializable {
             isClickingDirBox = false;
             File tarFile = new File(getActiveFileViewPage().getCurrentDir());
             fillFromDir(tarFile);
-            GeneralLoaders.writeLastDir(tarFile);
         } else if (currentSelection != null) {
-            getActiveFileViewPage().setDir(currentSelection.getFullPath());
             File node = currentSelection.getFile();
             try {
                 fillFromDir(node);
-                GeneralLoaders.writeLastDir(currentSelection.getFile());
             } catch (NullPointerException npe) {
                 npe.printStackTrace();
 //                placeHolder.setText(bundle.getString("cannotAccess"));
             }
         } else {
-            getActiveFileViewPage().setDir("");
             getActiveFileViewPage().refresh();
-            GeneralLoaders.writeLastDir(null);
         }
         refreshDirButtons();
-//        table.getItems().clear();
-//        if (isClickingDirBox) {
-//            isClickingDirBox = false;
-//            File f = new File(currentDir);
-//            fillFromDir(f);
-//        } else if (currentSelection != null) {
-//            currentDir = currentSelection.getFullPath();
-//            File node = currentSelection.getFile();
-//            try {
-//                fillFromDir(node);
-//            } catch (NullPointerException npe) {
-//                placeHolder.setText(bundle.getString("cannotAccess"));
-//            }
-//        } else {
-//            currentDir = "";
-//            for (File d : File.listRoots())
-//                table.getItems().add(new RegularFileNode(d, bundle));
-//            GeneralLoaders.writeLastDir(null);
-//        }
-//        refreshDirButtons();
-//        if (table.getItems().size() == 0) placeHolder.setText(bundle.getString("emptyFolder"));
-//        else placeHolder.setText("");
     }
 
     private void fillFromDir(File node) {
@@ -910,7 +893,7 @@ public class MainUI implements Initializable {
 
     private void renameActiveTab() {
         Tab selected = rootTabPane.getSelectionModel().getSelectedItem();
-        selected.setText(((FileManagerPage) selected.getContent()).getCurrentDir());
+        selected.setText(((FileManagerPage) selected.getContent()).getName());
     }
 
     private void expandTill(File file) throws FileNotFoundException {
@@ -1037,7 +1020,8 @@ public class MainUI implements Initializable {
     }
 
     private FileManagerPage getActiveFileViewPage() {
-        return (FileManagerPage) rootTabPane.getSelectionModel().getSelectedItem().getContent();
+        if (rootTabPane.getTabs().isEmpty()) return null;
+        else return (FileManagerPage) rootTabPane.getSelectionModel().getSelectedItem().getContent();
     }
 
     private void changeClipBoardStatus() {

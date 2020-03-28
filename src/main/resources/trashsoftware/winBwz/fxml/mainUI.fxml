@@ -53,9 +53,9 @@
 
     <!--Toolbar-->
     <HBox fx:id="toolbar" alignment="CENTER_LEFT" visible="false" GridPane.rowIndex="1">
-        <Button fx:id="compressButton" disable="true" mnemonicParsing="false" onAction="#compressMode" text="%compress">
-        </Button>
+        <Button fx:id="compressButton" disable="true" mnemonicParsing="false" onAction="#compressMode" text="%compress"/>
         <Button fx:id="uncompressButton" disable="true" mnemonicParsing="false" onAction="#openAction" text="%open"/>
+        <Button fx:id="iconListButton" mnemonicParsing="false" onAction="#iconListAction" text="%showInTable"/>
     </HBox>
 
     <ScrollPane prefHeight="30.0" GridPane.columnIndex="1" GridPane.rowIndex="2">

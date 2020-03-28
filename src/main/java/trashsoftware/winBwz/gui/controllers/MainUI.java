@@ -5,8 +5,6 @@ import trashsoftware.trashGraphics.core.ImageViewer;
 import trashsoftware.trashGraphics.gui.TrashGraphicsClient;
 import trashsoftware.winBwz.gui.GUIClient;
 import trashsoftware.winBwz.gui.graphicUtil.*;
-import trashsoftware.winBwz.gui.widgets.FileView;
-import trashsoftware.winBwz.gui.widgets.TableFileView;
 import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
 import trashsoftware.winBwz.utility.Util;
 import javafx.fxml.FXML;
@@ -88,10 +86,10 @@ public class MainUI implements Initializable {
     @FXML
     private TabPane rootTabPane;
 
-    @FXML
-    private TableFileView tableFileView;
+//    @FXML
+//    private TableFileView tableFileView;
 
-    private FileView activeFileView;
+//    private FileManagerPage getActiveFileViewPage(;
 
 //    private String currentDir;
 
@@ -120,11 +118,12 @@ public class MainUI implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         this.bundle = resources;
 
-        activeFileView = tableFileView;
-        tableFileView.setParent(this);
+//        activeFileViewPage = tableFileView;
+//        activeFileViewPage.setParent(this);
 
         setTree();
         setTreeListener();
+        setTabPaneListener();
         rootTree.getRoot().setExpanded(true);
 //        setNameColHoverFactory();
 //        setSizeColHoverFactory();
@@ -135,18 +134,20 @@ public class MainUI implements Initializable {
 //        timeCol.setCellValueFactory(new PropertyValueFactory<>("LastModified"));
 //        setTableListener();
 //        table.setPlaceholder(placeHolder);
-        File f = GeneralLoaders.readLastDir();
-        if (f != null) {
-            currentSelection = new RegularFileNode(f, bundle);
-            activeFileView.setDir(currentSelection.getFullPath());
-            fillTable();
-            changeBackBtnStatus();
-            try {
-                expandTill(f);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-        }
+
+//        File f = GeneralLoaders.readLastDir();
+//        if (f != null) {
+//            currentSelection = new RegularFileNode(f, bundle);
+//            activeFileViewPage.setDir(currentSelection.getFullPath());
+//            fillTable();
+//            changeBackBtnStatus();
+//            try {
+//                expandTill(f);
+//            } catch (FileNotFoundException e) {
+//                e.printStackTrace();
+//            }
+//        }
+
 //        table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setRightPopupMenu();
         changeClipBoardStatus();
@@ -230,7 +231,7 @@ public class MainUI implements Initializable {
     @FXML
     public void compressMode() throws Exception {
 //        ObservableList<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
-        List<RegularFileNode> selections = activeFileView.getSelections();
+        List<RegularFileNode> selections = getActiveFileViewPage().getSelections();
         File[] selected = new File[selections.size()];
         for (int i = 0; i < selections.size(); i++) selected[i] = selections.get(i).getFile();
         if (selected.length > 0) {
@@ -264,7 +265,7 @@ public class MainUI implements Initializable {
     @FXML
     public void openAction() throws Exception {
 //        RegularFileNode rfn = table.getSelectionModel().getSelectedItem();
-        RegularFileNode rfn = activeFileView.getSelection();
+        RegularFileNode rfn = getActiveFileViewPage().getSelection();
         if (rfn.getFile().exists()) {
             String ext = rfn.getExtension();
             if ("pz".equals(ext)) {
@@ -297,7 +298,7 @@ public class MainUI implements Initializable {
      */
     @FXML
     public void refreshAction() {
-        String dir = activeFileView.getCurrentDir();
+        String dir = getActiveFileViewPage().getCurrentDir();
         if (dir.length() > 0) currentSelection = new RegularFileNode(new File(dir), bundle);
         else currentSelection = null;
         fillTable();
@@ -306,7 +307,7 @@ public class MainUI implements Initializable {
     @FXML
     public void desktopOpenAction() {
         try {
-            String dir = activeFileView.getCurrentDir();
+            String dir = getActiveFileViewPage().getCurrentDir();
             if (dir.length() > 0) {
                 Desktop.getDesktop().open(new File(dir));
             } else {
@@ -339,7 +340,7 @@ public class MainUI implements Initializable {
 
     private void refreshDirButtons() {
         currentDirBox.getChildren().clear();
-        String currentDir = activeFileView.getCurrentDir();
+        String currentDir = getActiveFileViewPage().getCurrentDir();
         if (currentDir.length() > 0) {
             String split = Pattern.quote(System.getProperty("file.separator"));
             String[] dirs = currentDir.split(split);
@@ -348,9 +349,10 @@ public class MainUI implements Initializable {
                 cumulativeDir.append(pattern).append(File.separator);
                 DirButton db = new DirButton(cumulativeDir.toString(), pattern);
                 db.setOnAction(e -> {
-                    activeFileView.setDir(db.getFullPath());
+                    getActiveFileViewPage().setDir(db.getFullPath());
                     isClickingDirBox = true;
                     fillTable();
+                    renameActiveTab();
                 });
                 currentDirBox.getChildren().add(db);
             }
@@ -405,14 +407,14 @@ public class MainUI implements Initializable {
         FilePropertiesUI pui = loader.getController();
 
 //        ObservableList<RegularFileNode> files = table.getSelectionModel().getSelectedItems();
-        List<RegularFileNode> files = activeFileView.getSelections();
+        List<RegularFileNode> files = getActiveFileViewPage().getSelections();
         File[] fileArray = new File[files.size()];
         for (int i = 0; i < fileArray.length; i++)
             fileArray[i] = files.get(i).getFile();
         InfoNode node;
         if (fileArray.length == 1) {
             node = new InfoNode(fileArray[0]);
-        } else if (fileArray.length == 0) node = new InfoNode(new File(activeFileView.getCurrentDir()));
+        } else if (fileArray.length == 0) node = new InfoNode(new File(getActiveFileViewPage().getCurrentDir()));
         else node = new InfoNode(fileArray);
         pui.setFiles(node);
         pui.display();
@@ -423,7 +425,7 @@ public class MainUI implements Initializable {
 
     public void deleteAction() {
 //        ObservableList<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
-        List<RegularFileNode> selections = activeFileView.getSelections();
+        List<RegularFileNode> selections = getActiveFileViewPage().getSelections();
         File[] files = new File[selections.size()];
         for (int i = 0; i < files.length; i++)
             files[i] = selections.get(i).getFile();
@@ -461,7 +463,7 @@ public class MainUI implements Initializable {
 
     public void renameAction() {
 //        File f = table.getSelectionModel().getSelectedItem().getFile();
-        File f = activeFileView.getSelection().getFile();
+        File f = getActiveFileViewPage().getSelection().getFile();
         VBox vbox = new VBox();
         Stage st = new Stage();
         st.setTitle(f.getName());
@@ -515,7 +517,7 @@ public class MainUI implements Initializable {
 
     public void copyAction() {
 //        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
-        List<RegularFileNode> selections = activeFileView.getSelections();
+        List<RegularFileNode> selections = getActiveFileViewPage().getSelections();
         clipBoard = new FileMover[selections.size()];
         for (int i = 0; i < clipBoard.length; i++)
             clipBoard[i] = new FileMover(selections.get(i).getFile(), true);
@@ -524,7 +526,7 @@ public class MainUI implements Initializable {
 
     public void cutAction() {
 //        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
-        List<RegularFileNode> selections = activeFileView.getSelections();
+        List<RegularFileNode> selections = getActiveFileViewPage().getSelections();
         clipBoard = new FileMover[selections.size()];
         for (int i = 0; i < clipBoard.length; i++) clipBoard[i] = new FileMover(selections.get(i).getFile(), false);
         changeClipBoardStatus();
@@ -535,7 +537,7 @@ public class MainUI implements Initializable {
      */
     @FXML
     private void pasteHereAction() {
-        File destDir = new File(activeFileView.getCurrentDir());
+        File destDir = new File(getActiveFileViewPage().getCurrentDir());
         paste(destDir);
     }
 
@@ -576,7 +578,7 @@ public class MainUI implements Initializable {
      */
     public void pasteAction() {
 //        List<RegularFileNode> selections = table.getSelectionModel().getSelectedItems();
-        List<RegularFileNode> selections = activeFileView.getSelections();
+        List<RegularFileNode> selections = getActiveFileViewPage().getSelections();
         if (selections.size() == 1 && selections.get(0).getFile().isDirectory()) paste(selections.get(0).getFile());
         else pasteHereAction();
     }
@@ -795,12 +797,21 @@ public class MainUI implements Initializable {
                 if (newValue.getValue().exists())
                     currentSelection = new RegularFileNode(newValue.getValue(), bundle);
                 else currentSelection = null;
-                fillTable();
+                showOneFilePage();
+//                fillTable();
             } else {
                 currentSelection = null;
             }
             changeBackBtnStatus();
         });
+    }
+
+    private void setTabPaneListener() {
+        rootTabPane.getSelectionModel().selectedItemProperty().addListener(((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                refreshDirButtons();
+            }
+        }));
     }
 
     private void changeBackBtnStatus() {
@@ -810,6 +821,32 @@ public class MainUI implements Initializable {
 
     /* Setters / functions */
 
+    public void showOneFilePage() {
+        Tab openedTab = null;
+        String path = currentSelection.getFullPath();
+        for (Tab tab: rootTabPane.getTabs()) {
+            FileManagerPage fmp = (FileManagerPage) tab.getContent();
+            if (fmp.getCurrentDir().equals(path)) openedTab = tab;
+        }
+        if (openedTab == null) {
+            // create a new tab
+            FileManagerPage page = new FileManagerPage();
+            page.setParent(this);
+            page.setDir(path);
+            page.refresh();
+
+            openedTab = new Tab(currentSelection.getName());
+            openedTab.setContent(page);
+            rootTabPane.getTabs().add(openedTab);
+        }
+        rootTabPane.getSelectionModel().select(openedTab);
+    }
+
+    public void showDirectory() {
+        fillTable();
+        renameActiveTab();
+    }
+
     /**
      * Fills the file detail table when a directory is selected.
      */
@@ -817,11 +854,11 @@ public class MainUI implements Initializable {
         refreshButton.setDisable(false);
         if (isClickingDirBox) {
             isClickingDirBox = false;
-            File tarFile = new File(activeFileView.getCurrentDir());
+            File tarFile = new File(getActiveFileViewPage().getCurrentDir());
             fillFromDir(tarFile);
             GeneralLoaders.writeLastDir(tarFile);
         } else if (currentSelection != null) {
-            activeFileView.setDir(currentSelection.getFullPath());
+            getActiveFileViewPage().setDir(currentSelection.getFullPath());
             File node = currentSelection.getFile();
             try {
                 fillFromDir(node);
@@ -831,8 +868,8 @@ public class MainUI implements Initializable {
 //                placeHolder.setText(bundle.getString("cannotAccess"));
             }
         } else {
-            activeFileView.setDir("");
-            activeFileView.drawFiles(null);
+            getActiveFileViewPage().setDir("");
+            getActiveFileViewPage().refresh();
             GeneralLoaders.writeLastDir(null);
         }
         refreshDirButtons();
@@ -861,13 +898,19 @@ public class MainUI implements Initializable {
     }
 
     private void fillFromDir(File node) {
-        activeFileView.drawFiles(node);
+        getActiveFileViewPage().setDir(node.getAbsolutePath());
+        getActiveFileViewPage().refresh();
 //        ArrayList<RegularFileNode> nonDirectories = new ArrayList<>();
 //        for (File f : Objects.requireNonNull(node.listFiles())) {
 //            if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, bundle));
 //            else nonDirectories.add(new RegularFileNode(f, bundle));
 //        }
 //        table.getItems().addAll(nonDirectories);
+    }
+
+    private void renameActiveTab() {
+        Tab selected = rootTabPane.getSelectionModel().getSelectedItem();
+        selected.setText(((FileManagerPage) selected.getContent()).getCurrentDir());
     }
 
     private void expandTill(File file) throws FileNotFoundException {
@@ -973,8 +1016,8 @@ public class MainUI implements Initializable {
 
     public void changeRightMenu() {
         rightPopupMenu.getItems().clear();
-        int selectionNumber = activeFileView.getSelections().size();
-        if (activeFileView.getCurrentDir().length() == 0) {
+        int selectionNumber = getActiveFileViewPage().getSelections().size();
+        if (getActiveFileViewPage().getCurrentDir().length() == 0) {
             // The current opening directory is the system root
             if (selectionNumber != 0) rightPopupMenu.getItems().addAll(openR, openDirR, new SeparatorMenuItem(),
                     propertyR);
@@ -991,6 +1034,10 @@ public class MainUI implements Initializable {
                         new SeparatorMenuItem(), copyR, cutR, pasteR, new SeparatorMenuItem(), deleteR,
                         new SeparatorMenuItem(), propertyR);
         }
+    }
+
+    private FileManagerPage getActiveFileViewPage() {
+        return (FileManagerPage) rootTabPane.getSelectionModel().getSelectedItem().getContent();
     }
 
     private void changeClipBoardStatus() {

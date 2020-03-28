@@ -2,6 +2,7 @@ package trashsoftware.winBwz.gui.widgets;
 
 import javafx.scene.layout.Pane;
 import trashsoftware.winBwz.gui.controllers.MainUI;
+import trashsoftware.winBwz.gui.graphicUtil.FileManagerPage;
 import trashsoftware.winBwz.gui.graphicUtil.RegularFileNode;
 
 import java.io.File;
@@ -9,24 +10,22 @@ import java.util.List;
 
 public abstract class FileView extends Pane {
 
-    protected MainUI parent;
-    protected String  currentDir;
+    protected FileManagerPage parentPage;
 
-    public void setParent(MainUI parent) {
-        this.parent = parent;
+    public FileView() {
+    }
+
+    public void setParentPage(FileManagerPage parentPage) {
+        this.parentPage = parentPage;
     }
 
     public abstract List<RegularFileNode> getSelections();
 
     public abstract RegularFileNode getSelection();
 
-    public abstract void drawFiles(File directory);
+    public abstract void drawFiles();
 
-    public String getCurrentDir() {
-        return currentDir;
-    }
-
-    public void setDir(String newDir) {
-        currentDir = newDir;
+    protected MainUI getFileManager() {
+        return parentPage.getParentMainUi();
     }
 }

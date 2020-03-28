@@ -65,11 +65,10 @@
     <TreeView fx:id="rootTree" prefWidth="300.0" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
 
     <TabPane fx:id="rootTabPane" GridPane.columnIndex="1" GridPane.rowIndex="3">
-
     </TabPane>
-    <TableFileView fx:id="tableFileView" GridPane.columnIndex="1" GridPane.rowIndex="3">
+<!--    <TableFileView fx:id="tableFileView" GridPane.columnIndex="1" GridPane.rowIndex="3">-->
 
-    </TableFileView>
+<!--    </TableFileView>-->
 <!--    <TableView fx:id="table" GridPane.columnIndex="1" GridPane.rowIndex="3">-->
 <!--        <columns>-->
 <!--            <TableColumn fx:id="nameCol" prefWidth="300.0" text="%fileName"/>-->

@@ -57,14 +57,18 @@ public class TableFileView extends FileView {
 //        loader.load();
 //    }
 
-    public TableFileView() throws IOException {
+    public TableFileView() {
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/winBwz/fxml/widgets/tableFileView.fxml"),
                 bundle);
         loader.setRoot(this);
         loader.setController(this);
 
-        loader.load();
+        try {
+            loader.load();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to generate view");
+        }
 
         initialize();
     }
@@ -94,13 +98,14 @@ public class TableFileView extends FileView {
     }
 
     @Override
-    public void drawFiles(File directory) {
+    public void drawFiles() {
         table.getItems().clear();
-        if (directory == null) {  // system root dir
+        if (parentPage.getCurrentDir().equals("")) {  // system root dir
             for (File d : File.listRoots())
                 table.getItems().add(new RegularFileNode(d, bundle));
         } else {
             ArrayList<RegularFileNode> nonDirectories = new ArrayList<>();
+            File directory = new File(parentPage.getCurrentDir());  // TODO: check existence
             for (File f : Objects.requireNonNull(directory.listFiles())) {
                 if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, bundle));
                 else nonDirectories.add(new RegularFileNode(f, bundle));
@@ -114,7 +119,7 @@ public class TableFileView extends FileView {
      */
     private void setTableListener() {
         table.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            parent.selectFile(newValue);
+            getFileManager().selectFile(newValue);
         });
 
         table.setRowFactory(new Callback<TableView<RegularFileNode>, TableRow<RegularFileNode>>() {
@@ -129,10 +134,10 @@ public class TableFileView extends FileView {
                             if (click.getClickCount() == 2) {
                                 if (item != null) {
                                     if (item.getFile().isDirectory()) {
-                                        parent.fillTable();
+                                        getFileManager().showDirectory();
                                     } else {
                                         try {
-                                            parent.openAction();
+                                            getFileManager().openAction();
                                         } catch (Exception e) {
                                             e.printStackTrace();
                                         }
@@ -142,9 +147,9 @@ public class TableFileView extends FileView {
 
                             if (click.getButton() == MouseButton.SECONDARY) {
                                 if (item == null) table.getSelectionModel().clearSelection();
-                                parent.changeRightMenu();
-                                parent.getRightPopupMenu().show(table, click.getScreenX(), click.getScreenY());
-                            } else parent.getRightPopupMenu().hide();
+                                getFileManager().changeRightMenu();
+                                getFileManager().getRightPopupMenu().show(table, click.getScreenX(), click.getScreenY());
+                            } else getFileManager().getRightPopupMenu().hide();
                         });
                     }
                 };
@@ -223,7 +228,7 @@ public class TableFileView extends FileView {
     }
 
     private void showThumbnail(String fileName) {
-        String fullName = currentDir + File.separator + fileName;
+        String fullName = parentPage.getCurrentDir() + File.separator + fileName;
         Image thumbImage = GeneralLoaders.getThumbnailByOrigName(fullName);
         if (thumbImage == null) {
             String thumbName = createThumbnail(fullName);
@@ -251,43 +256,43 @@ public class TableFileView extends FileView {
 //        openR = new MenuItem(bundle.getString("open"));
 //        openR.setOnAction(e -> {
 //            try {
-//                parent.openAction();
+//                getFileManager().openAction();
 //            } catch (Exception e1) {
 //                e1.printStackTrace();
 //            }
 //        });
 //
 //        openDirR = new MenuItem(bundle.getString("openLocation"));
-//        openDirR.setOnAction(e -> parent.desktopOpenAction());
+//        openDirR.setOnAction(e -> getFileManager().desktopOpenAction());
 //
 //        compressR = new MenuItem(bundle.getString("compress"));
 //        compressR.setOnAction(e -> {
 //            try {
-//                parent.compressMode();
+//                getFileManager().compressMode();
 //            } catch (Exception e1) {
 //                e1.printStackTrace();
 //            }
 //        });
 //
 //        copyR = new MenuItem(bundle.getString("copy"));
-//        copyR.setOnAction(e -> parent.copyAction());
+//        copyR.setOnAction(e -> getFileManager().copyAction());
 //
 //        cutR = new MenuItem(bundle.getString("cut"));
-//        cutR.setOnAction(e -> parent.cutAction());
+//        cutR.setOnAction(e -> getFileManager().cutAction());
 //
 //        pasteR = new MenuItem(bundle.getString("paste"));
-//        pasteR.setOnAction(e -> parent.pasteAction());
+//        pasteR.setOnAction(e -> getFileManager().pasteAction());
 //
 //        deleteR = new MenuItem(bundle.getString("delete"));
-//        deleteR.setOnAction(e -> parent.deleteAction());
+//        deleteR.setOnAction(e -> getFileManager().deleteAction());
 //
 //        renameR = new MenuItem(bundle.getString("rename"));
-//        renameR.setOnAction(e -> parent.renameAction());
+//        renameR.setOnAction(e -> getFileManager().renameAction());
 //
 //        propertyR = new MenuItem(bundle.getString("properties"));
 //        propertyR.setOnAction(e -> {
 //            try {
-//                parent.showFileProperty();
+//                getFileManager().showFileProperty();
 //            } catch (IOException e1) {
 //                e1.printStackTrace();
 //            }

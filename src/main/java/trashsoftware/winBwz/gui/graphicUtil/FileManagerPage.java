@@ -21,7 +21,7 @@ public class FileManagerPage extends HBox {
 
     private MainUI parent;
 
-    private int currentViewMethod = GRID_VIEW;
+    private int currentViewMethod = TABLE_VIEW;
 
     public FileManagerPage(MainUI parent, String dir) {
         this.parent = parent;

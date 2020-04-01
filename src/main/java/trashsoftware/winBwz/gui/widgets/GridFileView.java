@@ -105,11 +105,14 @@ public class GridFileView extends FileView {
 
     private Image getIcon(File file) {
         Icon icon = FileSystemView.getFileSystemView().getSystemIcon(file);
-        BufferedImage bi = new BufferedImage(icon.getIconWidth(), icon.getIconHeight(), BufferedImage.TYPE_INT_RGB);
-        Graphics g = bi.getGraphics();
-        icon.paintIcon(null, g, 0, 0);
-        g.setColor(Color.WHITE);
-        g.dispose();
+        BufferedImage bi = new BufferedImage(icon.getIconWidth() * 2, icon.getIconHeight() * 2, BufferedImage.TYPE_INT_RGB);
+//        Graphics g = bi.getGraphics();
+        Graphics2D g2d = bi.createGraphics();
+        g2d.setPaint(new Color(255, 255, 255));
+        g2d.fillRect(0, 0, bi.getWidth(), bi.getHeight());
+        icon.paintIcon(null, g2d, 0, 0);
+//        g.setColor(Color.WHITE);
+        g2d.dispose();
         return SwingFXUtils.toFXImage(bi, null);
     }
 }

@@ -57,7 +57,7 @@ public class AnnotationUI implements Initializable {
                 bundle.getString("textFile"),
                 "*.txt");
         fc.getExtensionFilters().add(filter);
-        fc.setInitialDirectory(GeneralLoaders.readLastDir());
+        fc.setInitialDirectory(GeneralLoaders.readLastSelectedDir());
         File selected = fc.showOpenDialog(null);
 
         if (selected != null) {

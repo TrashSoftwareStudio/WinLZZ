@@ -36,26 +36,7 @@ public class TableFileView extends FileView {
 
     private ResourceBundle bundle = GUIClient.getBundle();
 
-//    private String currentDir;
-
-//    /**
-//     * {@code MenuItem}'s in right-click popup menu.
-//     */
-//    private MenuItem openR, openDirR, compressR, copyR, cutR, pasteR, deleteR, renameR, propertyR;
-
     private Label placeHolder = new Label();
-
-//    private ContextMenu rightPopupMenu = new ContextMenu();
-
-//    public TableFileView(ResourceBundle resourceBundle) throws IOException {
-//        FXMLLoader loader = new FXMLLoader(
-//                getClass().getResource("/trashsoftware/winBwz/fxml/widgets/tableFileView.fxml"),
-//                resourceBundle);
-//        loader.setRoot(this);
-//        loader.setController(this);
-//
-//        loader.load();
-//    }
 
     public TableFileView() {
         FXMLLoader loader = new FXMLLoader(

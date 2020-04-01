@@ -141,6 +141,18 @@ public class MainUI implements Initializable {
 //        setTableListener();
 //        table.setPlaceholder(placeHolder);
 
+        List<String> lastOpenedDirs = GeneralLoaders.getOpeningDirs();
+        for (String dir : lastOpenedDirs) {
+            createTabByPath(dir, false);
+        }
+        if (!lastOpenedDirs.isEmpty()) {
+            try {
+                expandTill(lastOpenedDirs.get(0));
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+
 //        File f = GeneralLoaders.readLastDir();
 //        if (f != null) {
 //            currentSelection = new RegularFileNode(f, bundle);
@@ -365,7 +377,7 @@ public class MainUI implements Initializable {
                     getActiveFileViewPage().setDir(db.getFullPath());
                     isClickingDirBox = true;
                     fillTable();
-                    renameActiveTab();
+                    changeDirRelatives();
                 });
                 currentDirBox.getChildren().add(db);
             }
@@ -832,6 +844,26 @@ public class MainUI implements Initializable {
         else backButton.setDisable(true);
     }
 
+    private Tab createTabByPath(String path, boolean saveToCache) {
+        FileManagerPage page = new FileManagerPage(this, path);
+
+        Tab openedTab = new Tab(page.getName());
+        openedTab.setContent(page);
+        rootTabPane.getTabs().add(openedTab);
+
+        openedTab.setOnCloseRequest(e -> {
+            List<String> opening = getAllOpeningDirs();
+            FileManagerPage operating = ((FileManagerPage) ((Tab) e.getSource()).getContent());
+            opening.removeIf(d -> d.equals(operating.getCurrentDir()));
+            GeneralLoaders.saveOpeningDirs(opening);
+        });
+
+        if (saveToCache)
+            GeneralLoaders.saveOpeningDirs(getAllOpeningDirs());  // refreshes the cache
+
+        return openedTab;
+    }
+
     /* Setters / functions */
 
     public void showOneFilePage() {
@@ -843,18 +875,17 @@ public class MainUI implements Initializable {
         }
         if (openedTab == null) {
             // create a new tab
-            FileManagerPage page = new FileManagerPage(this, path);
-
-            openedTab = new Tab(page.getName());
-            openedTab.setContent(page);
-            rootTabPane.getTabs().add(openedTab);
+            openedTab = createTabByPath(path, true);
         }
         rootTabPane.getSelectionModel().select(openedTab);
     }
 
+    /**
+     * This method is called from file viewers, to go into a directory.
+     */
     public void gotoDirectory() {
         fillTable();
-        renameActiveTab();
+        changeDirRelatives();
     }
 
     /**
@@ -891,13 +922,24 @@ public class MainUI implements Initializable {
 //        table.getItems().addAll(nonDirectories);
     }
 
-    private void renameActiveTab() {
-        Tab selected = rootTabPane.getSelectionModel().getSelectedItem();
-        selected.setText(((FileManagerPage) selected.getContent()).getName());
+    private List<String> getAllOpeningDirs() {
+        List<String> lst = new ArrayList<>();
+        for (Tab tab : rootTabPane.getTabs()) {
+            lst.add(((FileManagerPage) tab.getContent()).getCurrentDir());
+        }
+        return lst;
     }
 
-    private void expandTill(File file) throws FileNotFoundException {
-        String fullPath = file.getAbsolutePath();
+    private void changeDirRelatives() {
+        // Renames the active tab
+        Tab selected = rootTabPane.getSelectionModel().getSelectedItem();
+        FileManagerPage selectedFmp = (FileManagerPage) selected.getContent();
+        selected.setText(selectedFmp.getName());
+
+        GeneralLoaders.saveOpeningDirs(getAllOpeningDirs());  // refreshes the cache
+    }
+
+    private void expandTill(String fullPath) throws FileNotFoundException {
         if (fullPath.contains(File.separator)) {
             String[] parts = fullPath.split(String.format("%s%s", "\\", File.separator));
             if (parts[0].endsWith(":")) parts[0] = parts[0] + File.separator;

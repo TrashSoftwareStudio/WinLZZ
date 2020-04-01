@@ -159,7 +159,7 @@ public class TgMainUI implements Initializable {
     @FXML
     void saveAsAction() {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setInitialDirectory(GeneralLoaders.readLastDir());
+        fileChooser.setInitialDirectory(GeneralLoaders.readLastSelectedDir());
         fileChooser.setInitialFileName(initFileName);
 
         fileChooser.getExtensionFilters().addAll(tgi8, tgi16, tgi24, tgi32, tgi4gray, tgi8gray);

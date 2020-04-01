@@ -43,7 +43,6 @@ public class GUIClient extends Application {
     }
 
     private void showMainUi(Stage primaryStage) throws Exception {
-        GeneralLoaders.load();
         bundle = ResourceBundle.getBundle("trashsoftware.winBwz.bundles.LangBundle",
                 GeneralLoaders.getCurrentLocale(), new UTF8Control());
         FXMLLoader loader = new FXMLLoader(

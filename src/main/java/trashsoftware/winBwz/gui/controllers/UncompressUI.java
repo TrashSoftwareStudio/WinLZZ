@@ -298,7 +298,7 @@ public class UncompressUI implements Initializable {
 
     private void uncompressHandler(ContextNode cn, boolean isAll) throws IOException {
         DirectoryChooser dc = new DirectoryChooser();
-        dc.setInitialDirectory(GeneralLoaders.readLastDir());
+        dc.setInitialDirectory(GeneralLoaders.readLastSelectedDir());
         File selected = dc.showDialog(null);
         if (selected != null) {
             FXMLLoader loader = new FXMLLoader(

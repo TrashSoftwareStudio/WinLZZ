@@ -22,11 +22,10 @@ public abstract class GeneralLoaders {
     private static final String PREF_FILE = "pref.cfg";
     private static final String CACHE_DIR = "cache";
     private static final String CACHE = CACHE_DIR + File.separator + "cache.json";
+    private static final String OPENED_DIRS_CACHE = CACHE_DIR + File.separator + "dirs.json";
     private static final String THUMBNAIL_DIR = CACHE_DIR + File.separator + "thumbnails";
 
-    public static void load() {
-
-    }
+    private static JSONObject cache;
 
     /**
      * Returns the current selected locale.
@@ -87,28 +86,35 @@ public abstract class GeneralLoaders {
     }
 
     private static JSONObject readAllCache() {
-        JSONParser parser = new JSONParser();
-        try {
-            JSONObject obj = (JSONObject) parser.parse(new FileReader(CACHE));
-            if (obj == null) return new JSONObject();
-            else return obj;
-        } catch (IOException | ParseException e) {
-            return new JSONObject();
+        if (cache == null) {
+            JSONParser parser = new JSONParser();
+            try {
+                JSONObject obj = (JSONObject) parser.parse(new FileReader(CACHE));
+                if (obj == null) cache = new JSONObject();
+                else cache = obj;
+            } catch (IOException | ParseException e) {
+                cache = new JSONObject();
+            }
         }
+        return cache;
     }
 
-    @SuppressWarnings("unchecked")
-    private static void writeCache(String key, Object value) {
+    private static void storeCacheToFile(JSONObject jsonObject) {
         try {
-            JSONObject object = readAllCache();
-            object.put(key, value);
             FileWriter fileWriter = new FileWriter(CACHE);
-            fileWriter.write(object.toJSONString());
+            fileWriter.write(jsonObject.toJSONString());
             fileWriter.flush();
             fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void writeCache(String key, Object value) {
+        JSONObject object = readAllCache();
+        object.put(key, value);
+        storeCacheToFile(object);
     }
 
     /**
@@ -126,9 +132,9 @@ public abstract class GeneralLoaders {
     /**
      * Returns the last opened directory from the pref file.
      *
-     * @return the last opened directory.
+     * @return the directory of last file selection.
      */
-    public static File readLastDir() {
+    public static File readLastSelectedDir() {
         JSONObject object = readAllCache();
         Object curDir = object.get("dir");
         if (curDir == null) {
@@ -149,8 +155,25 @@ public abstract class GeneralLoaders {
      */
     public static void writeLastSelectionDir(File lastDir) {
         String path = lastDir.getParentFile().getAbsolutePath();
-//        writeConfig("dir", path);
         writeCache("dir", path);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void saveOpeningDirs(List<String> opening) {
+        JSONObject obj = readAllCache();
+        obj.put("opening", opening);
+        storeCacheToFile(obj);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<String> getOpeningDirs() {
+        JSONObject obj = readAllCache();
+        JSONArray opening = (JSONArray) obj.get("opening");
+        if (opening == null) {
+            return new ArrayList<>();
+        } else {
+            return opening;
+        }
     }
 
     /**
@@ -292,8 +315,7 @@ public abstract class GeneralLoaders {
             } catch (IOException e) {
                 return null;
             }
-        }
-        else {
+        } else {
             File thumbDir = new File(THUMBNAIL_DIR);
             if (!thumbDir.exists())
                 if (!thumbDir.mkdirs())

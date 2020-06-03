@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.gui.widgets;
 
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -34,9 +35,9 @@ public class TableFileView extends FileView {
     @FXML
     private TableColumn<RegularFileNode, ReadableSize> sizeCol;
 
-    private ResourceBundle bundle = GUIClient.getBundle();
+    private final ResourceBundle bundle = GUIClient.getBundle();
 
-    private Label placeHolder = new Label();
+    private final Label placeHolder = new Label();
 
     public TableFileView() {
         FXMLLoader loader = new FXMLLoader(
@@ -52,6 +53,16 @@ public class TableFileView extends FileView {
         }
 
         initialize();
+    }
+
+    @Override
+    public DoubleProperty contentPrefHeightProperty() {
+        return table.prefHeightProperty();
+    }
+
+    @Override
+    public DoubleProperty contentPrefWidthProperty() {
+        return table.prefWidthProperty();
     }
 
     private void initialize() {

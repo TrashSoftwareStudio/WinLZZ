@@ -33,7 +33,7 @@ public class ReplaceUI implements Initializable {
 
     void setFiles(File existFile, File fromFile) {
         String path = Util.splitStringToLine(existFile.getAbsolutePath(), 30);
-        header.setText(String.format("%s\n%s", path, bundle.getString("%existContinuePaste")));
+        header.setText(String.format("%s\n%s", path, bundle.getString("existContinuePaste")));
         name1.setText(existFile.getName());
         name2.setText(fromFile.getName());
 

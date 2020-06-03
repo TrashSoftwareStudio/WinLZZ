@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.util.Objects;
 
 /**
  * An object that represents a file, and can be moved, or copied to another existing directory.
@@ -79,14 +80,30 @@ public class FileMover {
 
     private boolean copyTo(File destFile) {
         try {
-            FileChannel in = new FileInputStream(file).getChannel();
+            copyDirOrFile(file, destFile);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private static void copyDirOrFile(File srcFile, File destFile) throws IOException {
+        if (srcFile.isDirectory()) {
+            if (!destFile.mkdir()) throw new IOException("Directory creation failed");
+            File[] children = srcFile.listFiles();
+            for (File child : Objects.requireNonNull(children)) {
+                String name = child.getName();
+                String newFileName = destFile.getAbsolutePath() + File.separator + name;
+                copyDirOrFile(child, new File(newFileName));
+            }
+        } else {
+            FileInputStream fis = new FileInputStream(srcFile);
+            FileChannel in = fis.getChannel();
             FileChannel out = new FileOutputStream(destFile).getChannel();
             in.transferTo(0, in.size(), out);
             in.close();
             out.close();
-            return true;
-        } catch (IOException e) {
-            return false;
         }
     }
 }

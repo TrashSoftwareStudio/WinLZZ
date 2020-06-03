@@ -98,6 +98,8 @@ public class FileManagerPage extends HBox {
             getChildren().clear();
             getChildren().add(activeView);
         }
+        activeView.contentPrefHeightProperty().bind(this.heightProperty());
+        activeView.contentPrefWidthProperty().bind(this.widthProperty());
     }
 
     @Override

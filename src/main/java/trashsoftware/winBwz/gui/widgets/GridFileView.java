@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.gui.widgets;
 
+import javafx.beans.property.DoubleProperty;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -28,7 +29,7 @@ public class GridFileView extends FileView {
 
     private static final int ICONS_PER_ROW = 6;
 
-    private ResourceBundle bundle = GUIClient.getBundle();
+    private final ResourceBundle bundle = GUIClient.getBundle();
 
     private int r, c;
 
@@ -84,6 +85,17 @@ public class GridFileView extends FileView {
             }
             for (RegularFileNode rfn : nonDirectories) addToGrid(rfn);
         }
+    }
+
+
+    @Override
+    public DoubleProperty contentPrefHeightProperty() {
+        return basePane.prefHeightProperty();
+    }
+
+    @Override
+    public DoubleProperty contentPrefWidthProperty() {
+        return basePane.prefWidthProperty();
     }
 
     private void addToGrid(RegularFileNode rfn) {

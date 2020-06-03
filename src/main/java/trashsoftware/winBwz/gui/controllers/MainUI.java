@@ -111,11 +111,11 @@ public class MainUI implements Initializable {
     private GUIClient guiClient;
 
     //    private Label placeHolder = new Label();
-    private ContextMenu rightPopupMenu = new ContextMenu();
+    private final ContextMenu rightPopupMenu = new ContextMenu();
 
     private RegularFileNode currentSelection;
 
-    private char[] nameExclusion = new char[]{'\\', '/', ':', '*', '?', '"', '<', '>', '|'};
+    private static final char[] nameExclusion = new char[]{'\\', '/', ':', '*', '?', '"', '<', '>', '|'};
     private FileMover[] clipBoard;
 
     private boolean toolbarShown = false;
@@ -283,8 +283,11 @@ public class MainUI implements Initializable {
     @FXML
     private void iconListAction() {
         FileManagerPage active = getActiveFileViewPage();
-        if (active != null)
+        if (active != null) {
             active.switchViewMethod();
+            iconListButton.setText(active.getCurrentViewMethod() == FileManagerPage.TABLE_VIEW ?
+                    bundle.getString("showInIcon") : bundle.getString("showInTable"));
+        }
     }
 
     @FXML
@@ -631,7 +634,8 @@ public class MainUI implements Initializable {
     private int replaceFileBox(File existFile, File foreignFile) {
         try {
             FXMLLoader loader =
-                    new FXMLLoader(getClass().getResource("/trashsoftware/winBwz/fxml/replaceUI.fxml"));
+                    new FXMLLoader(getClass().getResource("/trashsoftware/winBwz/fxml/replaceUI.fxml"),
+                            bundle);
 
             Parent root = loader.load();
             Stage stage = new Stage();
@@ -1062,7 +1066,7 @@ public class MainUI implements Initializable {
     }
 
     private FileManagerPage getActiveFileViewPage() {
-        if (rootTabPane.getTabs().isEmpty()) return null;
+        if (rootTabPane.getTabs().isEmpty()) throw new RuntimeException("No tab opened.");
         else return (FileManagerPage) rootTabPane.getSelectionModel().getSelectedItem().getContent();
     }
 

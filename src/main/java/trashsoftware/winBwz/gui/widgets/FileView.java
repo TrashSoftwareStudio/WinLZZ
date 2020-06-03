@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.gui.widgets;
 
+import javafx.beans.property.DoubleProperty;
 import javafx.scene.layout.Pane;
 import trashsoftware.winBwz.gui.controllers.MainUI;
 import trashsoftware.winBwz.gui.graphicUtil.FileManagerPage;
@@ -24,6 +25,10 @@ public abstract class FileView extends Pane {
     public abstract RegularFileNode getSelection();
 
     public abstract void drawFiles();
+
+    public abstract DoubleProperty contentPrefHeightProperty();
+
+    public abstract DoubleProperty contentPrefWidthProperty();
 
     protected MainUI getFileManager() {
         return parentPage.getParentMainUi();

@@ -1,10 +1,10 @@
 package trashsoftware.winBwz.core.lzz2;
 
 public class FixedSliderLong {
-    private FixedArrayDeque[] array = new FixedArrayDeque[65536];
+    private final FixedArrayDeque[] array = new FixedArrayDeque[65536];
 
-    private int arraySize;
-    int andEr;
+    private final int arraySize;
+    final int andEr;
 
     public FixedSliderLong(int arraySize) {
         this.arraySize = arraySize;
@@ -28,19 +28,17 @@ public class FixedSliderLong {
 }
 
 class FixedArrayDeque {
-    private int arraySize;
     long[] array;
     int[] nextHashArray;
     int tail = 0;
 
     FixedArrayDeque(int arraySize) {
-        this.arraySize = arraySize;
         array = new long[arraySize];
         nextHashArray = new int[arraySize];
     }
 
     int beginPos() {
-        return tail >= arraySize ? tail - arraySize : 0;
+        return tail >= array.length ? tail - array.length : 0;
     }
 
     int tailPos() {
@@ -48,7 +46,7 @@ class FixedArrayDeque {
     }
 
     long get(int index) {
-        return array[index & (arraySize - 1)];
+        return array[index & (array.length - 1)];
     }
 }
 

@@ -1,6 +1,6 @@
 package trashsoftware.trashGraphics.core;
 
-import javafx.embed.swing.SwingFXUtils;
+//import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.ImageView;
 
 import javax.imageio.ImageIO;
@@ -33,7 +33,7 @@ public class ImageViewer {
 
     public void show(ImageView imageView) throws IOException {
         BufferedImage mattedImage = getMattedImage();
-        imageView.setImage(SwingFXUtils.toFXImage(mattedImage, null));
+//        imageView.setImage(SwingFXUtils.toFXImage(mattedImage, null));
     }
 
     public BufferedImage getMattedImage() throws IOException {

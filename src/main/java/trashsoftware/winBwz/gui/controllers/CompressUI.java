@@ -43,33 +43,33 @@ public class CompressUI implements Initializable {
     private AnnotationNode annotation;
 
     private int encryptLevel = 0;
-    private String[] algNames = {"BWZ", "LZZ2", "FastLZZ"};
-    private String[] algValues = {"bwz", "lzz2", "fastLzz"};
-    private String[] compressionLevels = new String[6];
-    private String[] windowSizeNamesLzz2 = {"4KB", "16KB", "32KB", "64KB", "128KB", "256KB", "1MB"};
-    private String[] windowSizeNamesBwz = {"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
-    private String[] windowSizeNamesFastLzz = {"4KB", "16KB", "32KB", "64KB", "69KB"};
-    private String[] splitSizeNames = {"1.44 MB - Floppy", "10 MB", "650 MB - CD", "700 MB - CD",
+    private static final String[] algNames = {"BWZ", "LZZ2", "FastLZZ"};
+    private static final String[] algValues = {"bwz", "lzz2", "fastLzz"};
+    private static final String[] compressionLevels = new String[6];
+    private static final String[] windowSizeNamesLzz2 = {"4KB", "16KB", "32KB", "64KB", "128KB", "256KB", "1MB"};
+    private static final String[] windowSizeNamesBwz = {"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
+    private static final String[] windowSizeNamesFastLzz = {"4KB", "16KB", "32KB", "64KB", "69KB"};
+    private static final String[] splitSizeNames = {"1.44 MB - Floppy", "10 MB", "650 MB - CD", "700 MB - CD",
             "4095 MB - FAT32", "4481 MB - DVD"};
 
-    private int[] windowSizesLzz2 = {4096, 16384, 32768, 65536, 131072, 262144, 1048576};
+    private static final int[] windowSizesLzz2 = {4096, 16384, 32768, 65536, 131072, 262144, 1048576};
     // Window sizes of LZZ2.
 
-    private int[] windowSizesBwz = {131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
+    private static final int[] windowSizesBwz = {131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
     // Window sizes of BWT.
 
-    private int[] windowSizesFastLzz = {4096, 16384, 32768, 65536, FastLzzCompressor.MAXIMUM_DISTANCE};
+    private static final int[] windowSizesFastLzz = {4096, 16384, 32768, 65536, FastLzzCompressor.MAXIMUM_DISTANCE};
 
     /**
      * Indices of units of corresponding pre-selections, 0 for byte, 1 for kb, 2 for mb, 3 for gb.
      */
-    private int[] splitUnits = {2, 2, 2, 2, 2, 2};
+    private static final int[] splitUnits = {2, 2, 2, 2, 2, 2};
 
-    private Integer[] labSizesLzz2 = {8, 16, 32, 64, 128, 256, LZZ2Compressor.MAXIMUM_LENGTH};
-    private Integer[] labSizesFastLzz = {8, 16, 32, 64, 128, 256, FastLzzCompressor.MAXIMUM_LENGTH};
+    private static final Integer[] labSizesLzz2 = {8, 16, 32, 64, 128, 256, LZZ2Compressor.MAXIMUM_LENGTH};
+    private static final Integer[] labSizesFastLzz = {8, 16, 32, 64, 128, 256, FastLzzCompressor.MAXIMUM_LENGTH};
 
-    private String[] cmpModeLevels = new String[5];
-    private Integer[] threads = {1, 2, 3, 4};
+    private static final String[] cmpModeLevels = new String[5];
+    private static final Integer[] threads = {1, 2, 3, 4};
 
     private MainUI parent;
     private ResourceBundle bundle;
@@ -247,7 +247,7 @@ public class CompressUI implements Initializable {
                 updateMemoryLabels(
                         FastLzzCompressor.estimateMemoryUsage(
                                 threads[currentThreadIndex],
-                                windowSizesBwz[currentWindowIndex],
+                                windowSizesFastLzz[currentWindowIndex],
                                 currentModeIndex
                         )
                 );
@@ -256,7 +256,7 @@ public class CompressUI implements Initializable {
                 updateMemoryLabels(
                         LZZ2Compressor.estimateMemoryUsage(
                                 threads[currentThreadIndex],
-                                windowSizesBwz[currentWindowIndex],
+                                windowSizesLzz2[currentWindowIndex],
                                 currentModeIndex
                         )
                 );
@@ -398,7 +398,7 @@ public class CompressUI implements Initializable {
                     throw new RuntimeException();
             }
         }
-        int threads = this.threads[currentThreadIndex];
+        int threadNum = threads[currentThreadIndex];
 
         long partSize;
         String partText = partialBox.getEditor().getText();
@@ -428,7 +428,7 @@ public class CompressUI implements Initializable {
         cui.setName(name, rootDir);
 //        cui.setLanLoader(lanLoader);
         cui.setGrandParent(parent);
-        cui.setPref(window, buffer, cmpLevel, alg, threads, annotation, partSize);
+        cui.setPref(window, buffer, cmpLevel, alg, threadNum, annotation, partSize);
         cui.setStage(stage);
         cui.setEncrypt(password, encryptLevel, encAlg, passAlg);
         stage.show();

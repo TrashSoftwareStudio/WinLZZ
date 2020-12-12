@@ -29,9 +29,9 @@ public interface DeCompressor {
     /**
      * Sets up the parent {@code UnPacker}, which launched this {@code DeCompressor}.
      *
-     * @param parent parent {@code UnPacker} which launched this {@code DeCompressor}.
+     * @param unPacker parent {@code UnPacker} which launched this {@code DeCompressor}.
      */
-    void setParent(UnPacker parent);
+    void setUnPacker(UnPacker unPacker);
 
     /**
      * Deletes all temp files created by this {@code DeCompressor}.

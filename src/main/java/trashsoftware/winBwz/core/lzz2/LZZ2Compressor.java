@@ -14,6 +14,8 @@ import trashsoftware.winBwz.utility.MultipleInputStream;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.*;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * LZZ2 (Lempel-Ziv-ZBH 2) compressor, implements {@code Compressor} interface.
@@ -36,13 +38,15 @@ public class LZZ2Compressor implements Compressor {
 
     static final int LZZ2_HUF_HEAD_ALPHABET = 19;
 
+    private static final int GUI_UPDATES_PER_S = 10;
+
 //    private static final long PRIME16 = 40499;
 
-    private InputStream sis;
+    private final InputStream sis;
 
     protected long totalLength;
 
-    private int windowSize;  // Size of sliding window.
+    private final int windowSize;  // Size of sliding window.
 
     private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
 
@@ -54,17 +58,18 @@ public class LZZ2Compressor implements Compressor {
 
     protected int itemCount;
 
-    protected Packer parent;
+    protected Packer packer;
 
-    private int timeAccumulator;
+    /**
+     * Time used by any launching process before this {@code LZZ2Compressor} starts.
+     */
+    private long timeOffset;
 
     private long lastUpdateProgress;
 
-    private long startTime;
-
-    private long timeOffset;
-
     private int compressionLevel;
+
+    private long position = 0;  // The processing index. i.e. the border of buffer and slider.
 
     /**
      * Constructor of a new {@code LZZ2Compressor} instance.
@@ -151,8 +156,6 @@ public class LZZ2Compressor implements Compressor {
             matcher = new NonGreedyMatcherMultiStep(sliderArraySize, dictSize, bufferMaxSize, totalLength);
         }
 
-        long position = 0;  // The processing index. i.e. the border of buffer and slider.
-
         int[] lastDistances = new int[4];
         int lastDisIndex = 0;
         int lastLength = -1;
@@ -162,10 +165,16 @@ public class LZZ2Compressor implements Compressor {
         FileBitOutputStream dlbFos = new FileBitOutputStream(
                 new BufferedOutputStream(new FileOutputStream(dlBodyTempName)));
 
-        long lastCheckTime = System.currentTimeMillis();
-        startTime = lastCheckTime;
-        if (parent != null) timeOffset = lastCheckTime - parent.startTime;
-        long currentTime;
+//        long lastCheckTime = System.currentTimeMillis();
+//        startTime = lastCheckTime;
+        if (packer != null) timeOffset = System.currentTimeMillis() - packer.startTime;
+//        long currentTime;
+
+        Timer timer = null;
+        if (packer != null) {
+            timer = new Timer();
+            timer.scheduleAtFixedRate(new CompTimerTask(), 0, 1000 / GUI_UPDATES_PER_S);
+        }
 
         while (true) {
 
@@ -212,16 +221,18 @@ public class LZZ2Compressor implements Compressor {
             if (position >= totalLength - MINIMUM_MATCH_LEN) break;
             matcher.fillSlider(prevPos, position, fba);
 
-            if (parent != null && parent.isInterrupted) break;
-            if (parent != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
-                updateInfo(position, currentTime);
-                lastCheckTime = currentTime;
+            if (packer != null && packer.isInterrupted) break;
+        }
+
+        if (packer == null || !packer.isInterrupted) {
+            for (; position < totalLength; ++position) {
+                mainFos.write(0);
+                mainFos.write(fba.getByte(position));
             }
         }
 
-        for (; position < totalLength; ++position) {
-            mainFos.write(0);
-            mainFos.write(fba.getByte(position));
+        if (timer != null) {
+            timer.cancel();
         }
 
 //        System.out.println();
@@ -240,15 +251,15 @@ public class LZZ2Compressor implements Compressor {
 //        printStream(lenHeadTempName);
     }
 
-    public static void printStream(String name) throws IOException {
-        BufferedInputStream bbb = new BufferedInputStream(new FileInputStream(name));
-        byte[] buf = new byte[1];
-        while (bbb.read(buf) > 0) {
-            System.out.print((buf[0] & 0xff) + " ");
-        }
-        System.out.println();
-        bbb.close();
-    }
+//    public static void printStream(String name) throws IOException {
+//        BufferedInputStream bbb = new BufferedInputStream(new FileInputStream(name));
+//        byte[] buf = new byte[1];
+//        while (bbb.read(buf) > 0) {
+//            System.out.print((buf[0] & 0xff) + " ");
+//        }
+//        System.out.println();
+//        bbb.close();
+//    }
 
 //    private static int hash(byte b0, byte b1) {
 //        return (b0 & 0xff) << 8 | (b1 & 0xff);
@@ -278,28 +289,28 @@ public class LZZ2Compressor implements Compressor {
         Util.deleteFile(dlBodyTempName);
     }
 
-    private void updateInfo(long current, long updateTime) {
-        parent.progress.set(current);
-        if (timeAccumulator == 19) {
-            timeAccumulator = 0;
-            double finished = ((double) current) / totalLength;
-            double rounded = (double) Math.round(finished * 1000) / 10;
-            parent.percentage.set(String.valueOf(rounded));
-            int newUpdated = (int) (current - lastUpdateProgress);
-            lastUpdateProgress = parent.progress.get();
-            int ratio = newUpdated / 1024;
-            parent.ratio.set(String.valueOf(ratio));
-
-            long timeUsed = updateTime - startTime;
-            parent.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
-            long expectTime = (totalLength - current) / ratio / 1024;
-            parent.timeExpected.set(Util.secondToString(expectTime));
-
-            parent.passedLength.set(Util.sizeToReadable(current));
-        } else {
-            timeAccumulator += 1;
-        }
-    }
+//    private void updateInfo(long current, long updateTime) {
+//        packer.progress.set(current);
+//        if (timeAccumulator == 19) {
+//            timeAccumulator = 0;
+//            double finished = ((double) current) / totalLength;
+//            double rounded = (double) Math.round(finished * 1000) / 10;
+//            packer.percentage.set(String.valueOf(rounded));
+//            int newUpdated = (int) (current - lastUpdateProgress);
+//            lastUpdateProgress = packer.progress.get();
+//            int ratio = newUpdated / 1024;
+//            packer.ratio.set(String.valueOf(ratio));
+//
+//            long timeUsed = updateTime - startTime;
+//            packer.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
+//            long expectTime = (totalLength - current) / ratio / 1024;
+//            packer.timeExpected.set(Util.secondToString(expectTime));
+//
+//            packer.passedLength.set(Util.sizeToReadable(current));
+//        } else {
+//            timeAccumulator += 1;
+//        }
+//    }
 
     protected boolean isNotCompressible(OutputStream outFile) throws IOException {
         if (itemCount == 0) {
@@ -310,7 +321,7 @@ public class LZZ2Compressor implements Compressor {
             return true;
         }
 
-        if (parent != null && parent.isInterrupted) {
+        if (packer != null && packer.isInterrupted) {
             deleteTemp();
             return true;
         }
@@ -383,8 +394,8 @@ public class LZZ2Compressor implements Compressor {
     }
 
     @Override
-    public void setParent(Packer parent) {
-        this.parent = parent;
+    public void setPacker(Packer packer) {
+        this.packer = packer;
     }
 
     @Override
@@ -398,7 +409,7 @@ public class LZZ2Compressor implements Compressor {
 
     public static long[] estimateMemoryUsage(int threads, int windowSize, int modeLevel) {
         long cmpMem = 2048;  // objects
-        cmpMem += windowSize * 2;  // input buffer array
+        cmpMem += windowSize * 2L;  // input buffer array
         long sliderArraySize = sliderArraySize(windowSize, modeLevel);
         cmpMem += sliderArraySize * 8;  // temp array
         long sliderMem = sliderArraySize * 65536 * 12;  // 12 is size of long + int
@@ -409,10 +420,36 @@ public class LZZ2Compressor implements Compressor {
         long uncMem = 2048;  // objects
         uncMem += LongHuffmanUtil.hufDecompressorMem();  // huffman dec
         uncMem += 500;  // heads
-        uncMem += windowSize * 2;  // output buffer
+        uncMem += windowSize * 2L;  // output buffer
         uncMem += 16384;  // others
 
         return new long[]{cmpMem, uncMem};
+    }
+
+    class CompTimerTask extends TimerTask {
+        private int accumulator;
+
+        @Override
+        public void run() {
+            packer.progress.set(position);
+            accumulator++;
+            if (accumulator % GUI_UPDATES_PER_S == 0) {  // whole second
+                double finished = ((double) position) / totalLength;
+                double rounded = (double) Math.round(finished * 1000) / 10;
+                packer.percentage.set(String.valueOf(rounded));
+                int newUpdated = (int) (position - lastUpdateProgress);
+                lastUpdateProgress = packer.progress.get();
+                int ratio = newUpdated / 1024;
+                packer.ratio.set(String.valueOf(ratio));
+
+                long timeUsed = accumulator * 1000L / GUI_UPDATES_PER_S;
+                packer.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
+                long expectTime = (totalLength - position) / ratio / 1024;
+                packer.timeExpected.set(Util.secondToString(expectTime));
+
+                packer.passedLength.set(Util.sizeToReadable(position));
+            }
+        }
     }
 
 //    public static void main(String[] args) {

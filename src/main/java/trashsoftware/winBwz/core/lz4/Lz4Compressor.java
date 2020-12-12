@@ -37,7 +37,7 @@ public class Lz4Compressor implements Compressor {
     }
 
     @Override
-    public void setParent(Packer parent) {
+    public void setPacker(Packer packer) {
 
     }
 

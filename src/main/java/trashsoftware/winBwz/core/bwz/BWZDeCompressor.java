@@ -8,13 +8,14 @@ import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -31,16 +32,17 @@ import java.util.concurrent.TimeUnit;
  */
 public class BWZDeCompressor implements DeCompressor {
 
-    private int huffmanBlockMaxSize, windowSize;
+    private final int huffmanBlockMaxSize;
+    private final int windowSize;
 
-    private FileChannel fc;
+    private final FileChannel fc;
     //    private InputStream fis;
-    private LinkedList<byte[]> huffmanMaps = new LinkedList<>();
-    private int threadNum = 1;  // Default thread number.
-    UnPacker parent;
-    private long lastUpdateProgress;
+    private final LinkedList<byte[]> huffmanMaps = new LinkedList<>();
+    UnPacker unPacker;
     boolean isRunning = true;
     long ratio, pos;
+    private int threadNum = 1;  // Default thread number.
+    private long lastUpdateProgress;
 //    long initBytePos;
 
     /**
@@ -88,7 +90,7 @@ public class BWZDeCompressor implements DeCompressor {
         }
     }
 
-    private static long hufTotal;
+//    private static long hufTotal;
 
     private void decode(OutputStream out, FileChannel fc) throws Exception {
         long lastCheckTime = System.currentTimeMillis();
@@ -149,21 +151,22 @@ public class BWZDeCompressor implements DeCompressor {
                     ExecutorService es = Executors.newCachedThreadPool();
                     DecodeThread[] threads = new DecodeThread[blockList.size()];
                     for (int i = 0; i < threads.length; i++) {
-                        threads[i] = new DecodeThread(blockList.get(i), windowSize, this);
+                        threads[i] = new DecodeThread(blockList.get(i));
                         es.execute(threads[i]);
                     }
                     blockList.clear();
 
                     es.shutdown();
-                    es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES);  // Wait for all threads terminate.
+                    if (!es.awaitTermination(Long.MAX_VALUE, TimeUnit.MINUTES))
+                        throw new RuntimeException("Compress thread not terminated.");  // Wait for all threads complete.
 
                     for (DecodeThread dt : threads) {
                         byte[] result = dt.getResult();
                         out.write(result);
                     }
 
-                    if (parent != null) {
-                        if (parent.isInterrupted) {
+                    if (unPacker != null) {
+                        if (unPacker.isInterrupted) {
                             break;
                         } else {
                             currentTime = System.currentTimeMillis();
@@ -199,9 +202,10 @@ public class BWZDeCompressor implements DeCompressor {
      */
     @Override
     public void uncompress(OutputStream out) throws Exception {
-        if (parent != null) {
-            Thread timer = new Thread(new DTimer(parent, this));
-            timer.start();
+        Timer timer = null;
+        if (unPacker != null) {
+            timer = new Timer();
+            timer.scheduleAtFixedRate(new DTimer(), 0, 1000);
         }
 
         try {
@@ -211,6 +215,8 @@ public class BWZDeCompressor implements DeCompressor {
         } catch (Exception e) {
             fc.close();
             throw e;
+        } finally {
+            if (timer != null) timer.cancel();
         }
         fc.close();
 //        fis.close();
@@ -218,9 +224,9 @@ public class BWZDeCompressor implements DeCompressor {
     }
 
     private void updateInfo(long currentTime, long lastCheckTime) {
-        parent.progress.set(pos);
+        unPacker.progress.set(pos);
         int newUpdated = (int) (pos - lastUpdateProgress);
-        lastUpdateProgress = parent.progress.get();
+        lastUpdateProgress = unPacker.progress.get();
         ratio = (long) ((double) newUpdated / (currentTime - lastCheckTime) * 1.024);
     }
 
@@ -233,11 +239,11 @@ public class BWZDeCompressor implements DeCompressor {
     /**
      * Sets up the parent.
      *
-     * @param parent parent {@code UnPacker} which launched this {@code BWZDeCompressor}.
+     * @param unPacker parent {@code UnPacker} which launched this {@code BWZDeCompressor}.
      */
     @Override
-    public void setParent(UnPacker parent) {
-        this.parent = parent;
+    public void setUnPacker(UnPacker unPacker) {
+        this.unPacker = unPacker;
     }
 
     /**
@@ -256,119 +262,97 @@ public class BWZDeCompressor implements DeCompressor {
     public void setThreads(int threadNum) {
         this.threadNum = threadNum;
     }
-}
-
-
-/**
- * An implementation of {@code Runnable} that uncompress a single block using bwz algorithm.
- *
- * @author zbh
- * @see Runnable
- * @since 0.5
- */
-class DecodeThread implements Runnable {
-
-    private int[] text;
-    private byte[] result;
-    private int windowSize;
-    private BWZDeCompressor parent;
 
     /**
-     * Creates a new {@code DecodeThread} instance.
+     * An implementation of {@code Runnable} that uncompress a single block using bwz algorithm.
      *
-     * @param text       the text to be decode
-     * @param windowSize the maximum size of the block
-     * @param parent     the parent {@code BWZDeCompressor} which has launched this {@code DecodeThread}.
+     * @author zbh
+     * @see Runnable
+     * @since 0.5
      */
-    DecodeThread(int[] text, int windowSize, BWZDeCompressor parent) {
-        this.text = text;
-        this.windowSize = windowSize;
-        this.parent = parent;
-    }
+    class DecodeThread implements Runnable {
 
-    private static long rldTotal, mtfTotal, bwtTotal;
+//        private static long rldTotal, mtfTotal, bwtTotal;
+        private final int[] text;
+        private byte[] result;
 
-    /**
-     * Starts this {@code DecodeThread}.
-     */
-    @Override
-    public void run() {
-        long t1 = System.currentTimeMillis();
-        int[] rld = new ZeroRLCDecoder(text, windowSize + 4).Decode();
-        long t2 = System.currentTimeMillis();
-        parent.pos += rld.length / 2;
-        if (parent.parent != null) parent.parent.progress.set(parent.pos);
-        int[] mtf = new MTFInverse(rld).decode(257);
-        long t3 = System.currentTimeMillis();
-        result = new BWTDecoder(mtf).Decode();
-        long t4 = System.currentTimeMillis();
-        rldTotal += t2 - t1;
-        mtfTotal += t3 - t2;
-        bwtTotal += t4 - t3;
+        /**
+         * Creates a new {@code DecodeThread} instance.
+         *
+         * @param text       the text to be decode
+         */
+        DecodeThread(int[] text) {
+            this.text = text;
+        }
+
+        /**
+         * Starts this {@code DecodeThread}.
+         */
+        @Override
+        public void run() {
+//            long t1 = System.currentTimeMillis();
+            int[] rld = new ZeroRLCDecoder(text, windowSize + 4).Decode();
+//            long t2 = System.currentTimeMillis();
+            pos += rld.length / 2;
+            if (unPacker != null) unPacker.progress.set(pos);
+            int[] mtf = new MTFInverse(rld).decode(257);
+//            long t3 = System.currentTimeMillis();
+            result = new BWTDecoder(mtf).Decode();
+//            long t4 = System.currentTimeMillis();
+//            rldTotal += t2 - t1;
+//            mtfTotal += t3 - t2;
+//            bwtTotal += t4 - t3;
 //        System.out.println(String.format("rld: %d, mtf: %d, bwt: %d", rldTotal, mtfTotal, bwtTotal));
-        parent.pos = parent.pos - rld.length / 2 + result.length;
+            pos = pos - rld.length / 2 + result.length;
+        }
+
+        /**
+         * Returns the text after decompression.
+         *
+         * @return the text after decompression
+         */
+        byte[] getResult() {
+            return result;
+        }
     }
 
+
     /**
-     * Returns the text after decompression.
+     * An implementation of {@code Runnable}, used to update status of a {@code BWZDeCompressor} instance to a
+     * {@code UnPacker} instance every 1 second.
      *
-     * @return the text after decompression
+     * @author zbh
+     * @see Runnable
+     * @since 0.5
      */
-    byte[] getResult() {
-        return result;
-    }
-}
+    class DTimer extends TimerTask {
 
+        private int timeUsed;
 
-/**
- * An implementation of {@code Runnable}, used to update status of a {@code BWZDeCompressor} instance to a
- * {@code UnPacker} instance every 1 second.
- *
- * @author zbh
- * @see Runnable
- * @since 0.5
- */
-class DTimer implements Runnable {
+        /**
+         * Creates a new {@code Timer} instance.
+         */
+        DTimer() {
+        }
 
-    private UnPacker unPacker;
-    private BWZDeCompressor dec;
-    private int timeUsed;
-
-    /**
-     * Creates a new {@code Timer} instance.
-     *
-     * @param unPacker the parent {@code UnPacker} of <code>dec</code>
-     * @param dec      the {@code BWZDeCompressor} which created this {@code DTimer}.
-     */
-    DTimer(UnPacker unPacker, BWZDeCompressor dec) {
-        this.unPacker = unPacker;
-        this.dec = dec;
-    }
-
-    /**
-     * Runs this {@code DTimer}.
-     */
-    @Override
-    public void run() {
-        while (dec.isRunning) {
+        /**
+         * Runs this {@code DTimer}.
+         */
+        @Override
+        public void run() {
             unPacker.timeUsed.setValue(Util.secondToString(timeUsed));
 
-            if (dec.pos != 0) {
-                Timer.updateBwzProgress(
-                        dec.pos,
+            if (pos != 0) {
+                TimerHelper.updateBwzProgress(
+                        pos,
                         unPacker.getTotalOrigSize(),
                         unPacker.percentage,
                         unPacker.ratio,
-                        dec.ratio,
+                        ratio,
                         unPacker.timeExpected,
                         unPacker.passedLength);
             }
             timeUsed += 1;
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-            }
         }
     }
 }

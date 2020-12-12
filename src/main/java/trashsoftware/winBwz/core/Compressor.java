@@ -29,9 +29,9 @@ public interface Compressor {
     /**
      * Sets up the parent {@code Packer}, which launched this {@code Compressor}.
      *
-     * @param parent parent {@code Packer} which launched this {@code Compressor}.
+     * @param packer parent {@code Packer} which launched this {@code Compressor}.
      */
-    void setParent(Packer parent);
+    void setPacker(Packer packer);
 
     /**
      * Sets up the thread number used for compress.

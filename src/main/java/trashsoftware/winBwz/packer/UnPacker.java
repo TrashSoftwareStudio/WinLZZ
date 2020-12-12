@@ -583,7 +583,7 @@ public class UnPacker {
         else step.setValue(bundle.getString("uncIng"));
 
         BWZDeCompressor mainDec = new BWZDeCompressor(name, windowSize, startPos);
-        mainDec.setParent(this);
+        mainDec.setUnPacker(this);
         mainDec.setThreads(threadNumber);
         FileOutputStream mainFos = new FileOutputStream(tempName);
         try {
@@ -651,7 +651,7 @@ public class UnPacker {
 
                 DeCompressor mainDec;
                 mainDec = getDeCompressor(cmpTempName, windowSize);
-                mainDec.setParent(this);
+                mainDec.setUnPacker(this);
                 mainDec.setThreads(threadNumber);
                 FileOutputStream mainFos = new FileOutputStream(tempName);
                 try {

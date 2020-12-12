@@ -29,10 +29,10 @@ public class FileInfoUI implements Initializable {
 
     private ResourceBundle bundle;
 
-    private static Color headColor = Color.GREEN;
-    private static Color otherInfoColor = Color.GOLD;
-    private static Color contextColor = Color.ORANGERED;
-    private static Color mainColor = Color.DODGERBLUE;
+    private static final Color headColor = Color.GREEN;
+    private static final Color otherInfoColor = Color.GOLD;
+    private static final Color contextColor = Color.ORANGERED;
+    private static final Color mainColor = Color.DODGERBLUE;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {

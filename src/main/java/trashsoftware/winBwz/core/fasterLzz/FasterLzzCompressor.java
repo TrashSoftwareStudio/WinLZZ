@@ -199,8 +199,8 @@ public class FasterLzzCompressor implements Compressor {
     }
 
     @Override
-    public void setParent(Packer parent) {
-        this.parent = parent;
+    public void setPacker(Packer packer) {
+        this.parent = packer;
     }
 
     @Override

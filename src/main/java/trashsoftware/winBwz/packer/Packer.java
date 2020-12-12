@@ -484,7 +484,7 @@ public class Packer {
                 default:
                     throw new NoSuchAlgorithmException("No such algorithm");
             }
-            mainCompressor.setParent(this);
+            mainCompressor.setPacker(this);
             mainCompressor.setCompressionLevel(cmpLevel);
             mainCompressor.setThreads(threads);
             if (encryptLevel == 0) {

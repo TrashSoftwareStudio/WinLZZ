@@ -218,8 +218,8 @@ public class LZZ2DeCompressor implements DeCompressor {
     }
 
     @Override
-    public void setParent(UnPacker parent) {
-        this.parent = parent;
+    public void setUnPacker(UnPacker unPacker) {
+        this.parent = unPacker;
     }
 
     @Override

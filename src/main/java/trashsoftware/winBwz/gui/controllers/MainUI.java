@@ -124,22 +124,10 @@ public class MainUI implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         this.bundle = resources;
 
-//        activeFileViewPage = tableFileView;
-//        activeFileViewPage.setParent(this);
-
         setTree();
         setTreeListener();
         setTabPaneListener();
         rootTree.getRoot().setExpanded(true);
-//        setNameColHoverFactory();
-//        setSizeColHoverFactory();
-
-//        nameCol.setCellValueFactory(new PropertyValueFactory<>("Name"));
-//        typeCol.setCellValueFactory(new PropertyValueFactory<>("Type"));
-//        sizeCol.setCellValueFactory(new PropertyValueFactory<>("Size"));
-//        timeCol.setCellValueFactory(new PropertyValueFactory<>("LastModified"));
-//        setTableListener();
-//        table.setPlaceholder(placeHolder);
 
         List<String> lastOpenedDirs = GeneralLoaders.getOpeningDirs();
         for (String dir : lastOpenedDirs) {
@@ -152,21 +140,9 @@ public class MainUI implements Initializable {
                 e.printStackTrace();
             }
         }
+        boolean showToolbar = GeneralLoaders.readBoolean("toolbar");
+        if (showToolbar) showHideToolbarAction();
 
-//        File f = GeneralLoaders.readLastDir();
-//        if (f != null) {
-//            currentSelection = new RegularFileNode(f, bundle);
-//            activeFileViewPage.setDir(currentSelection.getFullPath());
-//            fillTable();
-//            changeBackBtnStatus();
-//            try {
-//                expandTill(f);
-//            } catch (FileNotFoundException e) {
-//                e.printStackTrace();
-//            }
-//        }
-
-//        table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setRightPopupMenu();
         changeClipBoardStatus();
     }
@@ -575,10 +551,12 @@ public class MainUI implements Initializable {
             showHideToolbarBtn.setText("⮟");
             toolbarRow.setPrefHeight(0.0);
             toolbar.setVisible(false);
+            GeneralLoaders.writeCache("toolbar", false);
         } else {
             showHideToolbarBtn.setText("⮝");
             toolbarRow.setPrefHeight(50.0);
             toolbar.setVisible(true);
+            GeneralLoaders.writeCache("toolbar", true);
         }
         toolbarShown = !toolbarShown;
     }

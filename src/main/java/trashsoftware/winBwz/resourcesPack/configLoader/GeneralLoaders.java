@@ -5,6 +5,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.json.simple.parser.JSONParser;
 import trashsoftware.winBwz.resourcesPack.NamedLocale;
 import trashsoftware.winBwz.resourcesPack.UTF8Control;
 
@@ -111,10 +112,20 @@ public abstract class GeneralLoaders {
     }
 
     @SuppressWarnings("unchecked")
-    private static void writeCache(String key, Object value) {
+    public static void writeCache(String key, Object value) {
         JSONObject object = readAllCache();
         object.put(key, value);
         storeCacheToFile(object);
+    }
+
+    public static boolean readBoolean(String key) {
+        JSONObject object = readAllCache();
+        Object obj = object.get(key);
+        if (obj instanceof Boolean) {
+            return (boolean) obj;
+        } else if (obj instanceof String) {
+            return Boolean.parseBoolean((String) obj);
+        } else return false;
     }
 
     /**
@@ -339,5 +350,16 @@ public abstract class GeneralLoaders {
     @SuppressWarnings("unchecked")
     private static void removeDuplicate(JSONArray files, String file) {
         files.removeIf(file1 -> file1.equals(file));
+    }
+
+    private static String readFileToString(String fileName) throws IOException {
+        StringBuilder builder = new StringBuilder();
+        BufferedReader br = new BufferedReader(new FileReader(fileName));
+        String line;
+        while ((line = br.readLine()) != null) {
+            builder.append(line).append('\n');
+        }
+        br.close();
+        return builder.toString();
     }
 }

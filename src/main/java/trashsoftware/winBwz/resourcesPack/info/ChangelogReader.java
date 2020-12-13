@@ -17,8 +17,9 @@ public class ChangelogReader {
      * @return the changelog text
      * @throws IOException if the changelog file is not readable
      */
-    public String readChangelog() throws IOException {
-        InputStream is = getClass().getResourceAsStream("Changelog.txt");
+    public static String readChangelog() throws IOException {
+        InputStream is = ChangelogReader.class.getResourceAsStream(
+                "/trashsoftware/winBwz/doc/Changelog.txt");
         BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
         StringBuilder builder = new StringBuilder();
         String line;

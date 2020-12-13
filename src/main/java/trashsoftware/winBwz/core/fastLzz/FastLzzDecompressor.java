@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.core.fastLzz;
 
+import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.utility.Bytes;
@@ -9,6 +10,8 @@ import trashsoftware.winBwz.utility.Util;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * LZZ2-algorithm decompressor, implements {@code DeCompressor} interface.
@@ -19,21 +22,13 @@ import java.io.OutputStream;
  */
 public class FastLzzDecompressor implements DeCompressor {
 
-    private FileBitInputStream fis;
-
-    private UnPacker parent;
-
-    private int timeAccumulator;
-
+    private final FileBitInputStream fis;
+    private final long umpLength;
+    private final byte[] outBuffer = new byte[FastLzzCompressor.MEMORY_BUFFER_SIZE];
+    private UnPacker unPacker;
     private long lastUpdateProgress;
-
-    private long startTime;
-
     private long timeOffset;
-
-    private long umpLength;
-
-    private byte[] outBuffer = new byte[FastLzzCompressor.MEMORY_BUFFER_SIZE];
+    private long totalOutLength;
 
     public FastLzzDecompressor(String inFile, int windowSize) throws IOException {
 
@@ -46,10 +41,12 @@ public class FastLzzDecompressor implements DeCompressor {
     }
 
     private void uncompressMain(OutputStream fos) throws IOException {
-        long lastCheckTime = System.currentTimeMillis();
-        startTime = lastCheckTime;
-        if (parent != null) timeOffset = lastCheckTime - parent.startTime;
-        long currentTime;
+        Timer timer = null;
+        if (unPacker != null) {
+            timeOffset = System.currentTimeMillis() - unPacker.startTime;
+            timer = new Timer();
+            timer.scheduleAtFixedRate(new DeFLTimerTask(), 0, 1000 / Constants.LZZ_GUI_UPDATES_PER_S);
+        }
 
         int indexInBuffer = 0;
         long totalUmpIndex = 0;
@@ -90,15 +87,17 @@ public class FastLzzDecompressor implements DeCompressor {
                 fos.write(outBuffer);
                 fis.alignByte();
             }
-            if (parent != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
-                updateInfo(totalUmpIndex + indexInBuffer, currentTime);
-                lastCheckTime = currentTime;
-                if (parent.isInterrupted) break;
-            }
+            totalOutLength = totalUmpIndex + indexInBuffer;
+//            if (unPacker != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
+//                updateInfo(totalUmpIndex + indexInBuffer, currentTime);
+//                lastCheckTime = currentTime;
+//                if (unPacker.isInterrupted) break;
+//            }
         }
         if (indexInBuffer > 0) {
             fos.write(outBuffer, 0, indexInBuffer);
         }
+        if (timer != null) timer.cancel();
     }
 
     @Override
@@ -107,7 +106,7 @@ public class FastLzzDecompressor implements DeCompressor {
 
     @Override
     public void setUnPacker(UnPacker unPacker) {
-        this.parent = unPacker;
+        this.unPacker = unPacker;
     }
 
     @Override
@@ -120,26 +119,52 @@ public class FastLzzDecompressor implements DeCompressor {
         fis.close();
     }
 
-    private void updateInfo(long current, long updateTime) {
-        parent.progress.set(current);
-        if (timeAccumulator == 19) {
-            timeAccumulator = 0;
-            double finished = ((double) current) / parent.getTotalOrigSize();
-            double rounded = (double) Math.round(finished * 1000) / 10;
-            parent.percentage.set(String.valueOf(rounded));
-            int newUpdated = (int) (current - lastUpdateProgress);
-            lastUpdateProgress = parent.progress.get();
-            int ratio = newUpdated / 1024;
-            parent.ratio.set(String.valueOf(ratio));
+//    private void updateInfo(long current, long updateTime) {
+//        unPacker.progress.set(current);
+//        if (timeAccumulator == 19) {
+//            timeAccumulator = 0;
+//            double finished = ((double) current) / unPacker.getTotalOrigSize();
+//            double rounded = (double) Math.round(finished * 1000) / 10;
+//            unPacker.percentage.set(String.valueOf(rounded));
+//            int newUpdated = (int) (current - lastUpdateProgress);
+//            lastUpdateProgress = unPacker.progress.get();
+//            int ratio = newUpdated / 1024;
+//            unPacker.ratio.set(String.valueOf(ratio));
+//
+//            long timeUsed = updateTime - startTime;
+//            unPacker.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
+//            long expectTime = (unPacker.getTotalOrigSize() - current) / ratio / 1024;
+//            unPacker.timeExpected.set(Util.secondToString(expectTime));
+//
+//            unPacker.passedLength.set(Util.sizeToReadable(current));
+//        } else {
+//            timeAccumulator += 1;
+//        }
+//    }
 
-            long timeUsed = updateTime - startTime;
-            parent.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
-            long expectTime = (parent.getTotalOrigSize() - current) / ratio / 1024;
-            parent.timeExpected.set(Util.secondToString(expectTime));
+    class DeFLTimerTask extends TimerTask {
+        private int accumulator;
 
-            parent.passedLength.set(Util.sizeToReadable(current));
-        } else {
-            timeAccumulator += 1;
+        @Override
+        public void run() {
+            unPacker.progress.set(totalOutLength);
+            accumulator++;
+            if (accumulator % Constants.LZZ_GUI_UPDATES_PER_S == 0) {  // whole second
+                double finished = ((double) totalOutLength) / unPacker.getTotalOrigSize();
+                double rounded = (double) Math.round(finished * 1000) / 10;
+                unPacker.percentage.set(String.valueOf(rounded));
+                int newUpdated = (int) (totalOutLength - lastUpdateProgress);
+                lastUpdateProgress = unPacker.progress.get();
+                int ratio = newUpdated / 1024;
+                unPacker.ratio.set(String.valueOf(ratio));
+
+                long timeUsed = accumulator * 1000L / Constants.LZZ_GUI_UPDATES_PER_S;
+                unPacker.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
+                long expectTime = (unPacker.getTotalOrigSize() - totalOutLength) / ratio / 1024;
+                unPacker.timeExpected.set(Util.secondToString(expectTime));
+
+                unPacker.passedLength.set(Util.sizeToReadable(totalOutLength));
+            }
         }
     }
 }

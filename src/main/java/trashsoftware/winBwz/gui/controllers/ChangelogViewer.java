@@ -24,6 +24,6 @@ public class ChangelogViewer implements Initializable {
     }
 
     private void setLabel() throws IOException {
-        changelogLabel.setText(new ChangelogReader().readChangelog());
+        changelogLabel.setText(ChangelogReader.readChangelog());
     }
 }

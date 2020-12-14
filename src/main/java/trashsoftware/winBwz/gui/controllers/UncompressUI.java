@@ -4,6 +4,7 @@ import javafx.stage.Modality;
 import trashsoftware.winBwz.gui.graphicUtil.FileNode;
 import trashsoftware.winBwz.packer.*;
 import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
+import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
 import trashsoftware.winBwz.utility.Util;
 import trashsoftware.winBwz.encrypters.WrongPasswordException;
 import javafx.fxml.FXML;
@@ -298,7 +299,7 @@ public class UncompressUI implements Initializable {
 
     private void uncompressHandler(ContextNode cn, boolean isAll) throws IOException {
         DirectoryChooser dc = new DirectoryChooser();
-        dc.setInitialDirectory(GeneralLoaders.readLastSelectedDir());
+        dc.setInitialDirectory(LoaderManager.getCacheSaver().readLastSelectedDir());
         File selected = dc.showDialog(null);
         if (selected != null) {
             FXMLLoader loader = new FXMLLoader(

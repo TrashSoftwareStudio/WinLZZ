@@ -7,8 +7,10 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import trashsoftware.winBwz.gui.controllers.MainUI;
+import trashsoftware.winBwz.resourcesPack.EventLogger;
 import trashsoftware.winBwz.resourcesPack.UTF8Control;
 import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
+import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
 
 import java.util.ResourceBundle;
 
@@ -42,20 +44,30 @@ public class GUIClient extends Application {
         showMainUi(primaryStage);
     }
 
-    private void showMainUi(Stage primaryStage) throws Exception {
-        bundle = ResourceBundle.getBundle("trashsoftware.winBwz.bundles.LangBundle",
-                GeneralLoaders.getCurrentLocale(), new UTF8Control());
-        FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/trashsoftware/winBwz/fxml/mainUI.fxml"), bundle);
+    private void showMainUi(Stage primaryStage) {
+        try {
+            bundle = ResourceBundle.getBundle("trashsoftware.winBwz.bundles.LangBundle",
+                    GeneralLoaders.getCurrentLocale(), new UTF8Control());
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/trashsoftware/winBwz/fxml/mainUI.fxml"), bundle);
 
-        Parent root = loader.load();
-        MainUI controller = loader.getController();
-        controller.setStageAndParent(primaryStage, this);
+            LoaderManager.startCacheSaver();
 
-        primaryStage.setTitle(bundle.getString("winLzzFileManager"));
-        primaryStage.setScene(new Scene(root));
-        primaryStage.setResizable(false);
-        primaryStage.show();
+            Parent root = loader.load();
+            MainUI controller = loader.getController();
+            controller.setStageAndParent(primaryStage, this);
+
+            primaryStage.setTitle(bundle.getString("winLzzFileManager"));
+            primaryStage.setScene(new Scene(root));
+            primaryStage.setResizable(false);
+            primaryStage.setOnHidden(e -> {
+                LoaderManager.stopCacheSaver();
+            });
+            primaryStage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            EventLogger.log(e);
+        }
     }
 
     public static ResourceBundle getBundle() {
@@ -64,12 +76,6 @@ public class GUIClient extends Application {
 
     public void restart(Stage oldStage) {
         oldStage.close();
-        Platform.runLater(() -> {
-            try {
-                showMainUi(new Stage());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        Platform.runLater(() -> showMainUi(new Stage()));
     }
 }

@@ -3,6 +3,7 @@ package trashsoftware.winBwz.gui.controllers;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
+import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
 import trashsoftware.winBwz.utility.Util;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -57,11 +58,11 @@ public class AnnotationUI implements Initializable {
                 bundle.getString("textFile"),
                 "*.txt");
         fc.getExtensionFilters().add(filter);
-        fc.setInitialDirectory(GeneralLoaders.readLastSelectedDir());
+        fc.setInitialDirectory(LoaderManager.getCacheSaver().readLastSelectedDir());
         File selected = fc.showOpenDialog(null);
 
         if (selected != null) {
-            GeneralLoaders.addHistoryAnnotation(selected);
+            LoaderManager.getCacheSaver().addHistoryAnnotation(selected);
             fillBox();
             fileBox.getSelectionModel().select(0);
         }
@@ -96,7 +97,7 @@ public class AnnotationUI implements Initializable {
 
     private void fillBox() {
         fileBox.getItems().clear();
-        List<File> historyFiles = GeneralLoaders.getHistoryAnnotation();
+        List<File> historyFiles = LoaderManager.getCacheSaver().getHistoryAnnotation();
         for (File f : historyFiles) fileBox.getItems().add(new HistorySelection(f));
     }
 
@@ -123,20 +124,12 @@ public class AnnotationUI implements Initializable {
             }
         });
     }
-
-//    private void fillText() {
-//        fromFile.setText(lanLoader.get(901));
-//        fromText.setText(lanLoader.get(903));
-//        browseButton.setText(lanLoader.get(902));
-//        confirmButton.setText(lanLoader.get(1));
-//        compressAnnBox.setText(lanLoader.get(906));
-//    }
 }
 
 
 class HistorySelection {
 
-    private File file;
+    private final File file;
 
     HistorySelection(File file) {
         this.file = file;

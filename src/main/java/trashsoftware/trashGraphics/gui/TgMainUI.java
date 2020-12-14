@@ -22,7 +22,7 @@ import trashsoftware.trashGraphics.core.ImageViewer;
 import trashsoftware.trashGraphics.core.TgiCoder;
 import trashsoftware.winBwz.gui.controllers.MainUI;
 import trashsoftware.winBwz.gui.graphicUtil.InfoBoxes;
-import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
+import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,37 +31,27 @@ import java.util.ResourceBundle;
 
 public class TgMainUI implements Initializable {
 
-    @FXML
-    ImageView imageView;
-
-    @FXML
-    Label msgLabel;
-
-    @FXML
-    MenuItem showHideToolbar;
-
-    @FXML
-    VBox toolbar;
-
-    @FXML
-    HBox filtersBar;
-
-    @FXML
-    RowConstraints toolbarRow;
-
-    @FXML
-    Label zoomRatioLabel;
-
-    @FXML
-    Button zoomInBtn, zoomOutBtn;
-
-    private Label blockerLabel = new Label();
-
-    private ResourceBundle bundle;
-    private ImageViewer baseImageViewer = new ImageViewer();
-
     private static final double[] zoomLevels =
             {12.5, 25.0, 50.0, 75.0, 90.0, 100.0, 125.0, 150.0, 175.0, 200.0, 300.0, 500.0};
+    private final Label blockerLabel = new Label();
+    private final ImageViewer baseImageViewer = new ImageViewer();
+    @FXML
+    ImageView imageView;
+    @FXML
+    Label msgLabel;
+    @FXML
+    MenuItem showHideToolbar;
+    @FXML
+    VBox toolbar;
+    @FXML
+    HBox filtersBar;
+    @FXML
+    RowConstraints toolbarRow;
+    @FXML
+    Label zoomRatioLabel;
+    @FXML
+    Button zoomInBtn, zoomOutBtn;
+    private ResourceBundle bundle;
     private int currentZoomIndex = 5;
 
     private FileChooser.ExtensionFilter tgi8, tgi16, tgi24, tgi32, tgi4gray, tgi8gray;
@@ -159,7 +149,7 @@ public class TgMainUI implements Initializable {
     @FXML
     void saveAsAction() {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setInitialDirectory(GeneralLoaders.readLastSelectedDir());
+        fileChooser.setInitialDirectory(LoaderManager.getCacheSaver().readLastSelectedDir());
         fileChooser.setInitialFileName(initFileName);
 
         fileChooser.getExtensionFilters().addAll(tgi8, tgi16, tgi24, tgi32, tgi4gray, tgi8gray);

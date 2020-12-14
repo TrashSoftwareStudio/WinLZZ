@@ -1,12 +1,5 @@
 package trashsoftware.winBwz.gui.controllers;
 
-import javafx.scene.layout.RowConstraints;
-import trashsoftware.trashGraphics.core.ImageViewer;
-import trashsoftware.trashGraphics.gui.TrashGraphicsClient;
-import trashsoftware.winBwz.gui.GUIClient;
-import trashsoftware.winBwz.gui.graphicUtil.*;
-import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
-import trashsoftware.winBwz.utility.Util;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -14,25 +7,33 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import trashsoftware.trashGraphics.core.ImageViewer;
+import trashsoftware.trashGraphics.gui.TrashGraphicsClient;
+import trashsoftware.winBwz.gui.GUIClient;
+import trashsoftware.winBwz.gui.graphicUtil.*;
+import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
+import trashsoftware.winBwz.utility.Util;
 
 import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
 public class MainUI implements Initializable {
@@ -52,9 +53,7 @@ public class MainUI implements Initializable {
             "\n" +
             "    You should have received a copy of the GNU General Public License\n" +
             "    along with this program.  If not, see <https://www.gnu.org/licenses/>.";
-
-    @FXML
-    private TreeView<File> rootTree;
+    private static final char[] nameExclusion = new char[]{'\\', '/', ':', '*', '?', '"', '<', '>', '|'};
 
 //    @FXML
 //    private TableView<RegularFileNode> table;
@@ -64,33 +63,25 @@ public class MainUI implements Initializable {
 //
 //    @FXML
 //    private TableColumn<RegularFileNode, ReadableSize> sizeCol;
-
+    //    private Label placeHolder = new Label();
+    private final ContextMenu rightPopupMenu = new ContextMenu();
+    @FXML
+    private TreeView<File> rootTree;
     @FXML
     private Button backButton, refreshButton;
-
     /**
      * Toolbar buttons
      */
     @FXML
     private Button compressButton, uncompressButton, iconListButton;
-
     @FXML
     private Button showHideToolbarBtn;
-
     @FXML
     private HBox currentDirBox;
-
     @FXML
     private MenuItem pasteHere;
-
     @FXML
     private RowConstraints toolbarRow;
-
-    @FXML
-    private HBox toolbar;
-
-    @FXML
-    private TabPane rootTabPane;
 
 //    @FXML
 //    private TableFileView tableFileView;
@@ -98,27 +89,50 @@ public class MainUI implements Initializable {
 //    private FileManagerPage getActiveFileViewPage(;
 
 //    private String currentDir;
-
+    @FXML
+    private HBox toolbar;
+    @FXML
+    private TabPane rootTabPane;
     private boolean isClickingDirBox;
-
     private ResourceBundle bundle;
-
     /**
      * {@code MenuItem}'s in right-click popup menu.
      */
     private MenuItem openR, openDirR, compressR, copyR, cutR, pasteR, deleteR, renameR, propertyR;
     private Stage thisStage;
     private GUIClient guiClient;
-
-    //    private Label placeHolder = new Label();
-    private final ContextMenu rightPopupMenu = new ContextMenu();
-
     private RegularFileNode currentSelection;
-
-    private static final char[] nameExclusion = new char[]{'\\', '/', ':', '*', '?', '"', '<', '>', '|'};
     private FileMover[] clipBoard;
 
     private boolean toolbarShown = false;
+
+    /**
+     * Perform binary search to find the child that matches the name.
+     *
+     * @param parent     the parent TreeItem.
+     * @param nameToFind name to be found.
+     * @return the matched TreeItem.
+     * @throws FileNotFoundException if the file does not exist, or some unexpected error occurs.
+     */
+    private static FileTreeItem searchMatched(FileTreeItem parent, String nameToFind) throws FileNotFoundException {
+        String name = nameToFind.toLowerCase();
+        List<TreeItem<File>> children = parent.getChildren();
+        int begin = 0;
+        int end = children.size();
+        int mid;
+        FileTreeItem fti;
+        while (begin < end) {
+            mid = (begin + end) / 2;
+            fti = (FileTreeItem) children.get(mid);
+            String fileName = fti.getValue().getName();
+            if (fileName.length() == 0) fileName = fti.getValue().getAbsolutePath();
+            int nameCompare = Util.stringCompare(name, fileName.toLowerCase());
+            if (nameCompare < 0) end = mid;
+            else if (nameCompare > 0) begin = mid;
+            else return fti;
+        }
+        throw new FileNotFoundException("No such file exists: " + name);
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -129,7 +143,7 @@ public class MainUI implements Initializable {
         setTabPaneListener();
         rootTree.getRoot().setExpanded(true);
 
-        List<String> lastOpenedDirs = GeneralLoaders.getOpeningDirs();
+        List<String> lastOpenedDirs = LoaderManager.getCacheSaver().getOpeningDirs();
         for (String dir : lastOpenedDirs) {
             createTabByPath(dir, false);
         }
@@ -140,19 +154,19 @@ public class MainUI implements Initializable {
                 e.printStackTrace();
             }
         }
-        boolean showToolbar = GeneralLoaders.readBoolean("toolbar");
+        boolean showToolbar = LoaderManager.getCacheSaver().readBoolean("toolbar");
         if (showToolbar) showHideToolbarAction();
 
         setRightPopupMenu();
         changeClipBoardStatus();
     }
 
+    /* Actions and handlers */
+
     public void setStageAndParent(Stage stage, GUIClient guiClient) {
         this.thisStage = stage;
         this.guiClient = guiClient;
     }
-
-    /* Actions and handlers */
 
     @FXML
     void aboutAction() throws IOException {
@@ -229,7 +243,7 @@ public class MainUI implements Initializable {
         File[] selected = new File[selections.size()];
         for (int i = 0; i < selections.size(); i++) selected[i] = selections.get(i).getFile();
         if (selected.length > 0) {
-            GeneralLoaders.writeLastSelectionDir(selected[0]);
+            LoaderManager.getCacheSaver().writeLastSelectionDir(selected[0]);
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/trashsoftware/winBwz/fxml/compressUI.fxml"), bundle);
 
@@ -327,12 +341,12 @@ public class MainUI implements Initializable {
         thisStage.close();
     }
 
+    /* Functional methods */
+
     @FXML
     void restartAction() {
         guiClient.restart(thisStage);
     }
-
-    /* Functional methods */
 
     private void showTrashGraphics() throws IOException {
         new TrashGraphicsClient().runClient(bundle, this);
@@ -365,7 +379,7 @@ public class MainUI implements Initializable {
 
     private void uncompressMode(File selected) throws Exception {
         if (selected != null) {
-            GeneralLoaders.writeLastSelectionDir(selected);
+            LoaderManager.getCacheSaver().writeLastSelectionDir(selected);
 
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/trashsoftware/winBwz/fxml/uncompressUI.fxml"), bundle);
@@ -551,12 +565,12 @@ public class MainUI implements Initializable {
             showHideToolbarBtn.setText("⮟");
             toolbarRow.setPrefHeight(0.0);
             toolbar.setVisible(false);
-            GeneralLoaders.writeCache("toolbar", false);
+            LoaderManager.getCacheSaver().writeCache("toolbar", false);
         } else {
             showHideToolbarBtn.setText("⮝");
             toolbarRow.setPrefHeight(50.0);
             toolbar.setVisible(true);
-            GeneralLoaders.writeCache("toolbar", true);
+            LoaderManager.getCacheSaver().writeCache("toolbar", true);
         }
         toolbarShown = !toolbarShown;
     }
@@ -634,6 +648,8 @@ public class MainUI implements Initializable {
         }
     }
 
+    /* Listeners */
+
     private void pasteFailed(FileMover fm) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(bundle.getString("error"));
@@ -641,8 +657,6 @@ public class MainUI implements Initializable {
         alert.setContentText(String.format("%s %s", bundle.getString("cannotMove"), fm.getFile().getAbsolutePath()));
         alert.showAndWait();
     }
-
-    /* Listeners */
 
     /**
      * Sets up the change listener of the directory tree.
@@ -674,6 +688,8 @@ public class MainUI implements Initializable {
         backButton.setDisable(currentSelection == null || currentSelection.isRoot());
     }
 
+    /* Setters / functions */
+
     private Tab createTabByPath(String path, boolean saveToCache) {
         FileManagerPage page = new FileManagerPage(this, path);
 
@@ -685,16 +701,14 @@ public class MainUI implements Initializable {
             List<String> opening = getAllOpeningDirs();
             FileManagerPage operating = ((FileManagerPage) ((Tab) e.getSource()).getContent());
             opening.removeIf(d -> d.equals(operating.getCurrentDir()));
-            GeneralLoaders.saveOpeningDirs(opening);
+            LoaderManager.getCacheSaver().saveOpeningDirs(opening);
         });
 
         if (saveToCache)
-            GeneralLoaders.saveOpeningDirs(getAllOpeningDirs());  // refreshes the cache
+            LoaderManager.getCacheSaver().saveOpeningDirs(getAllOpeningDirs());  // refreshes the cache
 
         return openedTab;
     }
-
-    /* Setters / functions */
 
     public void showOneFilePage() {
         Tab openedTab = null;
@@ -766,7 +780,7 @@ public class MainUI implements Initializable {
         FileManagerPage selectedFmp = (FileManagerPage) selected.getContent();
         selected.setText(selectedFmp.getName());
 
-        GeneralLoaders.saveOpeningDirs(getAllOpeningDirs());  // refreshes the cache
+        LoaderManager.getCacheSaver().saveOpeningDirs(getAllOpeningDirs());  // refreshes the cache
     }
 
     private void expandTill(String fullPath) throws FileNotFoundException {
@@ -780,35 +794,6 @@ public class MainUI implements Initializable {
             }
         }
     }
-
-    /**
-     * Perform binary search to find the child that matches the name.
-     *
-     * @param parent     the parent TreeItem.
-     * @param nameToFind name to be found.
-     * @return the matched TreeItem.
-     * @throws FileNotFoundException if the file does not exist, or some unexpected error occurs.
-     */
-    private static FileTreeItem searchMatched(FileTreeItem parent, String nameToFind) throws FileNotFoundException {
-        String name = nameToFind.toLowerCase();
-        List<TreeItem<File>> children = parent.getChildren();
-        int begin = 0;
-        int end = children.size();
-        int mid;
-        FileTreeItem fti;
-        while (begin < end) {
-            mid = (begin + end) / 2;
-            fti = (FileTreeItem) children.get(mid);
-            String fileName = fti.getValue().getName();
-            if (fileName.length() == 0) fileName = fti.getValue().getAbsolutePath();
-            int nameCompare = Util.stringCompare(name, fileName.toLowerCase());
-            if (nameCompare < 0) end = mid;
-            else if (nameCompare > 0) begin = mid;
-            else return fti;
-        }
-        throw new FileNotFoundException("No such file exists: " + name);
-    }
-
 
     /**
      * Sets up the content of the TreeView object "rootTree".

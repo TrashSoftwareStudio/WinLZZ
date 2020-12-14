@@ -14,6 +14,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.File;
@@ -97,10 +98,13 @@ public class CompressUI implements Initializable {
         setThreadBoxListener();
         setWindowNameBoxListener();
         setModeBoxListener();
-        threadBox.getSelectionModel().select(0);
-        presetLevelBox.getSelectionModel().select(3);
+        algBox.getSelectionModel().select(
+                LoaderManager.getCacheSaver().readInt("algBoxIndex", 0));
+        presetLevelBox.getSelectionModel().select(
+                LoaderManager.getCacheSaver().readInt("levelBoxIndex", 3));
+        threadBox.getSelectionModel().select(
+                LoaderManager.getCacheSaver().readInt("threadBoxIndex", 0));
         modeBox.getSelectionModel().select(1);
-        algBox.getSelectionModel().select(0);
         unitBox.getSelectionModel().select(0);
     }
 
@@ -180,6 +184,7 @@ public class CompressUI implements Initializable {
                     bufferBox.getSelectionModel().select(windowModeBuffer[2]);
                 }
             }
+            LoaderManager.getCacheSaver().writeCache("levelBoxIndex", newValue.intValue());
         });
     }
 
@@ -189,6 +194,7 @@ public class CompressUI implements Initializable {
                     if (newValue != null && newValue.intValue() >= 0) {
                         currentThreadIndex = newValue.intValue();
                         estimateMemoryUsage();
+                        LoaderManager.getCacheSaver().writeCache("threadBoxIndex", newValue.intValue());
                     }
                 }
         ));
@@ -216,9 +222,10 @@ public class CompressUI implements Initializable {
                 default:
                     throw new RuntimeException();
             }
-            presetLevelBox.getSelectionModel().select(3);
+//            presetLevelBox.getSelectionModel().select(3);
             windowNameBox.getSelectionModel().select(2);
             estimateMemoryUsage();
+            LoaderManager.getCacheSaver().writeCache("algBoxIndex", currentAlgIndex);
         });
     }
 
@@ -305,7 +312,7 @@ public class CompressUI implements Initializable {
         modeBox.getItems().addAll(cmpModeLevels[0], cmpModeLevels[1]);
         threadBox.getItems().clear();
         threadBox.getItems().addAll(threads);
-        threadBox.getSelectionModel().select(0);
+//        threadBox.getSelectionModel().select(0);
     }
 
     private void setFastLzzUi() {
@@ -321,7 +328,7 @@ public class CompressUI implements Initializable {
         modeBox.getItems().addAll(cmpModeLevels[0], cmpModeLevels[1]);
         threadBox.getItems().clear();
         threadBox.getItems().addAll(threads);
-        threadBox.getSelectionModel().select(0);
+//        threadBox.getSelectionModel().select(0);
     }
 
     @FXML

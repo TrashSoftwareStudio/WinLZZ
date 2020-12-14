@@ -140,7 +140,6 @@ public class MainUI implements Initializable {
 
         setTree();
         setTreeListener();
-        setTabPaneListener();
         rootTree.getRoot().setExpanded(true);
 
         List<String> lastOpenedDirs = LoaderManager.getCacheSaver().getOpeningDirs();
@@ -154,6 +153,9 @@ public class MainUI implements Initializable {
                 e.printStackTrace();
             }
         }
+
+        setTabPaneListener();
+        rootTabPane.getSelectionModel().select(LoaderManager.getCacheSaver().readInt("tabPaneIndex", 0));
         boolean showToolbar = LoaderManager.getCacheSaver().readBoolean("toolbar");
         if (showToolbar) showHideToolbarAction();
 
@@ -677,9 +679,10 @@ public class MainUI implements Initializable {
     }
 
     private void setTabPaneListener() {
-        rootTabPane.getSelectionModel().selectedItemProperty().addListener(((observable, oldValue, newValue) -> {
-            if (newValue != null) {
+        rootTabPane.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
+            if (newValue != null && newValue.intValue() >= 0) {
                 refreshDirButtons();
+                LoaderManager.getCacheSaver().writeCache("tabPaneIndex", newValue);
             }
         }));
     }

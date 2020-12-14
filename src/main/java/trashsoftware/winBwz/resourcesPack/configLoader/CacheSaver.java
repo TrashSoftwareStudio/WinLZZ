@@ -54,6 +54,7 @@ public class CacheSaver {
         map.remove(key);
     }
 
+    @SuppressWarnings("unchecked")
     public List<String> getOpeningDirs() {
         Object obj = map.get("opening");
         if (obj instanceof List) {

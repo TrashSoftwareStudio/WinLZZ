@@ -8,7 +8,7 @@ import trashsoftware.winBwz.huffman.HuffmanCompressorBase;
 import trashsoftware.winBwz.huffman.HuffmanCompressorTwoBytes;
 import trashsoftware.winBwz.huffman.MapCompressor.MapCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanUtil;
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 import trashsoftware.winBwz.utility.FileBitOutputStream;
 import trashsoftware.winBwz.utility.FileInputBufferArray;
 import trashsoftware.winBwz.utility.MultipleInputStream;
@@ -47,7 +47,7 @@ public class LZZ2Compressor implements Compressor {
     protected String mainTempName, lenHeadTempName, disHeadTempName, flagTempName, dlBodyTempName;
     protected long cmpSize;
     protected int itemCount;
-    protected Packer packer;
+    protected PzPacker packer;
     private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
     private int dictSize;
     /**
@@ -400,7 +400,7 @@ public class LZZ2Compressor implements Compressor {
     }
 
     @Override
-    public void setPacker(Packer packer) {
+    public void setPacker(PzPacker packer) {
         this.packer = packer;
     }
 

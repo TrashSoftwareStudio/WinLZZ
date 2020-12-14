@@ -56,7 +56,7 @@ public class Console {
             switch (mode) {
                 case "-c": {
                     int[] pref = getPreferences(alg, level);
-                    Packer p = new Packer(new File[]{new File(inFile)});
+                    PzPacker p = new PzPacker(new File[]{new File(inFile)});
                     p.setAlgorithm(alg);
                     p.setThreads(threads);
                     p.setCmpLevel(pref[2]);
@@ -65,7 +65,7 @@ public class Console {
                     long start = System.currentTimeMillis();
                     System.out.println("Compressing...");
                     if (!outFile.endsWith(".pz")) outFile += ".pz";
-                    p.Pack(outFile, pref[0], pref[1]);
+                    p.pack(outFile, pref[0], pref[1]);
 
                     long timeUsed = System.currentTimeMillis() - start;
                     double seconds = (double) timeUsed / 1000;

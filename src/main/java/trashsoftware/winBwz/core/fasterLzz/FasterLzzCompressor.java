@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.core.fasterLzz;
 
 import trashsoftware.winBwz.core.Compressor;
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 import trashsoftware.winBwz.utility.*;
 
 import java.io.*;
@@ -43,7 +43,7 @@ public class FasterLzzCompressor implements Compressor {
 
     protected long cmpSize;
 
-    protected Packer parent;
+    protected PzPacker parent;
 
     private int timeAccumulator;
 
@@ -199,7 +199,7 @@ public class FasterLzzCompressor implements Compressor {
     }
 
     @Override
-    public void setPacker(Packer packer) {
+    public void setPacker(PzPacker packer) {
         this.parent = packer;
     }
 

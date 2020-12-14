@@ -2,7 +2,7 @@ package trashsoftware.winBwz.encrypters;
 
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -38,5 +38,5 @@ public interface Encipher {
      * @param parent                 the parent {@code Packer} instance
      * @param lengthBeforeEncryption the stream length before encryption
      */
-    void setParent(Packer parent, long lengthBeforeEncryption);
+    void setParent(PzPacker parent, long lengthBeforeEncryption);
 }

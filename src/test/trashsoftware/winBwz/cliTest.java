@@ -1,13 +1,13 @@
 package trashsoftware.winBwz;
 
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 
 import java.io.File;
 
 public class cliTest {
 
     public static void main(String[] args) throws Exception {
-        Packer packer = new Packer(new File[]{new File("E:\\Programs\\compTest\\cmpFiles")});
+        PzPacker packer = new PzPacker(new File[]{new File("E:\\Programs\\compTest\\cmpFiles")});
 
         long st = System.currentTimeMillis();
 
@@ -16,7 +16,7 @@ public class cliTest {
         packer.setCmpLevel(1);
         packer.build();
 
-        packer.Pack("cf.pz", 524288, 0);
+        packer.pack("cf.pz", 524288, 0);
 
         long ed = System.currentTimeMillis();
         System.out.println(ed - st);

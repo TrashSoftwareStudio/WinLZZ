@@ -15,7 +15,7 @@ import trashsoftware.winBwz.core.bwz.bwt.BWTEncoder;
 import trashsoftware.winBwz.huffman.MapCompressor.BwzMapCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanCompressorRam;
 import trashsoftware.winBwz.longHuffman.LongHuffmanUtil;
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 
@@ -71,7 +71,7 @@ public class BWZCompressor implements Compressor {
     /**
      * The parent {@code Packer} which launched this {@code BWZCompressor}.
      */
-    Packer packer;
+    PzPacker packer;
     /**
      * Whether the compression is in progress.
      */
@@ -318,7 +318,7 @@ public class BWZCompressor implements Compressor {
      * @param packer parent {@code Packer} which launched this {@code BWZCompressor}.
      */
     @Override
-    public void setPacker(Packer packer) {
+    public void setPacker(PzPacker packer) {
         this.packer = packer;
     }
 

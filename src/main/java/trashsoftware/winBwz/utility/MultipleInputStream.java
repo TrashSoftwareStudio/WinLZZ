@@ -1,6 +1,6 @@
 package trashsoftware.winBwz.utility;
 
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 
 import java.io.*;
 import java.util.Deque;
@@ -29,7 +29,7 @@ public class MultipleInputStream extends InputStream {
 
     private CRC32 crc32 = new CRC32();
 
-    private Packer parent;
+    private PzPacker parent;
 
     boolean buffered;
 
@@ -41,7 +41,7 @@ public class MultipleInputStream extends InputStream {
      * @param buffered whether to use a buffer to read the input
      * @throws IOException if any of the files in <code>files</code> is not readable
      */
-    public MultipleInputStream(Deque<File> files, Packer parent, boolean buffered) throws IOException {
+    public MultipleInputStream(Deque<File> files, PzPacker parent, boolean buffered) throws IOException {
         this.files = files;
         this.parent = parent;
         this.buffered = buffered;

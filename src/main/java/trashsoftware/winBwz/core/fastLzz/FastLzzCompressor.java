@@ -2,7 +2,7 @@ package trashsoftware.winBwz.core.fastLzz;
 
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 import trashsoftware.winBwz.utility.*;
 
 import java.io.*;
@@ -33,7 +33,7 @@ public class FastLzzCompressor implements Compressor {
     private final InputStream sis;
     protected long totalLength;
     protected long cmpSize;
-    protected Packer packer;
+    protected PzPacker packer;
     boolean notInterrupted = true;
     private long processedLength;
     private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
@@ -220,7 +220,7 @@ public class FastLzzCompressor implements Compressor {
     }
 
     @Override
-    public void setPacker(Packer packer) {
+    public void setPacker(PzPacker packer) {
         this.packer = packer;
     }
 

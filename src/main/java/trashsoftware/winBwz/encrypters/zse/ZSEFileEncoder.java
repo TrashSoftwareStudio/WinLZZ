@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.encrypters.zse;
 
 import trashsoftware.winBwz.encrypters.Encipher;
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -79,6 +79,6 @@ public class ZSEFileEncoder implements Encipher {
      * @param lengthBeforeEncryption the stream length before encryption
      */
     @Override
-    public void setParent(Packer parent, long lengthBeforeEncryption) {
+    public void setParent(PzPacker parent, long lengthBeforeEncryption) {
     }
 }

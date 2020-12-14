@@ -1,16 +1,21 @@
 package trashsoftware.winBwz.gui.controllers;
 
-import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
-import trashsoftware.winBwz.packer.Packer;
-import trashsoftware.winBwz.utility.Util;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.stage.Stage;
+import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
+import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
+import trashsoftware.winBwz.packer.ZipPacker;
+import trashsoftware.winBwz.utility.Util;
 
 import java.io.File;
 import java.net.URL;
@@ -36,6 +41,7 @@ public class CompressingUI implements Initializable {
     private String name, alg;
     private File[] path;
     private int windowSize, bufferSize, cmpLevel, encryptLevel, threads;
+    private String fmt;
     private String password;
     private String encAlg;
     private String passAlg;
@@ -46,7 +52,7 @@ public class CompressingUI implements Initializable {
 
     private MainUI grandParent;
     private Stage stage;
-//    private LanguageLoader lanLoader;
+    //    private LanguageLoader lanLoader;
     private ResourceBundle bundle;
 
     @Override
@@ -80,8 +86,9 @@ public class CompressingUI implements Initializable {
         this.path = path;
     }
 
-    void setPref(int windowSize, int bufferSize, int compressionLevel, String algorithm, int threads,
+    void setPref(String format, int windowSize, int bufferSize, int compressionLevel, String algorithm, int threads,
                  AnnotationNode annotation, long partSize) {
+        this.fmt = format;
         this.windowSize = windowSize;
         this.bufferSize = bufferSize;
         this.cmpLevel = compressionLevel;
@@ -132,7 +139,7 @@ public class CompressingUI implements Initializable {
                     bundle.getString("second"),
                     bundle.getString("compressRateTotal"),
                     rounded
-                    ));
+            ));
 //            info.setContentText(lanLoader.get(252) + seconds + lanLoader.get(253) + " " + lanLoader.get(254)
 //                    + ": " + rounded + "%");
             info.show();
@@ -160,10 +167,10 @@ public class CompressingUI implements Initializable {
         service.setOnCancelled(e -> {
             if (packer != null) packer.interrupt();
             unbindListeners();
-            if (packer.exitStatus.intValue() != 0) {
+            if (packer.exitStatusProperty().intValue() != 0) {
                 Alert info = new Alert(Alert.AlertType.ERROR);
                 info.setTitle("WinLZZ");
-                info.setHeaderText(packer.errorMsg);
+                info.setHeaderText(packer.getErrorMsg());
 
                 info.show();
             }
@@ -208,79 +215,6 @@ public class CompressingUI implements Initializable {
         if (alert.getResult() == ButtonType.OK) service.cancel();
     }
 
-    private class CompressService extends Service<Void> {
-
-        @Override
-        protected Task<Void> createTask() {
-            return new Task<Void>() {
-                @Override
-                protected Void call() throws Exception {
-                    startTime = System.currentTimeMillis();
-                    packer = new Packer(path);
-                    if (isCancelled()) return null;
-                    packer.setCmpLevel(cmpLevel);
-                    packer.setEncrypt(password, encryptLevel, encAlg, passAlg);
-                    packer.setAlgorithm(alg);
-                    packer.setThreads(threads);
-                    packer.setPartSize(partSize);
-                    packer.setLanLoader(bundle);
-                    if (annotation != null) packer.setAnnotation(annotation);
-
-                    stepListener = (observable, oldValue, newValue) -> updateTitle(newValue);
-                    fileListener = (observable, oldValue, newValue) ->
-                            Platform.runLater(() -> fileLabel.setText(newValue));
-                    speedRatioListener = (observable, oldValue, newValue) -> updateMessage(newValue);
-                    percentageListener = (observable, oldValue, newValue) ->
-                            Platform.runLater(() -> percentageLabel.setText(newValue));
-                    timeUsedListener = (observable, oldValue, newValue) ->
-                            Platform.runLater(() -> timeUsedLabel.setText(newValue));
-                    timeExpectedListener = (observable, oldValue, newValue) ->
-                            Platform.runLater(() -> expectTimeLabel.setText(newValue));
-                    passedLengthListener = (observable, oldValue, newValue) ->
-                            Platform.runLater(() -> passedSizeLabel.setText(newValue));
-                    exitStatusListener = (observable, oldValue, newValue) -> {
-                        Platform.runLater(() -> fileLabel.setText(packer.errorMsg));
-                        if (newValue.intValue() != 0) this.cancel();
-                    };
-
-                    // Listeners only work under BWT.
-                    cmpSizeListener = (observable, oldValue, newValue) ->
-                            Platform.runLater(() -> compressedSizeLabel.setText(newValue));
-                    currentCmpRatioListener = (observable, oldValue, newValue) ->
-                            Platform.runLater(() -> currentCmpRatioLabel.setText(newValue));
-
-                    packer.stepProperty().addListener(stepListener);
-                    packer.fileProperty().addListener(fileListener);
-                    packer.ratioProperty().addListener(speedRatioListener);
-                    packer.percentageProperty().addListener(percentageListener);
-                    packer.timeUsedProperty().addListener(timeUsedListener);
-                    packer.timeExpectedProperty().addListener(timeExpectedListener);
-                    packer.passedLengthProperty().addListener(passedLengthListener);
-
-                    packer.compressedSizeProperty().addListener(cmpSizeListener);
-                    packer.currentCmpRatioProperty().addListener(currentCmpRatioListener);
-                    packer.exitStatusProperty().addListener(exitStatusListener);
-
-                    updateTitle(bundle.getString("searching"));
-                    Platform.runLater(() -> percentageLabel.setText("0.0"));
-                    packer.build();
-
-                    // Add progress bar
-                    long totalLength = packer.getTotalOrigSize();
-                    Platform.runLater(() -> totalSizeLabel.setText(Util.sizeToReadable(totalLength)));
-                    progressListener = (observable, oldValue, newValue) ->
-                            updateProgress(newValue.longValue(), totalLength);
-                    packer.progressProperty().addListener(progressListener);
-
-                    packer.Pack(path[0].getParent() + File.separator + name, windowSize, bufferSize);
-                    updateProgress(totalLength, totalLength);
-
-                    return null;
-                }
-            };
-        }
-    }
-
     private void fillText() {
         timeUsedLabel.setText("--:--");
         expectTimeLabel.setText("--:--");
@@ -297,5 +231,94 @@ public class CompressingUI implements Initializable {
 //        speedTextLabel.setText(lanLoader.get(207));
 //        cancelButton.setText(lanLoader.get(2));
 //        messageLabel.setText(lanLoader.get(350));
+    }
+
+    private class CompressService extends Service<Void> {
+
+        @Override
+        protected Task<Void> createTask() {
+            return new Task<Void>() {
+                @Override
+                protected Void call() throws Exception {
+                    startTime = System.currentTimeMillis();
+                    if (fmt.equals("pz"))
+                        packer = new PzPacker(path);
+                    else if (fmt.equals("zip"))
+                        packer = new ZipPacker(path);
+                    else
+                        throw new RuntimeException("No such format " + fmt);
+
+                    if (isCancelled()) return null;
+                    packer.setCmpLevel(cmpLevel);
+                    packer.setEncrypt(password, encryptLevel, encAlg, passAlg);
+                    packer.setAlgorithm(alg);
+                    packer.setThreads(threads);
+                    packer.setPartSize(partSize);
+                    packer.setResourceBundle(bundle);
+                    if (annotation != null) packer.setAnnotation(annotation);
+
+                    stepListener = (observable, oldValue, newValue) -> updateTitle(newValue);
+                    fileListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> fileLabel.setText(newValue));
+                    speedRatioListener = (observable, oldValue, newValue) -> updateMessage(newValue);
+                    percentageListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> percentageLabel.setText(newValue));
+                    timeUsedListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> timeUsedLabel.setText(newValue));
+                    timeExpectedListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> expectTimeLabel.setText(newValue));
+                    passedLengthListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> passedSizeLabel.setText(newValue));
+                    exitStatusListener = (observable, oldValue, newValue) -> {
+                        Platform.runLater(() -> fileLabel.setText(packer.getErrorMsg()));
+                        if (newValue.intValue() != 0) this.cancel();
+                    };
+
+                    // Listeners only work under BWT.
+                    cmpSizeListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> compressedSizeLabel.setText(newValue));
+                    currentCmpRatioListener = (observable, oldValue, newValue) ->
+                            Platform.runLater(() -> currentCmpRatioLabel.setText(newValue));
+
+                    if (packer.stepProperty() != null)
+                        packer.stepProperty().addListener(stepListener);
+                    if (packer.fileProperty() != null)
+                        packer.fileProperty().addListener(fileListener);
+                    if (packer.ratioProperty() != null)
+                        packer.ratioProperty().addListener(speedRatioListener);
+                    if (packer.percentageProperty() != null)
+                        packer.percentageProperty().addListener(percentageListener);
+                    if (packer.timeUsedProperty() != null)
+                        packer.timeUsedProperty().addListener(timeUsedListener);
+                    if (packer.timeExpectedProperty() != null)
+                        packer.timeExpectedProperty().addListener(timeExpectedListener);
+                    if (packer.passedLengthProperty() != null)
+                        packer.passedLengthProperty().addListener(passedLengthListener);
+
+                    if (packer.compressedSizeProperty() != null)
+                        packer.compressedSizeProperty().addListener(cmpSizeListener);
+                    if (packer.currentCmpRatioProperty() != null)
+                        packer.currentCmpRatioProperty().addListener(currentCmpRatioListener);
+                    if (packer.exitStatusProperty() != null)
+                        packer.exitStatusProperty().addListener(exitStatusListener);
+
+                    updateTitle(bundle.getString("searching"));
+                    Platform.runLater(() -> percentageLabel.setText("0.0"));
+                    packer.build();
+
+                    // Add progress bar
+                    long totalLength = packer.getTotalOrigSize();
+                    Platform.runLater(() -> totalSizeLabel.setText(Util.sizeToReadable(totalLength)));
+                    progressListener = (observable, oldValue, newValue) ->
+                            updateProgress(newValue.longValue(), totalLength);
+                    packer.progressProperty().addListener(progressListener);
+
+                    packer.pack(path[0].getParent() + File.separator + name, windowSize, bufferSize);
+                    updateProgress(totalLength, totalLength);
+
+                    return null;
+                }
+            };
+        }
     }
 }

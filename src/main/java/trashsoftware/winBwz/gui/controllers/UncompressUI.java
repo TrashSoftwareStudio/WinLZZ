@@ -3,7 +3,6 @@ package trashsoftware.winBwz.gui.controllers;
 import javafx.stage.Modality;
 import trashsoftware.winBwz.gui.graphicUtil.FileNode;
 import trashsoftware.winBwz.packer.*;
-import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
 import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
 import trashsoftware.winBwz.utility.Util;
 import trashsoftware.winBwz.encrypters.WrongPasswordException;
@@ -93,7 +92,7 @@ public class UncompressUI implements Initializable {
                 alert.setHeaderText(bundle.getString("unsupportedVersion"));
                 alert.setContentText(String.format("%s %s, %s %s",
                         bundle.getString("curSoftCoreVer"),
-                        Packer.getProgramFullVersion(),
+                        PzPacker.getProgramFullVersion(),
                         bundle.getString("uncNeedCoreVer"),
                         unPacker.getArchiveFullVersion()));
                 alert.showAndWait();

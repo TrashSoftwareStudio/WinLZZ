@@ -11,12 +11,12 @@ public class AnnotationNode {
     /**
      * The byte text of annotation.
      */
-    private byte[] annotation;
+    private final byte[] annotation;
 
     /**
      * Whether the annotation text is compressed.
      */
-    private boolean compressed;
+    private final boolean compressed;
 
     /**
      * Creates a new AnnotationNode instance.

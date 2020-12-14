@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.core.lz4;
 
 import trashsoftware.winBwz.core.Compressor;
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 import trashsoftware.winBwz.utility.Bytes;
 
 import java.io.IOException;
@@ -37,7 +37,7 @@ public class Lz4Compressor implements Compressor {
     }
 
     @Override
-    public void setPacker(Packer packer) {
+    public void setPacker(PzPacker packer) {
 
     }
 

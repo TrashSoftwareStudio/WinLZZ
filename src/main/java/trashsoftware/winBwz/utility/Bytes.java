@@ -1,7 +1,5 @@
 package trashsoftware.winBwz.utility;
 
-import trashsoftware.winBwz.packer.Packer;
-
 import java.nio.charset.StandardCharsets;
 
 /**

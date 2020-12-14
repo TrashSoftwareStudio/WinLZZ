@@ -432,7 +432,7 @@ public class UnPacker {
             String prefixName = prefixName1.substring(0, prefixName1.lastIndexOf("."));
             String suffixName = packName.substring(packName.lastIndexOf("."));
             bis.close();
-            bis = SeparateInputStream.createNew(prefixName, suffixName, partCount, this, Packer.PART_SIGNATURE);
+            bis = SeparateInputStream.createNew(prefixName, suffixName, partCount, this, PzPacker.PART_SIGNATURE);
             ((SeparateInputStream) bis).setLanLoader(bundle);
             if (bis.skip(39) != 39) throw new IOException("Error occurs while reading");
             extraLen = 12;
@@ -580,7 +580,7 @@ public class UnPacker {
 
         DeCompressor mapDec;
         if (windowSize == 0) {
-            mapDec = getDeCompressor(cmpMapName, Packer.defaultWindowSize);
+            mapDec = getDeCompressor(cmpMapName, PzPacker.defaultWindowSize);
         } else {
             mapDec = getDeCompressor(cmpMapName, windowSize);
         }
@@ -1188,8 +1188,8 @@ public class UnPacker {
             }
             fis.close();
             int signature = Bytes.bytesToInt32(sigBytes);
-            if (signature == Packer.SIGNATURE) return 0;
-            else if (signature == Packer.PART_SIGNATURE) return 1;
+            if (signature == PzPacker.SIGNATURE) return 0;
+            else if (signature == PzPacker.PART_SIGNATURE) return 1;
             else return 2;
         } catch (IOException e) {
             return 2;

@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.gui.controllers;
 
 import trashsoftware.winBwz.Main;
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
@@ -20,7 +20,7 @@ public class AboutUI implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         this.bundle = resources;
         versionLabel.setText(Main.VERSION);
-        coreVersionLabel.setText(Packer.getProgramFullVersion());
+        coreVersionLabel.setText(PzPacker.getProgramFullVersion());
         fillText();
     }
 

@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.core;
 
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
-import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.PzPacker;
 
 import java.io.OutputStream;
 
@@ -31,7 +31,7 @@ public interface Compressor {
      *
      * @param packer parent {@code Packer} which launched this {@code Compressor}.
      */
-    void setPacker(Packer packer);
+    void setPacker(PzPacker packer);
 
     /**
      * Sets up the thread number used for compress.

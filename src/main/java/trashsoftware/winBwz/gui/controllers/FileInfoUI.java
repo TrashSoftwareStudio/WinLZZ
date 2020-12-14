@@ -48,7 +48,7 @@ public class FileInfoUI implements Initializable {
     }
 
     private void drawCompressRate(long lengthBeforeCmp, long otherInfoLen, long contextLen, long mainLen) {
-        double headRatio = (double) Packer.FIXED_HEAD_LENGTH / lengthBeforeCmp;
+        double headRatio = (double) PzPacker.FIXED_HEAD_LENGTH / lengthBeforeCmp;
         double otherInfoRatio = (double) otherInfoLen / lengthBeforeCmp;
         double contextRatio = (double) contextLen / lengthBeforeCmp;
         double mainRatio = (double) mainLen / lengthBeforeCmp;

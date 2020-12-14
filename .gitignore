@@ -4,6 +4,7 @@ out/
 pref.ini
 /target/
 /cache
+/logs
 
 # Compressed files #
 

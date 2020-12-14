@@ -185,6 +185,7 @@ public class CacheSaver {
         JSONObject root = new JSONObject(map);
         String content = root.toString(2);
         try {
+            createLogDirIfNone();
             FileWriter fileWriter = new FileWriter(CACHE);
             fileWriter.write(content);
             fileWriter.flush();
@@ -192,6 +193,15 @@ public class CacheSaver {
         } catch (IOException e) {
             e.printStackTrace();
             EventLogger.log(e);
+        }
+    }
+
+    private static void createLogDirIfNone() {
+        File dir = new File(GeneralLoaders.CACHE_DIR);
+        if (!dir.exists()) {
+            if (!dir.mkdirs()) {
+                System.out.println("Failed to create log directory.");
+            }
         }
     }
 

@@ -102,8 +102,8 @@ public class CompressUI implements Initializable {
                 LoaderManager.getCacheSaver().readInt("algBoxIndex", 0));
         presetLevelBox.getSelectionModel().select(
                 LoaderManager.getCacheSaver().readInt("levelBoxIndex", 3));
-        threadBox.getSelectionModel().select(
-                LoaderManager.getCacheSaver().readInt("threadBoxIndex", 0));
+//        threadBox.getSelectionModel().select(
+//                LoaderManager.getCacheSaver().readInt("threadBoxIndex", 0));
         modeBox.getSelectionModel().select(1);
         unitBox.getSelectionModel().select(0);
     }
@@ -312,6 +312,7 @@ public class CompressUI implements Initializable {
         modeBox.getItems().addAll(cmpModeLevels[0], cmpModeLevels[1]);
         threadBox.getItems().clear();
         threadBox.getItems().addAll(threads);
+        threadBox.getSelectionModel().select(LoaderManager.getCacheSaver().readInt("threadBoxIndex", 0));
 //        threadBox.getSelectionModel().select(0);
     }
 
@@ -328,6 +329,7 @@ public class CompressUI implements Initializable {
         modeBox.getItems().addAll(cmpModeLevels[0], cmpModeLevels[1]);
         threadBox.getItems().clear();
         threadBox.getItems().addAll(threads);
+        threadBox.getSelectionModel().select(LoaderManager.getCacheSaver().readInt("threadBoxIndex", 0));
 //        threadBox.getSelectionModel().select(0);
     }
 

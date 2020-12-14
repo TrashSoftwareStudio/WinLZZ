@@ -37,7 +37,14 @@ public class UnPacker {
     /**
      * Names of temporary files that will be created for unpacking and decompressing.
      */
-    private String packName, mapName, cmpMapName, tempName, cmpTempName, encMapName, encMainName, combineName;
+    private final String packName;
+    private final String mapName;
+    private final String cmpMapName;
+    private String tempName;
+    private final String cmpTempName;
+    private final String encMapName;
+    private final String encMainName;
+    private String combineName;
 
     /**
      * The input stream of this archive file itself.
@@ -62,7 +69,7 @@ public class UnPacker {
      * <p>
      * This list is order-sensitive. Each node represents an actual file except the root node.
      */
-    private ArrayList<IndexNodeUnp> indexNodes = new ArrayList<>();
+    private final ArrayList<IndexNodeUnp> indexNodes = new ArrayList<>();
 
     /**
      * The root {@code ContextNode} of the archive.
@@ -180,7 +187,7 @@ public class UnPacker {
         bis = new BufferedInputStream(new FileInputStream(packName));
 
         byte[] buffer2 = new byte[2];
-        byte[] buffer4 = new byte[4];
+//        byte[] buffer4 = new byte[4];
 
         if (bis.skip(4) != 4) throw new IOException("Error occurs while reading");
 //        int headerInt = Bytes.bytesToInt32(buffer4);
@@ -189,51 +196,166 @@ public class UnPacker {
         if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
         primaryVersion = buffer2[0];
         algVersion = buffer2[1];
-        if (primaryVersion != Packer.primaryVersion)
+        if (primaryVersion >= 25)
+            readInfo25higher();
+        else
             throw new UnsupportedVersionException("Unsupported file version");
+
+//        byte[] infoBytes = new byte[2];
+//        if (bis.read(infoBytes) != 2) throw new IOException("Error occurs while reading");
+//
+//        String info = Bytes.byteToBitString(infoBytes[0]);
+//        String encInfo = Bytes.byteToBitString(infoBytes[1]);
+//        String enc = info.substring(0, 2);  // The encrypt level of this archive.
+//        switch (enc) {
+//            case "00":
+//                encryptLevel = 0;
+//                passwordSet = true;
+//                break;
+//            case "10":
+//                encryptLevel = 1;
+//                break;
+//            case "01":
+//                encryptLevel = 2;
+//                break;
+//        }
+//
+//        String algCode = info.substring(2, 4);
+//        int programAlgVersion;
+//        switch (algCode) {
+//            case "00":
+//                alg = "lzz2";
+//                programAlgVersion = LZZ2Compressor.VERSION;
+//                break;
+//            case "10":
+//                alg = "bwz";
+//                programAlgVersion = BWZCompressor.VERSION;
+//                break;
+//            case "11":
+//                alg = "fastLzz";
+//                programAlgVersion = FastLzzCompressor.VERSION;
+//                break;
+//            default:
+//                throw new RuntimeException("Unknown algorithm");
+//        }
+//        if (programAlgVersion != algVersion)
+//            throw new UnsupportedVersionException("Unsupported algorithm version");
+//
+//        char sepRep = info.charAt(4);
+//        isSeparated = sepRep == '1';
+//
+//        String encAlgName = encInfo.substring(0, 2);
+//        switch (encAlgName) {
+//            case "00":
+//                encryption = "zse";
+//                break;
+//            case "10":
+//                encryption = "bzse";
+//                break;
+//        }
+//
+//        String passAlgName = encInfo.substring(2, 5);
+//        int passwordPlainLength = 0;
+//        switch (passAlgName) {
+//            case "000":
+//                passwordAlg = "md5";
+//                passwordPlainLength = 16;
+//                break;
+//            case "001":
+//                passwordAlg = "sha-256";
+//                passwordPlainLength = 32;
+//                break;
+//            case "010":
+//                passwordAlg = "sha-384";
+//                passwordPlainLength = 48;
+//                break;
+//            case "011":
+//                passwordAlg = "sha-512";
+//                passwordPlainLength = 64;
+//                break;
+//            case "100":
+//                passwordAlg = "zha64";
+//                passwordPlainLength = 8;
+//                break;
+//        }
+//
+//        byte[] windowSizeByte = new byte[1];
+//        if (bis.read(windowSizeByte) != 1) throw new IOException("Error occurs while reading");
+//        if ((windowSizeByte[0] & 0xff) == 0) windowSize = 0;
+//        else windowSize = (int) Math.pow(2, windowSizeByte[0] & 0xff);
+//
+//        byte[] creationTimeByte = new byte[4];
+//        if (bis.read(creationTimeByte) != 4) throw new IOException("Error occurs while reading");
+//        creationTime = Bytes.recoverTimeMillsFromInt(Bytes.bytesToInt32(creationTimeByte));
+//
+//        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
+//        byte[] fullCRC32Bytes1 = new byte[8];
+//        System.arraycopy(buffer4, 0, fullCRC32Bytes1, 4, 4);
+//        crc32Context = Bytes.bytesToLong(fullCRC32Bytes1);
+//
+//        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
+//        byte[] fullCRC32Bytes2 = new byte[8];
+//        System.arraycopy(buffer4, 0, fullCRC32Bytes2, 4, 4);
+//        crc32Checksum = Bytes.bytesToLong(fullCRC32Bytes2);
+//
+//        if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
+//        cmpMapLen = Bytes.bytesToInt32(buffer4);
+//
+//        if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
+//        byte[] extraFieldLength = new byte[4];
+//        System.arraycopy(buffer2, 0, extraFieldLength, 2, 2);
+//        int extraFieldLen = Bytes.bytesToInt32(extraFieldLength);
+//
+//        int extraLen;
+//        if (isSeparated) {
+//            if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
+//            partCount = Bytes.bytesToInt32(buffer4);
+//            byte[] buffer8 = new byte[8];
+//            if (bis.read(buffer8) != 8) throw new IOException("Error occurs while reading");
+//            archiveLength = Bytes.bytesToLong(buffer8);
+//            extraFieldLen -= 12;
+//            extraField = new byte[extraFieldLen];
+//            String prefixName1 = packName.substring(0, packName.lastIndexOf("."));
+//            String prefixName = prefixName1.substring(0, prefixName1.lastIndexOf("."));
+//            String suffixName = packName.substring(packName.lastIndexOf("."));
+//            bis.close();
+//            bis = SeparateInputStream.createNew(prefixName, suffixName, partCount, this, Packer.PART_SIGNATURE);
+//            ((SeparateInputStream) bis).setLanLoader(bundle);
+//            if (bis.skip(39) != 39) throw new IOException("Error occurs while reading");
+//            extraLen = 12;
+//        } else {
+//            File f = new File(packName);
+//            archiveLength = f.length();
+//            extraField = new byte[extraFieldLen];
+//            extraLen = 0;
+//        }
+//
+//        if (bis.read(extraField) != extraFieldLen) throw new IOException("Error occurs while reading");
+//
+//        cmpMainLength = archiveLength - cmpMapLen - extraFieldLen - extraLen - 27;
+//
+//        if (encryptLevel != 0) {
+//            cmpMainLength -= (passwordPlainLength + 8);
+//            passwordSalt = new byte[8];
+//            if (bis.read(passwordSalt) != 8) throw new IOException("Error occurs while reading");
+//            origPasswordChecksum = new byte[passwordPlainLength];
+//            if (bis.read(origPasswordChecksum) != passwordPlainLength)
+//                throw new IOException("Error occurs while reading");
+//        }
+    }
+
+    private void readInfo25higher() throws IOException {
+        byte[] buffer2 = new byte[2];
+        byte[] buffer4 = new byte[4];
 
         byte[] infoBytes = new byte[2];
         if (bis.read(infoBytes) != 2) throw new IOException("Error occurs while reading");
 
-        String info = Bytes.byteToBitString(infoBytes[0]);
+//        String info = Bytes.byteToBitString(infoBytes[0]);
         String encInfo = Bytes.byteToBitString(infoBytes[1]);
-        String enc = info.substring(0, 2);  // The encrypt level of this archive.
-        switch (enc) {
-            case "00":
-                encryptLevel = 0;
-                passwordSet = true;
-                break;
-            case "10":
-                encryptLevel = 1;
-                break;
-            case "01":
-                encryptLevel = 2;
-                break;
-        }
-
-        String algCode = info.substring(2, 4);
-        int programAlgVersion;
-        switch (algCode) {
-            case "00":
-                alg = "lzz2";
-                programAlgVersion = LZZ2Compressor.VERSION;
-                break;
-            case "10":
-                alg = "bwz";
-                programAlgVersion = BWZCompressor.VERSION;
-                break;
-            case "11":
-                alg = "fastLzz";
-                programAlgVersion = FastLzzCompressor.VERSION;
-                break;
-            default:
-                throw new RuntimeException("Unknown algorithm");
-        }
-        if (programAlgVersion != algVersion)
-            throw new UnsupportedVersionException("Unsupported algorithm version");
-
-        char sepRep = info.charAt(4);
-        isSeparated = sepRep == '1';
+        if (primaryVersion == 25) readInfoByte25(infoBytes[0]);
+        else if (primaryVersion == 26) readInfoByte26(infoBytes[0]);
+        else throw new UnsupportedVersionException("Unsupported file version");
 
         String encAlgName = encInfo.substring(0, 2);
         switch (encAlgName) {
@@ -333,6 +455,88 @@ public class UnPacker {
             if (bis.read(origPasswordChecksum) != passwordPlainLength)
                 throw new IOException("Error occurs while reading");
         }
+    }
+
+    private void readInfoByte25(byte infoByte) {
+        String info = Bytes.byteToBitString(infoByte);
+        String enc = info.substring(0, 2);  // The encrypt level of this archive.
+        switch (enc) {
+            case "00":
+                encryptLevel = 0;
+                passwordSet = true;
+                break;
+            case "10":
+                encryptLevel = 1;
+                break;
+            case "01":
+                encryptLevel = 2;
+                break;
+        }
+
+        String algCode = info.substring(2, 4);
+        int programAlgVersion;
+        switch (algCode) {
+            case "00":
+                alg = "lzz2";
+                programAlgVersion = LZZ2Compressor.VERSION;
+                break;
+            case "10":
+                alg = "bwz";
+                programAlgVersion = BWZCompressor.VERSION;
+                break;
+            case "11":
+                alg = "fastLzz";
+                programAlgVersion = FastLzzCompressor.VERSION;
+                break;
+            default:
+                throw new RuntimeException("Unknown algorithm");
+        }
+        if (programAlgVersion != algVersion)
+            throw new UnsupportedVersionException("Unsupported algorithm version");
+
+        char sepRep = info.charAt(4);
+        isSeparated = sepRep == '1';
+    }
+
+    private void readInfoByte26(byte infoByte) {
+        String info = Bytes.byteToBitString(infoByte);
+        String enc = info.substring(0, 2);  // The encrypt level of this archive.
+        switch (enc) {
+            case "00":
+                encryptLevel = 0;
+                passwordSet = true;
+                break;
+            case "10":
+                encryptLevel = 1;
+                break;
+            case "01":
+                encryptLevel = 2;
+                break;
+        }
+
+        String algCode = info.substring(2, 6);
+        int programAlgVersion;
+        switch (algCode) {
+            case "0000":
+                alg = "lzz2";
+                programAlgVersion = LZZ2Compressor.VERSION;
+                break;
+            case "1000":
+                alg = "bwz";
+                programAlgVersion = BWZCompressor.VERSION;
+                break;
+            case "1100":
+                alg = "fastLzz";
+                programAlgVersion = FastLzzCompressor.VERSION;
+                break;
+            default:
+                throw new RuntimeException("Unknown algorithm");
+        }
+        if (programAlgVersion != algVersion)
+            throw new UnsupportedVersionException("Unsupported algorithm version");
+
+        char sepRep = info.charAt(7);
+        isSeparated = sepRep == '1';
     }
 
     /**
@@ -956,7 +1160,7 @@ public class UnPacker {
      */
     public long getDisplayArchiveLength() {
         if (isSeparated) {
-            return archiveLength + (partCount - 1) * 4;
+            return archiveLength + (partCount - 1) * 4L;
         } else {
             return archiveLength;
         }
@@ -1057,7 +1261,7 @@ public class UnPacker {
  */
 class IndexNodeUnp {
 
-    private String name;
+    private final String name;
 
     /**
      * The start position of this file in the uncompressed main part of archive.

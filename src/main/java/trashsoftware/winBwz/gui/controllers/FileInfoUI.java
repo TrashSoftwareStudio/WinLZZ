@@ -172,7 +172,8 @@ public class FileInfoUI implements Initializable {
         else if (versionInt == 22) return "0.7+";
         else if (versionInt == 23) return "0.7.0 - 0.7.1";
         else if (versionInt == 24) return "0.7.2 - 0.7.3";
-        else if (versionInt == 25) return "0.7.4+";
+        else if (versionInt == 25) return "1.0 Alpha+";
+        else if (versionInt == 26) return "1.0 Alpha 12+";
         else return bundle.getString("unknown");
     }
 

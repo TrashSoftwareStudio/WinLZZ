@@ -47,7 +47,7 @@ public class Packer {
      * <p>
      * Any change of this value will result the incompatibility between the program and older archive file.
      */
-    public final static byte primaryVersion = 25;
+    public final static byte primaryVersion = 26;
 
     public static final int FIXED_HEAD_LENGTH = 27;
 
@@ -104,9 +104,9 @@ public class Packer {
      * <p>
      * This list is order-sensitive. Each node represents an actual file except the root node.
      */
-    private ArrayList<IndexNode> indexNodes = new ArrayList<>();
+    private final ArrayList<IndexNode> indexNodes = new ArrayList<>();
 
-    private File[] inFiles;
+    private final File[] inFiles;
 
     private String password;
 
@@ -121,7 +121,7 @@ public class Packer {
     /**
      * The CRC32 checksum generator of the context.
      */
-    private CRC32 contextCrc = new CRC32();
+    private final CRC32 contextCrc = new CRC32();
 
     /**
      * List of extra field blocks.
@@ -139,7 +139,7 @@ public class Packer {
      * 1: annotation
      * None: partition info
      */
-    private ArrayList<byte[]> extraFields = new ArrayList<>();
+    private final ArrayList<byte[]> extraFields = new ArrayList<>();
 
     public final ReadOnlyLongWrapper progress = new ReadOnlyLongWrapper();
     public final ReadOnlyStringWrapper percentage = new ReadOnlyStringWrapper();
@@ -291,7 +291,7 @@ public class Packer {
         }
         bos.write(algVersion);  // write algorithm version : 1 byte
 
-        if (partSize != 0) inf = (byte) (inf | 0b00001000);  // If compress separately
+        if (partSize != 0) inf = (byte) (inf | 0b00000001);  // If compress separately
 
         if (encryptLevel != 0) {
             switch (encryption) {
@@ -744,7 +744,7 @@ public class Packer {
  */
 class IndexNode {
 
-    private String name;
+    private final String name;
 
     /**
      * The start position of this file in the uncompressed main part of archive.
@@ -764,7 +764,7 @@ class IndexNode {
     /**
      * The {@code File} file.
      */
-    private File file;
+    private final File file;
 
     /**
      * The start and end position of children of this IndexNode in the uncompressed context map.
@@ -881,14 +881,14 @@ class IndexNode {
 /**
  * A special kind of file which marks the root directory of a archive file.
  * <p>
- * This kind of file does not exist in the disk.
+ * This kind of file does not exist on the disk.
  *
  * @author zbh
  * @since 0.7
  */
 class RootFile extends File {
 
-    private File[] children;
+    private final File[] children;
 
     /**
      * Creates a new {@code RootFile} instance.

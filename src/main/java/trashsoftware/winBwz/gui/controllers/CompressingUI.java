@@ -310,7 +310,7 @@ public class CompressingUI implements Initializable {
                     long totalLength = packer.getTotalOrigSize();
                     Platform.runLater(() -> totalSizeLabel.setText(Util.sizeToReadable(totalLength)));
                     progressListener = (observable, oldValue, newValue) ->
-                            updateProgress(newValue.longValue(), totalLength);
+                            updateProgress(newValue.longValue(), packer.getTotalOrigSize());
                     packer.progressProperty().addListener(progressListener);
 
                     packer.pack(path[0].getParent() + File.separator + name, windowSize, bufferSize);

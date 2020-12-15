@@ -12,29 +12,26 @@ public abstract class Packer {
     public final ReadOnlyLongWrapper progress = new ReadOnlyLongWrapper();
     public final ReadOnlyStringWrapper percentage = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper ratio = new ReadOnlyStringWrapper();
-    protected final ReadOnlyStringWrapper step = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper file = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper timeUsed = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper timeExpected = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper passedLength = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper cmpLength = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper currentCmpRatio = new ReadOnlyStringWrapper();
+    protected final ReadOnlyStringWrapper step = new ReadOnlyStringWrapper();
+    protected final ReadOnlyLongWrapper totalOrigLengthWrapper = new ReadOnlyLongWrapper();
     protected final ReadOnlyIntegerWrapper exitStatus = new ReadOnlyIntegerWrapper();
-    private String errorMsg;
-
-    protected ResourceBundle bundle;
-
     protected final File[] inFiles;
-
+    protected ResourceBundle bundle;
     /**
      * Total length before compression.
      */
     protected long totalLength;
-
     /**
      * Archive length after compression.
      */
     protected long compressedLength;
+    private String errorMsg;
 
     public Packer(File[] inFiles) {
         this.inFiles = inFiles;
@@ -62,6 +59,11 @@ public abstract class Packer {
 
     public abstract void setAnnotation(AnnotationNode annotation) throws IOException;
 
+    /**
+     * Builds the file structure.
+     * <p>
+     * After this method being called, total original size should be produced.
+     */
     public abstract void build();
 
     public abstract void pack(String outFileName, int windowSize, int bufferSize) throws Exception;
@@ -100,6 +102,10 @@ public abstract class Packer {
 
     public ReadOnlyStringProperty compressedSizeProperty() {
         return cmpLength;
+    }
+
+    public ReadOnlyLongProperty totalOrigLengthProperty() {
+        return totalOrigLengthWrapper;
     }
 
     public ReadOnlyStringProperty currentCmpRatioProperty() {

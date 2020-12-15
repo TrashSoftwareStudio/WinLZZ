@@ -153,6 +153,7 @@ public class PzPacker extends Packer {
         fileCount = 1;
         indexNodes.add(rootNode);
         buildIndexTree(rf, rootNode);
+        totalOrigLengthWrapper.set(totalLength);
     }
 
     private void buildIndexTree(File file, IndexNode currentNode) {

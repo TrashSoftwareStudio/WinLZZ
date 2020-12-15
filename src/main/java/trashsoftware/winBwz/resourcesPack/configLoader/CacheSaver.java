@@ -121,6 +121,15 @@ public class CacheSaver {
         return (int) readLong(key, defaultValue);
     }
 
+    public String readString(String key, String defaultValue) {
+        Object obj = map.get(key);
+        if (obj instanceof String) {
+            return (String) obj;
+        } else {
+            return defaultValue;
+        }
+    }
+
     /**
      * Returns a {@code List} of existing {@code File}'s that was opened for annotation.
      *

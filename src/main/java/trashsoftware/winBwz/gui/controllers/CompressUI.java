@@ -36,6 +36,7 @@ public class CompressUI implements Initializable {
             new AlgBoxItem("Deflate", "deflate")
     };
     private static final String[] compressionLevels = new String[6];
+    private static final String[] compressionLevelsZip = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
     private static final String[] windowSizeNamesLzz2 = {"4KB", "16KB", "32KB", "64KB", "128KB", "256KB", "1MB"};
     private static final String[] windowSizeNamesBwz = {"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
     private static final String[] windowSizeNamesFastLzz = {"4KB", "16KB", "32KB", "64KB", "69KB"};
@@ -99,7 +100,7 @@ public class CompressUI implements Initializable {
         setWindowNameBoxListener();
         setModeBoxListener();
         fmtBox.getSelectionModel().select(
-                LoaderManager.getCacheSaver().readInt("fmtIndex", 0)
+                LoaderManager.getCacheSaver().readString("fmtName", "pz")
         );
         algBox.getSelectionModel().select(
                 LoaderManager.getCacheSaver().readInt("algBoxIndex", 0));
@@ -138,14 +139,9 @@ public class CompressUI implements Initializable {
 
     private void fillGeneralBoxes() {
         fmtBox.getItems().addAll(fmts);
-        presetLevelBox.getItems().addAll(compressionLevels);
         partialBox.getItems().addAll(splitSizeNames);
         unitBox.getItems().addAll("B", "KB", "MB", "GB");
     }
-
-//    private boolean hasBuffer() {
-//        return algValues[currentAlgIndex].equals("lzz2") || algValues[currentAlgIndex].equals("fastLzz");
-//    }
 
     private void setSizeUnitListener() {
         partialBox.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
@@ -175,11 +171,13 @@ public class CompressUI implements Initializable {
                 modeBox.setDisable(true);
             } else {
                 windowNameBox.setDisable(false);
-                modeBox.setDisable(false);
 
                 int[] windowModeBuffer = getPresetLevels(newValue.intValue());
                 windowNameBox.getSelectionModel().select(windowModeBuffer[0]);
-                modeBox.getSelectionModel().select(windowModeBuffer[1]);
+                if (windowModeBuffer[1] >= 0) {
+                    modeBox.setDisable(false);
+                    modeBox.getSelectionModel().select(windowModeBuffer[1]);
+                }
                 if (windowModeBuffer[2] >= 0) {  // has buffer (look ahead buffer) option
                     bufferBox.setDisable(false);
                     bufferBox.getSelectionModel().select(windowModeBuffer[2]);
@@ -204,18 +202,27 @@ public class CompressUI implements Initializable {
     private void setFmtBoxListener() {
         fmtBox.getSelectionModel().selectedItemProperty().addListener(((observable, oldValue, newValue) -> {
             if (newValue != null) {
+                int algIndex = LoaderManager.getCacheSaver().readInt("algBoxIndex", 0);
+                int levelIndex = LoaderManager.getCacheSaver().readInt("levelBoxIndex", 3);
                 if (newValue.equals("pz")) {
                     algBox.getItems().clear();
                     algBox.getItems().addAll(PZ_ALG);
-                    algBox.getSelectionModel().select(0);
+                    presetLevelBox.getItems().clear();
+                    presetLevelBox.getItems().addAll(compressionLevels);
                     replaceNameExt("pz");
                 } else if (newValue.equals("zip")) {
                     algBox.getItems().clear();
                     algBox.getItems().addAll(ZIP_ALG);
-                    algBox.getSelectionModel().select(0);
+                    presetLevelBox.getItems().clear();
+                    presetLevelBox.getItems().addAll(compressionLevelsZip);
                     replaceNameExt("zip");
                 }
-                LoaderManager.getCacheSaver().writeCache("fmtIndex", newValue);
+                algBox.getSelectionModel().select(algIndex >= algBox.getItems().size() ?
+                        0 : algIndex);
+                presetLevelBox.getSelectionModel().select(levelIndex >= presetLevelBox.getItems().size() ?
+                        3 : levelIndex);
+
+                LoaderManager.getCacheSaver().writeCache("fmtName", newValue);
             }
         }));
     }
@@ -255,6 +262,7 @@ public class CompressUI implements Initializable {
                     break;
                 case "deflate":
                     setZipUi();
+                    modeBox.getSelectionModel().select(1);
                     break;
                 default:
                     throw new RuntimeException();
@@ -316,7 +324,12 @@ public class CompressUI implements Initializable {
     }
 
     private String getAlgCode() {
-        return algBox.getSelectionModel().getSelectedItem().code;
+        AlgBoxItem abi = algBox.getSelectionModel().getSelectedItem();
+        if (abi != null)
+            return abi.code;
+        else
+            if (fmtBox.getValue().equals("pz")) return "bwz";
+            else return "deflate";
     }
 
     private void setZipUi() {
@@ -510,6 +523,10 @@ public class CompressUI implements Initializable {
         for (int i = 0; i < 5; i++) cmpModeLevels[i] = bundle.getString("compressStrongLv" + i);
     }
 
+    /**
+     * @param presetLevel preset level
+     * @return 3 int tuple: {window index, mode index, buffer index}
+     */
     private int[] getPresetLevels(int presetLevel) {
         String currentAlgValue = getAlgCode();
         switch (currentAlgValue) {
@@ -574,15 +591,15 @@ public class CompressUI implements Initializable {
     private int[] getDeflatePref(int presetLevel) {
         switch (presetLevel) {
             case 1:
-                return new int[]{0, 0, 1};
+                return new int[]{0, -1, 0};
             case 2:
-                return new int[]{1, 0, 2};
+                return new int[]{1, -1, 0};
             default:  // default level is 3
-                return new int[]{2, 0, 3};
+                return new int[]{2, -1, 0};
             case 4:
-                return new int[]{3, 1, 3};
+                return new int[]{3, -1, 0};
             case 5:
-                return new int[]{5, 1, 4};
+                return new int[]{5, -1, 0};
         }
     }
 

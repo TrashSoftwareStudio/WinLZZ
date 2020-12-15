@@ -55,8 +55,6 @@ public class LZZ2Compressor implements Compressor {
      */
     private long timeOffset;
 
-    private long lastUpdateProgress;
-
     private int compressionLevel;
 
     private long position = 0;  // The processing index. i.e. the border of buffer and slider.
@@ -416,6 +414,8 @@ public class LZZ2Compressor implements Compressor {
     class CompTimerTask extends TimerTask {
         private int accumulator;
 
+        private long lastUpdateProgress;
+
         @Override
         public void run() {
             packer.progress.set(position);
@@ -425,7 +425,7 @@ public class LZZ2Compressor implements Compressor {
                 double rounded = (double) Math.round(finished * 1000) / 10;
                 packer.percentage.set(String.valueOf(rounded));
                 int newUpdated = (int) (position - lastUpdateProgress);
-                lastUpdateProgress = packer.progress.get();
+                lastUpdateProgress = position;
                 int ratio = newUpdated / 1024;
                 packer.ratio.set(String.valueOf(ratio));
 

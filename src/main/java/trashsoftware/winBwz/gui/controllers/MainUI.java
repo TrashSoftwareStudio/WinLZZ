@@ -23,6 +23,7 @@ import trashsoftware.trashGraphics.core.ImageViewer;
 import trashsoftware.trashGraphics.gui.TrashGraphicsClient;
 import trashsoftware.winBwz.gui.GUIClient;
 import trashsoftware.winBwz.gui.graphicUtil.*;
+import trashsoftware.winBwz.gui.widgets.FileView;
 import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
 import trashsoftware.winBwz.utility.Util;
 
@@ -131,17 +132,17 @@ public class MainUI implements Initializable {
         for (String dir : lastOpenedDirs) {
             createTabByPath(dir, false);
         }
+        int lastTabIndex = LoaderManager.getCacheSaver().readInt("tabPaneIndex", 0);
         if (!lastOpenedDirs.isEmpty()) {
             try {
-                expandTill(lastOpenedDirs.get(0));
+                expandTill(lastOpenedDirs.get(lastTabIndex));
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
         }
 
         setTabPaneListener();
-        rootTabPane.getSelectionModel().select(
-                LoaderManager.getCacheSaver().readInt("tabPaneIndex", 0));
+        rootTabPane.getSelectionModel().select(lastTabIndex);
         boolean showToolbar = LoaderManager.getCacheSaver().readBoolean("toolbar");
         if (showToolbar) showHideToolbarAction();
 
@@ -256,6 +257,7 @@ public class MainUI implements Initializable {
         currentSelection = new RegularFileNode(currentSelection.getFile().getParentFile(), bundle);
         fillTable();
         changeBackBtnStatus();
+        changeDirRelatives();
     }
 
     @FXML
@@ -347,8 +349,12 @@ public class MainUI implements Initializable {
     }
 
     private void refreshDirButtons() {
+        refreshDirButtons(getActiveFileViewPage());
+    }
+
+    private void refreshDirButtons(FileManagerPage newManagerPage) {
         currentDirBox.getChildren().clear();
-        String currentDir = getActiveFileViewPage().getCurrentDir();
+        String currentDir = newManagerPage.getCurrentDir();
         if (currentDir.length() > 0) {
             String split = Pattern.quote(File.separator);
             String[] dirs = currentDir.split(split);
@@ -673,7 +679,7 @@ public class MainUI implements Initializable {
     private void setTabPaneListener() {
         rootTabPane.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
             if (newValue != null && newValue.intValue() >= 0) {
-                refreshDirButtons();
+                refreshDirButtons((FileManagerPage) rootTabPane.getTabs().get(newValue.intValue()).getContent());
                 LoaderManager.getCacheSaver().writeCache("tabPaneIndex", newValue);
             }
         }));
@@ -747,7 +753,7 @@ public class MainUI implements Initializable {
         } else {
             getActiveFileViewPage().refresh();
         }
-//        refreshDirButtons();
+        refreshDirButtons();
     }
 
     private void fillFromDir(File node) {

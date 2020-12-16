@@ -78,9 +78,14 @@ public class FileInfoUI implements Initializable {
 
     void setInfo(UnPacker unPacker) {
         this.unPacker = unPacker;
+        if (unPacker instanceof PzUnPacker) setItemsPz();
+//        else if (unPacker instanceof ) setItemsZip();
+        else throw new RuntimeException("No such unpacker");
     }
 
-    void setItems() {
+    private void setItemsPz() {
+        PzUnPacker pzUnPacker = (PzUnPacker) unPacker;
+
         String prefix = unPacker.isSeparated() ? bundle.getString("multiSection") + " " : "";
         typeLabel.setText(prefix + "WinLZZ " + bundle.getString("archive"));
 
@@ -101,23 +106,23 @@ public class FileInfoUI implements Initializable {
         }
 
 //        compressRateBar.setProgress(rate);
-        drawCompressRate(unPacker.getTotalOrigSize(), unPacker.getOtherInfoLength(), unPacker.getContextLength(),
-                unPacker.getCmpMainLength());
+        drawCompressRate(pzUnPacker.getTotalOrigSize(), pzUnPacker.getOtherInfoLength(), pzUnPacker.getContextLength(),
+                pzUnPacker.getCmpMainLength());
 
-        double rate = unPacker.getTotalOrigSize() == 0 ? 0 : (double) unPacker.getDisplayArchiveLength() /
+        double rate = unPacker.getTotalOrigSize() == 0 ? 0 : (double) pzUnPacker.getDisplayArchiveLength() /
                 unPacker.getTotalOrigSize();
         double roundedRate = ((double) Math.round(rate * 10000)) / 100.0;
-        double netRate = (double) unPacker.getCmpMainLength() / unPacker.getTotalOrigSize();
+        double netRate = (double) pzUnPacker.getCmpMainLength() / unPacker.getTotalOrigSize();
         double roundedNetRate = ((double) Math.round(netRate * 10000)) / 100.0;
         Date date = new Date(unPacker.getCreationTime());
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         algLabel.setText(": " + alg);
-        versionLabel.setText(unPacker.getArchiveFullVersion());
-        versionNeededLabel.setText(": " + translateVersion(unPacker.versionNeeded()));
+        versionLabel.setText(pzUnPacker.getArchiveFullVersion());
+        versionNeededLabel.setText(": " + translateVersion(pzUnPacker.versionNeeded()));
         compressRateLabel.setText(": " + roundedRate + " %");
         netRateLabel.setText(": " + roundedNetRate + " %");
-        windowSizeLabel.setText(": " + sizeToString3Digit(unPacker.getWindowSize()));
+        windowSizeLabel.setText(": " + sizeToString3Digit(pzUnPacker.getWindowSize()));
         origSizeLabel.setText(": " + Util.sizeToReadable(unPacker.getTotalOrigSize()));
         compressSizeLabel.setText(": " + Util.sizeToReadable(unPacker.getDisplayArchiveLength()));
         fileCountLabel.setText(": " + Util.splitNumber(String.valueOf(unPacker.getFileCount())));
@@ -137,17 +142,20 @@ public class FileInfoUI implements Initializable {
             enc += bundle.getString("doesNotExist");
             secretKey += bundle.getString("doesNotExist");
         } else {
-            enc += unPacker.getEncryption().toUpperCase();
-            secretKey += unPacker.getPasswordAlg().toUpperCase();
+            enc += pzUnPacker.getEncryption().toUpperCase();
+            secretKey += pzUnPacker.getPasswordAlg().toUpperCase();
         }
         encryptionLabel.setText(enc);
         secretKeyLabel.setText(secretKey);
 
         // There is one root directory created by packer.
         timeLabel.setText(": " + sdf.format(date));
-        crcChecksumLabel.setText(": " + Bytes.longToHex(unPacker.getCrc32Checksum(), false));
+        crcChecksumLabel.setText(": " + Bytes.longToHex(pzUnPacker.getCrc32Checksum(), false));
     }
 
+    private void setItemsZip() {
+
+    }
 
     private String translateVersion(byte versionInt) {
         if (versionInt == 1) return "0.1.2";

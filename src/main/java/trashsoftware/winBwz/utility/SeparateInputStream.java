@@ -1,6 +1,6 @@
 package trashsoftware.winBwz.utility;
 
-import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.PzUnPacker;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -31,7 +31,7 @@ import java.util.ResourceBundle;
  */
 public class SeparateInputStream extends MultipleInputStream {
 
-    private UnPacker unPacker;
+    private PzUnPacker unPacker;
 
     private ResourceBundle bundle;
 
@@ -53,7 +53,7 @@ public class SeparateInputStream extends MultipleInputStream {
      * @param signature the signature at the beginning of every part file
      * @throws IOException if any IO error occurs
      */
-    private SeparateInputStream(Deque<File> files, UnPacker parent, boolean buffered, int signature)
+    private SeparateInputStream(Deque<File> files, PzUnPacker parent, boolean buffered, int signature)
             throws IOException {
         super(files, null, buffered);
         this.unPacker = parent;
@@ -72,7 +72,7 @@ public class SeparateInputStream extends MultipleInputStream {
      * @throws IOException if any IO error occurs
      */
     @Deprecated
-    public SeparateInputStream(Deque<File> files, UnPacker parent, boolean buffered) throws IOException {
+    public SeparateInputStream(Deque<File> files, PzUnPacker parent, boolean buffered) throws IOException {
         super(files, null, buffered);
         this.unPacker = parent;
     }
@@ -98,7 +98,7 @@ public class SeparateInputStream extends MultipleInputStream {
      * @return a newly created <code>SeparateInputStream</code> instance
      * @throws IOException if any IO error occurs
      */
-    public static SeparateInputStream createNew(String prefixName, String suffixName, int partCount, UnPacker parent,
+    public static SeparateInputStream createNew(String prefixName, String suffixName, int partCount, PzUnPacker parent,
                                                 int signature)
             throws IOException {
         LinkedList<File> files = new LinkedList<>();

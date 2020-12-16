@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.encrypters.bzse;
 
 import trashsoftware.winBwz.encrypters.Decipher;
-import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.PzUnPacker;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +25,7 @@ public class BZSEStreamDecoder implements Decipher {
 
     private long totalLength;
 
-    private UnPacker parent;
+    private PzUnPacker parent;
 
     private int updateCount;
 
@@ -91,7 +91,7 @@ public class BZSEStreamDecoder implements Decipher {
      * @param parent parent {@code UnPacker} which launched this {@code Decipher} instance
      */
     @Override
-    public void setParent(UnPacker parent) {
+    public void setParent(PzUnPacker parent) {
         this.parent = parent;
     }
 }

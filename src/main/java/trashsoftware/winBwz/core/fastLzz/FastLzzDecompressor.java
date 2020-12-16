@@ -2,7 +2,7 @@ package trashsoftware.winBwz.core.fastLzz;
 
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.DeCompressor;
-import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.PzUnPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.FileBitInputStream;
 import trashsoftware.winBwz.utility.Util;
@@ -25,7 +25,7 @@ public class FastLzzDecompressor implements DeCompressor {
     private final FileBitInputStream fis;
     private final long umpLength;
     private final byte[] outBuffer = new byte[FastLzzCompressor.MEMORY_BUFFER_SIZE];
-    private UnPacker unPacker;
+    private PzUnPacker unPacker;
     private long lastUpdateProgress;
     private long timeOffset;
     private long totalOutLength;
@@ -105,7 +105,7 @@ public class FastLzzDecompressor implements DeCompressor {
     }
 
     @Override
-    public void setUnPacker(UnPacker unPacker) {
+    public void setUnPacker(PzUnPacker unPacker) {
         this.unPacker = unPacker;
     }
 

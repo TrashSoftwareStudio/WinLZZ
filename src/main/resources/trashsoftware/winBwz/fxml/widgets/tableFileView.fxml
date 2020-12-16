@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.GridPane?>
+<?import trashsoftware.winBwz.gui.widgets.TableFileView?>
+<fx:root type="trashsoftware.winBwz.gui.widgets.TableFileView" xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml">
 
-<fx:root type="javafx.scene.layout.Pane" xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml">
-
-    <TableView fx:id="table" GridPane.columnIndex="1" GridPane.rowIndex="3" >
+    <TableView fx:id="table" GridPane.columnIndex="1" GridPane.rowIndex="3">
         <columns>
             <TableColumn fx:id="nameCol" prefWidth="300.0" text="%fileName"/>
             <TableColumn fx:id="typeCol" prefWidth="120.0" text="%type"/>

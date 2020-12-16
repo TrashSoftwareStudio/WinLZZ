@@ -4,7 +4,7 @@ import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.core.bwz.bwt.BWTDecoder;
 import trashsoftware.winBwz.huffman.MapCompressor.BwzMapDeCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanInputStream;
-import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.PzUnPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 
@@ -38,7 +38,7 @@ public class BWZDeCompressor implements DeCompressor {
     private final FileChannel fc;
     //    private InputStream fis;
     private final LinkedList<byte[]> huffmanMaps = new LinkedList<>();
-    UnPacker unPacker;
+    PzUnPacker unPacker;
     boolean isRunning = true;
     long ratio, pos;
     private int threadNum = 1;  // Default thread number.
@@ -242,7 +242,7 @@ public class BWZDeCompressor implements DeCompressor {
      * @param unPacker parent {@code UnPacker} which launched this {@code BWZDeCompressor}.
      */
     @Override
-    public void setUnPacker(UnPacker unPacker) {
+    public void setUnPacker(PzUnPacker unPacker) {
         this.unPacker = unPacker;
     }
 

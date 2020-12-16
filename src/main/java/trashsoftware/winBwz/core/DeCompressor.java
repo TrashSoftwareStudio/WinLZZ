@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.core;
 
 import trashsoftware.winBwz.core.fastLzz.FastLzzDecompressor;
-import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.PzUnPacker;
 
 import java.io.OutputStream;
 
@@ -31,7 +31,7 @@ public interface DeCompressor {
      *
      * @param unPacker parent {@code UnPacker} which launched this {@code DeCompressor}.
      */
-    void setUnPacker(UnPacker unPacker);
+    void setUnPacker(PzUnPacker unPacker);
 
     /**
      * Deletes all temp files created by this {@code DeCompressor}.

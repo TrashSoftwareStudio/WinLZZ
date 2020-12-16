@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.core.fasterLzz;
 
 import trashsoftware.winBwz.core.DeCompressor;
-import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.PzUnPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.FileBitInputStream;
 import trashsoftware.winBwz.utility.Util;
@@ -21,7 +21,7 @@ public class FasterLzzDecompressor implements DeCompressor {
 
     private FileBitInputStream fis;
 
-    private UnPacker parent;
+    private PzUnPacker parent;
 
     private int timeAccumulator;
 
@@ -106,7 +106,7 @@ public class FasterLzzDecompressor implements DeCompressor {
     }
 
     @Override
-    public void setUnPacker(UnPacker unPacker) {
+    public void setUnPacker(PzUnPacker unPacker) {
         this.parent = unPacker;
     }
 

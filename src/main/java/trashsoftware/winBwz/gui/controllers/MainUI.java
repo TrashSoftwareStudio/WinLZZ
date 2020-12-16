@@ -55,15 +55,6 @@ public class MainUI implements Initializable {
             "    along with this program.  If not, see <https://www.gnu.org/licenses/>.";
     private static final char[] nameExclusion = new char[]{'\\', '/', ':', '*', '?', '"', '<', '>', '|'};
 
-//    @FXML
-//    private TableView<RegularFileNode> table;
-//
-//    @FXML
-//    private TableColumn<RegularFileNode, String> nameCol, typeCol, timeCol;
-//
-//    @FXML
-//    private TableColumn<RegularFileNode, ReadableSize> sizeCol;
-    //    private Label placeHolder = new Label();
     private final ContextMenu rightPopupMenu = new ContextMenu();
     @FXML
     private TreeView<File> rootTree;
@@ -83,12 +74,6 @@ public class MainUI implements Initializable {
     @FXML
     private RowConstraints toolbarRow;
 
-//    @FXML
-//    private TableFileView tableFileView;
-
-//    private FileManagerPage getActiveFileViewPage(;
-
-//    private String currentDir;
     @FXML
     private HBox toolbar;
     @FXML
@@ -155,7 +140,8 @@ public class MainUI implements Initializable {
         }
 
         setTabPaneListener();
-        rootTabPane.getSelectionModel().select(LoaderManager.getCacheSaver().readInt("tabPaneIndex", 0));
+        rootTabPane.getSelectionModel().select(
+                LoaderManager.getCacheSaver().readInt("tabPaneIndex", 0));
         boolean showToolbar = LoaderManager.getCacheSaver().readBoolean("toolbar");
         if (showToolbar) showHideToolbarAction();
 
@@ -289,7 +275,9 @@ public class MainUI implements Initializable {
         if (rfn.getFile().exists()) {
             String ext = rfn.getExtension();
             if ("pz".equals(ext)) {
-                uncompressMode(rfn.getFile());
+                uncompressMode(rfn.getFile(), "pz");
+            } else if ("zip".equals(ext)) {
+                uncompressMode(rfn.getFile(), "zip");
             } else if (Util.arrayContains(ImageViewer.ALL_FORMATS_READ, ext, false)) {
                 showTrashGraphicsWithImage(rfn.getFile());
             } else {
@@ -362,7 +350,7 @@ public class MainUI implements Initializable {
         currentDirBox.getChildren().clear();
         String currentDir = getActiveFileViewPage().getCurrentDir();
         if (currentDir.length() > 0) {
-            String split = Pattern.quote(System.getProperty("file.separator"));
+            String split = Pattern.quote(File.separator);
             String[] dirs = currentDir.split(split);
             StringBuilder cumulativeDir = new StringBuilder();
             for (String pattern : dirs) {
@@ -379,7 +367,7 @@ public class MainUI implements Initializable {
         }
     }
 
-    private void uncompressMode(File selected) throws Exception {
+    private void uncompressMode(File selected, String ext) throws Exception {
         if (selected != null) {
             LoaderManager.getCacheSaver().writeLastSelectionDir(selected);
 
@@ -401,7 +389,11 @@ public class MainUI implements Initializable {
             stage.setOnCloseRequest(event -> uui.close());
             stage.show();
             try {
-                uui.loadContext();
+                if (ext.equals("pz"))
+                    uui.loadPzHead();
+                else if (ext.equals("zip"))
+                    uui.loadZipHead();
+                else throw new RuntimeException("Unexpected file extension " + ext);
             } catch (Exception e) {
                 e.printStackTrace();
                 Alert alert = new Alert(Alert.AlertType.WARNING);
@@ -755,18 +747,12 @@ public class MainUI implements Initializable {
         } else {
             getActiveFileViewPage().refresh();
         }
-        refreshDirButtons();
+//        refreshDirButtons();
     }
 
     private void fillFromDir(File node) {
         getActiveFileViewPage().setDir(node.getAbsolutePath());
         getActiveFileViewPage().refresh();
-//        ArrayList<RegularFileNode> nonDirectories = new ArrayList<>();
-//        for (File f : Objects.requireNonNull(node.listFiles())) {
-//            if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, bundle));
-//            else nonDirectories.add(new RegularFileNode(f, bundle));
-//        }
-//        table.getItems().addAll(nonDirectories);
     }
 
     private List<String> getAllOpeningDirs() {

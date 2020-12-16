@@ -1,6 +1,7 @@
 package trashsoftware.winBwz.gui.controllers;
 
-import trashsoftware.winBwz.packer.ContextNode;
+import trashsoftware.winBwz.packer.CatalogNode;
+import trashsoftware.winBwz.packer.PzCatalogNode;
 import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.utility.Util;
 import javafx.application.Platform;
@@ -42,7 +43,7 @@ public class UncompressingUI implements Initializable {
     private UncompressUI parent;
     private UnPacker unPacker;
     private File targetDir;
-    private ContextNode startNode;
+    private CatalogNode startNode;
     private int threadNumber;
     private boolean isTest, testResult, isAllUncompress, openAfterUnc;
 
@@ -92,7 +93,7 @@ public class UncompressingUI implements Initializable {
      * @param targetDir directory to extract files.
      * @param startNode the starting context node.
      */
-    void setParameters(UnPacker unPacker, File targetDir, ContextNode startNode) {
+    void setParameters(UnPacker unPacker, File targetDir, CatalogNode startNode) {
         this.unPacker = unPacker;
         this.targetDir = targetDir;
         this.startNode = startNode;
@@ -128,7 +129,7 @@ public class UncompressingUI implements Initializable {
      * @param unPacker the un-packer.
      * @param openNode the ContextNode of file to be open.
      */
-    void setParametersOpen(UnPacker unPacker, ContextNode openNode) {
+    void setParametersOpen(UnPacker unPacker, CatalogNode openNode) {
         this.unPacker = unPacker;
         targetDir = UncompressUI.tempDir;
         if (!UncompressUI.tempDir.exists()) {
@@ -312,7 +313,7 @@ public class UncompressingUI implements Initializable {
                     unPacker.stepProperty().addListener(messageListener);
                     unPacker.fileProperty().addListener(fileListener);
 
-                    if (isTest) testResult = unPacker.TestPack();
+                    if (isTest) testResult = unPacker.testPack();
                     else if (isAllUncompress) unPacker.unCompressAll(targetDir.getAbsolutePath());
                     else unPacker.unCompressFrom(targetDir.getAbsolutePath(), startNode);
                     updateProgress(totalLength, totalLength);

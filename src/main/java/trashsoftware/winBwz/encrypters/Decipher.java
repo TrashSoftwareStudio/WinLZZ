@@ -2,7 +2,7 @@ package trashsoftware.winBwz.encrypters;
 
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamDecoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileDecoder;
-import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.PzUnPacker;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,5 +30,5 @@ public interface Decipher {
      *
      * @param parent parent {@code UnPacker} which launched this {@code Decipher} instance
      */
-    void setParent(UnPacker parent);
+    void setParent(PzUnPacker parent);
 }

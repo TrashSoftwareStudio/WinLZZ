@@ -1,6 +1,7 @@
 package trashsoftware.winBwz.gui.graphicUtil;
 
-import trashsoftware.winBwz.packer.ContextNode;
+import trashsoftware.winBwz.packer.CatalogNode;
+import trashsoftware.winBwz.packer.PzCatalogNode;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.File;
@@ -15,10 +16,10 @@ import java.util.ResourceBundle;
  */
 public class FileNode {
 
-    private ContextNode cn;
-    private String name;
-    private boolean isDir;
-    private ResourceBundle bundle;
+    private final CatalogNode cn;
+    private final String name;
+    private final boolean isDir;
+    private final ResourceBundle bundle;
 
     /**
      * Creates a new {@code FileNode} instance.
@@ -26,7 +27,7 @@ public class FileNode {
      * @param cn     the {@code ContextNode} represents this file inside the archive
      * @param bundle the text displaying object
      */
-    public FileNode(ContextNode cn, ResourceBundle bundle) {
+    public FileNode(CatalogNode cn, ResourceBundle bundle) {
         this.cn = cn;
         this.bundle = bundle;
         String fullName = cn.getPath();
@@ -69,8 +70,7 @@ public class FileNode {
         if (isDir) {
             return "";
         } else {
-            long[] location = cn.getLocation();
-            return Util.sizeToReadable(location[1] - location[0]);
+            return Util.sizeToReadable(cn.getSize());
         }
     }
 
@@ -79,7 +79,7 @@ public class FileNode {
      *
      * @return the {@code ContextNode} represents the file of this {@code FileNode}
      */
-    public ContextNode getContextNode() {
+    public CatalogNode getContextNode() {
         return cn;
     }
 }

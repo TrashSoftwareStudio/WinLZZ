@@ -24,7 +24,7 @@ import javafx.util.Callback;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class UncompressUI implements Initializable {
@@ -50,7 +50,7 @@ public class UncompressUI implements Initializable {
     private MainUI parent;
     private File packFile;
     private UnPacker unPacker;
-    private ContextNode currentNode;
+    private CatalogNode currentNode;
 
     private ResourceBundle bundle;
 
@@ -78,11 +78,10 @@ public class UncompressUI implements Initializable {
         this.packFile = packFile;
     }
 
-    void loadContext() throws Exception {
-        int sigCheck = UnPacker.checkSignature(packFile.getAbsolutePath());
+    void loadPzHead() throws Exception {
+        int sigCheck = PzUnPacker.checkSignature(packFile.getAbsolutePath());
         if (sigCheck == 0) {
-            unPacker = new UnPacker(packFile.getAbsolutePath());
-            unPacker.setLanguageLoader(bundle);
+            unPacker = new PzUnPacker(packFile.getAbsolutePath(), bundle);
 
             try {
                 unPacker.readInfo();
@@ -94,7 +93,7 @@ public class UncompressUI implements Initializable {
                         bundle.getString("curSoftCoreVer"),
                         PzPacker.getProgramFullVersion(),
                         bundle.getString("uncNeedCoreVer"),
-                        unPacker.getArchiveFullVersion()));
+                        ((PzUnPacker) unPacker).getArchiveFullVersion()));
                 alert.showAndWait();
                 stage.close();
                 return;
@@ -124,6 +123,17 @@ public class UncompressUI implements Initializable {
         else passwordInputAction(true);
     }
 
+    void loadZipHead() {
+        unPacker = new ZipUnPacker(packFile.getAbsolutePath(), bundle);
+        try {
+            unPacker.readInfo();
+            dirText.setText("");
+            showContext();
+        } catch (Exception e) {
+
+        }
+    }
+
     private String probableFirstName() {
         String nameWithNumber = packFile.getName().substring(0, packFile.getName().lastIndexOf('.'));
         String pureName = nameWithNumber.substring(0, nameWithNumber.lastIndexOf('.'));
@@ -139,7 +149,7 @@ public class UncompressUI implements Initializable {
 
     private void showContext() {
         try {
-            unPacker.readMap();
+            unPacker.readFileStructure();
         } catch (ChecksumDoesNotMatchException e) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle(bundle.getString("error"));
@@ -159,12 +169,13 @@ public class UncompressUI implements Initializable {
 
     private void showFiles() {
         fileList.getItems().clear();
-        ArrayList<ContextNode> contexts = currentNode.getChildren();
+        List<CatalogNode> contexts = currentNode.getChildren();
         if (contexts.isEmpty()) {
             fileList.setPlaceholder(new Label(bundle.getString("emptyFolder")));
         } else {
             fileList.setPlaceholder(new Label(bundle.getString("loading")));
-            for (ContextNode cn : currentNode.getChildren()) fileList.getItems().add(new FileNode(cn, bundle));
+            for (CatalogNode cn : currentNode.getChildren())
+                fileList.getItems().add(new FileNode((PzCatalogNode) cn, bundle));
         }
         String path = currentNode.getPath();
         if (path.length() > 0) path = path.substring(1);
@@ -210,7 +221,7 @@ public class UncompressUI implements Initializable {
 
                         setOnMouseClicked(click -> {
                             if (click.getClickCount() == 2) {
-                                ContextNode cn = fileList.getSelectionModel().getSelectedItem().getContextNode();
+                                CatalogNode cn = fileList.getSelectionModel().getSelectedItem().getContextNode();
                                 if (cn.isDir()) {
                                     currentNode = cn;
                                     showFiles();
@@ -247,7 +258,6 @@ public class UncompressUI implements Initializable {
 
         FileInfoUI fi = loader.getController();
         fi.setInfo(unPacker);
-        fi.setItems();
         stage.show();
     }
 
@@ -264,7 +274,7 @@ public class UncompressUI implements Initializable {
             uncompressHandler(fileList.getSelectionModel().getSelectedItem().getContextNode(), false);
     }
 
-    private void uncompressAndOpen(ContextNode openNode) throws IOException {
+    private void uncompressAndOpen(CatalogNode openNode) throws IOException {
         checkPassword();
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/trashsoftware/winBwz/fxml/uncompressingUI.fxml"), bundle);
@@ -296,7 +306,7 @@ public class UncompressUI implements Initializable {
         if (unPacker.getEncryptLevel() == 1 && !unPacker.isPasswordSet()) passwordInputAction(false);
     }
 
-    private void uncompressHandler(ContextNode cn, boolean isAll) throws IOException {
+    private void uncompressHandler(CatalogNode cn, boolean isAll) throws IOException {
         DirectoryChooser dc = new DirectoryChooser();
         dc.setInitialDirectory(LoaderManager.getCacheSaver().readLastSelectedDir());
         File selected = dc.showDialog(null);

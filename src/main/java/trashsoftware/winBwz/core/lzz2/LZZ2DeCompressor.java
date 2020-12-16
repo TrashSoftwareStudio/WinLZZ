@@ -6,7 +6,7 @@ import trashsoftware.winBwz.core.bwz.MTFInverse;
 import trashsoftware.winBwz.core.bwz.ZeroRLCDecoder;
 import trashsoftware.winBwz.huffman.HuffmanCompressorTwoBytes;
 import trashsoftware.winBwz.huffman.MapCompressor.MapDeCompressor;
-import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.PzUnPacker;
 import trashsoftware.winBwz.utility.FileBitInputStream;
 import trashsoftware.winBwz.utility.IndexedOutputStream;
 import trashsoftware.winBwz.utility.Util;
@@ -40,7 +40,7 @@ public class LZZ2DeCompressor implements DeCompressor {
 
     private String cmpMainTempName, cmpDisHeadTempName;
 
-    private UnPacker unPacker;
+    private PzUnPacker unPacker;
 
     private int timeAccumulator;
 
@@ -224,7 +224,7 @@ public class LZZ2DeCompressor implements DeCompressor {
     }
 
     @Override
-    public void setUnPacker(UnPacker unPacker) {
+    public void setUnPacker(PzUnPacker unPacker) {
         this.unPacker = unPacker;
     }
 

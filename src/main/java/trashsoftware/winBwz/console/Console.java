@@ -81,7 +81,7 @@ public class Console {
                     break;
                 }
                 case "-u": {
-                    int sigCheck = UnPacker.checkSignature(inFile);
+                    int sigCheck = PzUnPacker.checkSignature(inFile);
                     if (sigCheck == 1) {
                         System.out.println("This is an archive subsection. Please open the first section.");
                         return;
@@ -89,7 +89,7 @@ public class Console {
                         System.out.println("File may not be a WinLZZ archive");
                         return;
                     }
-                    UnPacker up = new UnPacker(inFile);
+                    PzUnPacker up = new PzUnPacker(inFile, null);
                     try {
                         up.readInfo();
                     } catch (UnsupportedVersionException e) {
@@ -105,7 +105,7 @@ public class Console {
                         }
                     }
                     try {
-                        up.readMap();
+                        up.readFileStructure();
                     } catch (Exception e) {
                         System.out.println("Archive might being damaged");
                         return;

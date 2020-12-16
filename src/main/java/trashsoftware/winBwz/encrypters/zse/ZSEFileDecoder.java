@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.encrypters.zse;
 
 import trashsoftware.winBwz.encrypters.Decipher;
-import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.PzUnPacker;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,7 +61,7 @@ public class ZSEFileDecoder implements Decipher {
     }
 
     @Override
-    public void setParent(UnPacker parent) {
+    public void setParent(PzUnPacker parent) {
 
     }
 }

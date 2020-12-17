@@ -1,13 +1,19 @@
 package trashsoftware.winBwz.packer;
 
+import java.util.zip.ZipEntry;
+
 public class ZipCatalogNode extends CatalogNode {
 
-    private final boolean isDir;
+    private final ZipEntry entry;
 
-    public ZipCatalogNode(String path, boolean isDir) {
-        super(path);
+    public ZipCatalogNode(String path, ZipCatalogNode parent, ZipEntry entry) {
+        super(path, parent);
 
-        this.isDir = isDir;
+        this.entry = entry;
+    }
+
+    public ZipCatalogNode(String path, ZipCatalogNode parent) {
+        this(path, parent, null);
     }
 
     @Override
@@ -19,13 +25,17 @@ public class ZipCatalogNode extends CatalogNode {
         return path.equals(zcn.path);
     }
 
+    public ZipEntry getEntry() {
+        return entry;
+    }
+
     @Override
     public boolean isDir() {
-        return isDir;
+        return entry == null || entry.isDirectory();
     }
 
     @Override
     public long getSize() {
-        return 0;
+        return entry.getSize();
     }
 }

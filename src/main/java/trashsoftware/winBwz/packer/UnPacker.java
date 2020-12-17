@@ -12,6 +12,7 @@ public abstract class UnPacker {
 
     protected final String packName;
 
+    public final ReadOnlyLongWrapper totalProgress = new ReadOnlyLongWrapper();
     public final ReadOnlyLongWrapper progress = new ReadOnlyLongWrapper();
     public final ReadOnlyStringWrapper percentage = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper ratio = new ReadOnlyStringWrapper();
@@ -77,6 +78,10 @@ public abstract class UnPacker {
     public abstract int getEncryptLevel();
 
     public abstract void close() throws IOException;
+
+    public ReadOnlyLongProperty totalProgressProperty() {
+        return totalProgress;
+    }
 
     public ReadOnlyLongProperty progressProperty() {
         return progress;

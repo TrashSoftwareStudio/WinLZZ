@@ -79,7 +79,7 @@ public class FileInfoUI implements Initializable {
     void setInfo(UnPacker unPacker) {
         this.unPacker = unPacker;
         if (unPacker instanceof PzUnPacker) setItemsPz();
-//        else if (unPacker instanceof ) setItemsZip();
+        else if (unPacker instanceof ZipUnPacker) setItemsZip();
         else throw new RuntimeException("No such unpacker");
     }
 
@@ -109,7 +109,7 @@ public class FileInfoUI implements Initializable {
         drawCompressRate(pzUnPacker.getTotalOrigSize(), pzUnPacker.getOtherInfoLength(), pzUnPacker.getContextLength(),
                 pzUnPacker.getCmpMainLength());
 
-        double rate = unPacker.getTotalOrigSize() == 0 ? 0 : (double) pzUnPacker.getDisplayArchiveLength() /
+        double rate = unPacker.getTotalOrigSize() == 0 ? 0 : (double) unPacker.getDisplayArchiveLength() /
                 unPacker.getTotalOrigSize();
         double roundedRate = ((double) Math.round(rate * 10000)) / 100.0;
         double netRate = (double) pzUnPacker.getCmpMainLength() / unPacker.getTotalOrigSize();
@@ -127,11 +127,6 @@ public class FileInfoUI implements Initializable {
         compressSizeLabel.setText(": " + Util.sizeToReadable(unPacker.getDisplayArchiveLength()));
         fileCountLabel.setText(": " + Util.splitNumber(String.valueOf(unPacker.getFileCount())));
         dirCountLabel.setText(": " + Util.splitNumber(String.valueOf(unPacker.getDirCount() - 1)));
-
-//        headLabel.setText(lanLoader.get(618));
-//        otherInfoLabel.setText(lanLoader.get(619));
-//        contextLabel.setText(lanLoader.get(620));
-//        mainLabel.setText(lanLoader.get(621));
 
         annotationLabel.setText(
                 ": " + bundle.getString(unPacker.getAnnotation() == null ? "doesNotExist" : "exist"));
@@ -154,7 +149,34 @@ public class FileInfoUI implements Initializable {
     }
 
     private void setItemsZip() {
+        typeLabel.setText("ZIP " + bundle.getString("archive"));
+        versionNeededLabel.setText(": 1.0 Alpha 14+");
 
+        ZipUnPacker zup = (ZipUnPacker) unPacker;
+        long headerLen = zup.getDisplayArchiveLength() - zup.getNetCompressedSize();
+        drawCompressRate(zup.getTotalOrigSize(),
+                0,
+                headerLen,
+                zup.getNetCompressedSize());
+        double rate = zup.getTotalOrigSize() == 0 ? 0 : (double) zup.getDisplayArchiveLength() /
+                unPacker.getTotalOrigSize();
+        double roundedRate = ((double) Math.round(rate * 10000)) / 100.0;
+        double netRate = (double) zup.getNetCompressedSize() / unPacker.getTotalOrigSize();
+        double roundedNetRate = ((double) Math.round(netRate * 10000)) / 100.0;
+        Date date = new Date(unPacker.getCreationTime());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        compressRateLabel.setText(": " + roundedRate + " %");
+        netRateLabel.setText(": " + roundedNetRate + " %");
+        origSizeLabel.setText(": " + Util.sizeToReadable(unPacker.getTotalOrigSize()));
+        compressSizeLabel.setText(": " + Util.sizeToReadable(unPacker.getDisplayArchiveLength()));
+        fileCountLabel.setText(": " + Util.splitNumber(String.valueOf(unPacker.getFileCount())));
+        dirCountLabel.setText(": " + Util.splitNumber(String.valueOf(unPacker.getDirCount() - 1)));
+
+        annotationLabel.setText(
+                ": " + bundle.getString(unPacker.getAnnotation() == null ? "doesNotExist" : "exist"));
+
+        timeLabel.setText(": " + sdf.format(date));
     }
 
     private String translateVersion(byte versionInt) {

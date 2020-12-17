@@ -1,9 +1,6 @@
 package trashsoftware.winBwz.packer;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * A tree-kind data structure node, representing a file or a directory.
@@ -21,10 +18,11 @@ public class PzCatalogNode extends CatalogNode {
     /**
      * Creates a new {@code ContextNode} instance.
      *
-     * @param path the relative path of the file represented by this {@code ContextNode} in the archive.
+     * @param path   the relative path of the file represented by this {@code ContextNode} in the archive.
+     * @param parent the parent dir
      */
-    PzCatalogNode(String path) {
-        super(path);
+    PzCatalogNode(String path, PzCatalogNode parent) {
+        super(path, parent);
     }
 
     /**

@@ -33,7 +33,7 @@ public class UncompressingUI implements Initializable {
 
     private UncompressService service;
 
-    private ChangeListener<Number> progressListener;
+    private ChangeListener<Number> progressListener, totalProgressListener;
 
     private ChangeListener<String> percentageListener, speedRatioListener, timeUsedListener,
             timeExpectedListener, passedLengthListener, messageListener, fileListener;
@@ -293,16 +293,27 @@ public class UncompressingUI implements Initializable {
                     long totalLength = unPacker.getTotalOrigSize();
                     unPacker.setThreads(threadNumber);
 
-                    Platform.runLater(() -> totalSizeLabel.setText(Util.sizeToReadable(totalLength)));
+//                    Platform.runLater(() -> totalSizeLabel.setText(Util.sizeToReadable(totalLength)));
 
-                    progressListener = (observable, oldValue, newValue) -> updateProgress(newValue.longValue(), totalLength);
-                    speedRatioListener = (observable, oldValue, newValue) -> updateMessage(newValue);
-                    percentageListener = (observable, oldValue, newValue) -> Platform.runLater(() -> percentageLabel.setText(newValue));
-                    timeUsedListener = (observable, oldValue, newValue) -> Platform.runLater(() -> timeUsedLabel.setText(newValue));
-                    timeExpectedListener = (observable, oldValue, newValue) -> Platform.runLater(() -> expectTimeLabel.setText(newValue));
-                    passedLengthListener = (observable, oldValue, newValue) -> Platform.runLater(() -> passedSizeLabel.setText(newValue));
-                    messageListener = (observable, oldValue, newValue) -> Platform.runLater(() -> messageLabel.setText(newValue));
-                    fileListener = (observable, oldValue, newValue) -> Platform.runLater(() -> fileLabel.setText(newValue));
+                    progressListener = (observable, oldValue, newValue) ->
+                            updateProgress(newValue.longValue(), unPacker.totalProgressProperty().longValue());
+                    totalProgressListener = (observable, oldValue, newValue) -> {
+                        totalSizeLabel.setText(Util.sizeToReadable(newValue.longValue()));
+                    };
+                    speedRatioListener = (observable, oldValue, newValue) ->
+                            updateMessage(newValue);
+                    percentageListener = (observable, oldValue, newValue) -> Platform.runLater(() ->
+                            percentageLabel.setText(newValue));
+                    timeUsedListener = (observable, oldValue, newValue) -> Platform.runLater(() ->
+                            timeUsedLabel.setText(newValue));
+                    timeExpectedListener = (observable, oldValue, newValue) -> Platform.runLater(() ->
+                            expectTimeLabel.setText(newValue));
+                    passedLengthListener = (observable, oldValue, newValue) -> Platform.runLater(() ->
+                            passedSizeLabel.setText(newValue));
+                    messageListener = (observable, oldValue, newValue) -> Platform.runLater(() ->
+                            messageLabel.setText(newValue));
+                    fileListener = (observable, oldValue, newValue) -> Platform.runLater(() ->
+                            fileLabel.setText(newValue));
 
                     unPacker.progressProperty().addListener(progressListener);
                     unPacker.ratioProperty().addListener(speedRatioListener);

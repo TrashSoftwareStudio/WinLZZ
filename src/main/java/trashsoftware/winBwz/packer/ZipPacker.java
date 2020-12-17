@@ -13,7 +13,7 @@ import java.util.zip.ZipOutputStream;
 
 public class ZipPacker extends Packer {
 
-    private static final int bufferSize = 8192;
+    static final int bufferSize = 8192;
     private int level = 6;
     private boolean interrupted = false;
     private final byte[] buffer = new byte[bufferSize];

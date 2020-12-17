@@ -1,10 +1,14 @@
 package trashsoftware.winBwz.packer;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Arrays;
+import trashsoftware.winBwz.core.Constants;
+import trashsoftware.winBwz.utility.LengthOutputStream;
+import trashsoftware.winBwz.utility.Security;
+import trashsoftware.winBwz.utility.Util;
+
+import java.io.*;
 import java.util.ResourceBundle;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -12,48 +16,63 @@ import java.util.zip.ZipInputStream;
 
 public class ZipUnPacker extends UnPacker {
 
+    private final String testTempName;
+    private final byte[] buffer = new byte[ZipPacker.bufferSize];
     private int dirCount;
     private int fileCount;
-    private ZipInputStream zis;
+    private long totalOrigSize;
+    private long compressedSize;
+    private long netCompressedSize;
+    private long creationTime;
+    private String annotation;
+    private long passedLengthBytes;
+    private ZipFile zipFile;
     private ZipCatalogNode root;
 
     public ZipUnPacker(String packName, ResourceBundle resourceBundle) {
         super(packName, resourceBundle);
+
+        testTempName = packName + ".zt";
     }
 
     @Override
     public void readInfo() throws IOException {
-        ZipFile zipFile = new ZipFile(packName);
+        zipFile = new ZipFile(packName);
+        compressedSize = new File(packName).length();
+        annotation = zipFile.getComment();
 
-        zis = new ZipInputStream(new FileInputStream(packName));
+        ZipInputStream zis = new ZipInputStream(new FileInputStream(packName));
+        ZipEntry entry = zis.getNextEntry();
+        if (entry != null) {
+            creationTime = entry.getTime();
+        }
+        zis.closeEntry();
+        zis.close();
     }
 
     @Override
     public void readFileStructure() throws Exception {
-        traverseFileStructure(zis);
+        traverseFileStructure();
     }
 
-    private void traverseFileStructure(ZipInputStream zis) throws IOException {
+    private void traverseFileStructure() throws IOException {
+        root = new ZipCatalogNode("", null);
+        ZipInputStream zis = new ZipInputStream(new FileInputStream(packName));
         ZipEntry zipEntry;
         while ((zipEntry = zis.getNextEntry()) != null) {
-            String[] paths = zipEntry.getName().split(Pattern.quote(File.separator));
-            System.out.println(Arrays.toString(paths));
-            createCatalogIfNone(paths);
+            createCatalogIfNone(zipEntry);
             zis.closeEntry();
+            totalOrigSize += zipEntry.getSize();
+            netCompressedSize += zipEntry.getCompressedSize();
         }
+        zis.close();
     }
 
-    private void createCatalogIfNone(String[] paths) {
-        if (root == null) {
-            root = new ZipCatalogNode(paths[0], true);
-        }
+    private void createCatalogIfNone(ZipEntry zipEntry) {
+        String[] paths = zipEntry.getName().split(Pattern.quote(File.separator));
         ZipCatalogNode active = root;
-        if (paths.length == 1) {
-            active.addChild(new ZipCatalogNode(paths[0], false));
-            return;
-        }
-        StringBuilder joinedPath = new StringBuilder(paths[0]);
-        for (int i = 1; i < paths.length - 1; i++) {
+        StringBuilder joinedPath = new StringBuilder();
+        for (int i = 0; i < paths.length - 1; i++) {
             joinedPath.append(File.separator).append(paths[i]);
             String jp = joinedPath.toString();
             boolean found = false;
@@ -65,40 +84,126 @@ public class ZipUnPacker extends UnPacker {
                 }
             }
             if (!found) {
-                ZipCatalogNode zcn = new ZipCatalogNode(jp, true);
+                ZipCatalogNode zcn = new ZipCatalogNode(jp, active);
                 active.addChild(zcn);
                 active = zcn;
                 dirCount++;
             }
         }
         String fileName = joinedPath.append(File.separator).append(paths[paths.length - 1]).toString();
-        active.addChild(new ZipCatalogNode(fileName, false));
-        fileCount++;
+        active.addChild(new ZipCatalogNode(fileName, active, zipEntry));
+        if (zipEntry.isDirectory()) dirCount++;
+        else fileCount++;
     }
 
     @Override
     public boolean testPack() {
-        return false;
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new ZupTimerTask(), 0, 1000 / Constants.LZZ_GUI_UPDATES_PER_S);
+        try {
+            totalProgress.set(totalOrigSize);
+            progress.set(0);
+            passedLengthBytes = 0;
+            return testEntry(root);
+        } catch (IOException e) {
+            return false;
+        } finally {
+            timer.cancel();
+        }
+    }
+
+    private boolean testEntry(ZipCatalogNode zcn) throws IOException {
+        if (zcn.isDir()) {
+            for (CatalogNode child : zcn.getChildren()) {
+                if (!testEntry((ZipCatalogNode) child)) return false;
+            }
+            return true;
+        } else {
+            ZipEntry entry = zcn.getEntry();
+            long crc = entry.getCrc();
+            unCompressSingle(entry, testTempName);
+            long realCrc = Security.generateCRC32(testTempName);
+            Util.deleteFile(testTempName);
+            return crc == realCrc;
+        }
+    }
+
+    private void unCompressSingle(ZipEntry entry, String targetFile) throws IOException {
+        LengthOutputStream fos = new LengthOutputStream(new FileOutputStream(targetFile));
+//        long lastProgress = progress.get();
+        long lastProgress = passedLengthBytes;
+
+        InputStream is = zipFile.getInputStream(entry);
+        int read;
+        while ((read = is.read(buffer)) > 0) {
+            fos.write(buffer, 0, read);
+            passedLengthBytes = lastProgress + fos.getWrittenLength();
+//            progress.set(lastProgress + fos.getWrittenLength());
+        }
+        is.close();
+
+        fos.flush();
+        fos.close();
     }
 
     @Override
     public void unCompressAll(String targetDir) throws Exception {
-
+        for (CatalogNode cn : root.getChildren()) unCompressFrom(targetDir, cn);
     }
 
     @Override
     public void unCompressFrom(String targetDir, CatalogNode node) throws Exception {
+        String dirOffset;
+        if (!node.getPath().contains(File.separator)) dirOffset = "";
+        else dirOffset = node.getPath().substring(0, node.getPath().lastIndexOf(File.separator));
+        step.setValue(bundle.getString("uncIng"));
+        totalProgress.set(origSizeFrom((ZipCatalogNode) node));
+        progress.set(0);
+        passedLengthBytes = 0;
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new ZupTimerTask(), 0, 1000 / Constants.LZZ_GUI_UPDATES_PER_S);
+        try {
+            traversalExtract(targetDir, (ZipCatalogNode) node, dirOffset);
+        } finally {
+            timer.cancel();
+        }
+    }
 
+    private long origSizeFrom(ZipCatalogNode node) {
+        if (node.isDir()) {
+            long total = 0;
+            for (CatalogNode cn : node.getChildren()) {
+                total += origSizeFrom((ZipCatalogNode) cn);
+            }
+            return total;
+        } else {
+            return node.getSize();
+        }
+    }
+
+    private void traversalExtract(String targetDir, ZipCatalogNode cn, String dirOffset) throws IOException {
+        String path = targetDir + File.separator + cn.getPath().substring(dirOffset.length());
+        File f = new File(path);
+        if (cn.isDir()) {
+            if (!f.exists()) {
+                if (!f.mkdirs()) System.out.println("Failed to create directory " + f.getAbsolutePath());
+            }
+            for (CatalogNode scn : cn.getChildren())
+                traversalExtract(targetDir, (ZipCatalogNode) scn, dirOffset);
+        } else {
+            currentFile.setValue(cn.getPath().substring(1));
+            unCompressSingle(cn.getEntry(), path);
+        }
     }
 
     @Override
     public String getAlg() {
-        return null;
+        return "deflate";
     }
 
     @Override
     public String getAnnotation() {
-        return null;
+        return annotation;
     }
 
     @Override
@@ -111,14 +216,23 @@ public class ZipUnPacker extends UnPacker {
 
     }
 
+    /**
+     * Get the total file size after compression, except the zip header.
+     *
+     * @return the total file size after compression without the zip header
+     */
+    public long getNetCompressedSize() {
+        return netCompressedSize;
+    }
+
     @Override
     public long getTotalOrigSize() {
-        return 0;
+        return totalOrigSize;
     }
 
     @Override
     public long getDisplayArchiveLength() {
-        return 0;
+        return compressedSize;
     }
 
     @Override
@@ -128,7 +242,7 @@ public class ZipUnPacker extends UnPacker {
 
     @Override
     public long getCreationTime() {
-        return 0;
+        return creationTime;
     }
 
     @Override
@@ -163,6 +277,36 @@ public class ZipUnPacker extends UnPacker {
 
     @Override
     public void close() throws IOException {
-        zis.close();
+        if (zipFile != null)
+            zipFile.close();
+    }
+
+    class ZupTimerTask extends TimerTask {
+        private int accumulator;
+        private long lastUpdateProgress;
+
+        @Override
+        public void run() {
+            progress.set(passedLengthBytes);
+//            long position = progress.get();
+            accumulator++;
+            if (accumulator % Constants.LZZ_GUI_UPDATES_PER_S == 0) {
+                double finished = ((double) passedLengthBytes) / totalProgress.get();
+                double rounded = (double) Math.round(finished * 1000) / 10;
+                percentage.set(String.valueOf(rounded));
+                int newUpdated = (int) (passedLengthBytes - lastUpdateProgress);
+                lastUpdateProgress = passedLengthBytes;
+                int ratioInt = newUpdated / 1024;
+                ratio.set(String.valueOf(ratioInt));
+
+                long timeUsedV = accumulator * 1000L / Constants.LZZ_GUI_UPDATES_PER_S;
+                timeUsed.set(Util.secondToString(timeUsedV / 1000));
+                long expectTime = (totalProgress.get() - passedLengthBytes) / ratioInt / 1024;
+                timeExpected.set(Util.secondToString(expectTime));
+
+                passedLength.set(Util.sizeToReadable(passedLengthBytes));
+//                cmpLength.set(Util.sizeToReadable(compressedLength));
+            }
+        }
     }
 }

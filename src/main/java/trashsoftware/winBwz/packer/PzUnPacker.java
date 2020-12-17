@@ -396,7 +396,7 @@ public class PzUnPacker extends UnPacker {
         readContext();
         deleteTemp();
 
-        rootNode = new PzCatalogNode(indexNodes.get(0).getName());
+        rootNode = new PzCatalogNode(indexNodes.get(0).getName(), null);
         buildContextTree(rootNode, indexNodes.get(0));
         interpretExtraField();
     }
@@ -474,6 +474,7 @@ public class PzUnPacker extends UnPacker {
             indexNodes.add(inu);
         }
         mapInputStream.close();
+        totalProgress.set(origSize);
 
         if (contextChecker.getValue() != crc32Context) {
 //            throw new ChecksumDoesNotMatchException("Context damaged");
@@ -486,8 +487,7 @@ public class PzUnPacker extends UnPacker {
             List<IndexNodeUnp> children = indexNodes.subList(inu.getChildrenRange()[0], inu.getChildrenRange()[1]);
             String path = node.getPath();
             for (IndexNodeUnp n : children) {
-                PzCatalogNode cn = new PzCatalogNode(path + File.separator + n.getName());
-                cn.setParent(node);
+                PzCatalogNode cn = new PzCatalogNode(path + File.separator + n.getName(), node);
                 node.addChild(cn);
             }
             for (int i = 0; i < children.size(); i++)

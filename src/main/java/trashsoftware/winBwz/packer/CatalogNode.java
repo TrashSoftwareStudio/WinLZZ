@@ -10,11 +10,12 @@ public abstract class CatalogNode {
     /**
      * The {@code CatalogNode} which has this {@code CatalogNode} as a first-level child, in file system field.
      */
-    protected CatalogNode parent;
+    protected final CatalogNode parent;
     protected final List<CatalogNode> children = new ArrayList<>();
 
-    public CatalogNode(String path) {
+    public CatalogNode(String path, CatalogNode parent) {
         this.path = path;
+        this.parent = parent;
     }
 
     /**
@@ -33,15 +34,6 @@ public abstract class CatalogNode {
      */
     public CatalogNode getParent() {
         return parent;
-    }
-
-    /**
-     * Sets up the parent {@code ContextNode}.
-     *
-     * @param parent the parent {@code ContextNode}.
-     */
-    public void setParent(CatalogNode parent) {
-        this.parent = parent;
     }
 
     /**

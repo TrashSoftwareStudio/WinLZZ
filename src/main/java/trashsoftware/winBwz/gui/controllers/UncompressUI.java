@@ -128,9 +128,10 @@ public class UncompressUI implements Initializable {
         try {
             unPacker.readInfo();
             dirText.setText("");
+            setThreadNumberBox();
             showContext();
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
     }
 
@@ -175,24 +176,26 @@ public class UncompressUI implements Initializable {
         } else {
             fileList.setPlaceholder(new Label(bundle.getString("loading")));
             for (CatalogNode cn : currentNode.getChildren())
-                fileList.getItems().add(new FileNode((PzCatalogNode) cn, bundle));
+                fileList.getItems().add(new FileNode(cn, bundle));
         }
         String path = currentNode.getPath();
-        if (path.length() > 0) path = path.substring(1);
+        if (path.startsWith(File.separator)) path = path.substring(1);
         dirText.setText(path);
     }
 
     @FXML
     private void goBackAction() {
         if (currentNode.getParent().getParent() == null) {
-            dirText.setText("");
-            fileList.getItems().clear();
-            fileList.getItems().add(new FileNode(currentNode, bundle));
+//            dirText.setText("");
+//            fileList.getItems().clear();
+//            fileList.getItems().add(new FileNode(currentNode, bundle));
             goBackButton.setDisable(true);
-        } else {
-            currentNode = currentNode.getParent();
-            showFiles();
         }
+//        else {
+//
+//        }
+        currentNode = currentNode.getParent();
+        showFiles();
     }
 
     @FXML

@@ -42,7 +42,7 @@ public class LZZ2DeCompressor implements DeCompressor {
 
     private PzUnPacker unPacker;
 
-    private int timeAccumulator;
+//    private int timeAccumulator;
 
     private long lastUpdateProgress;
 
@@ -146,7 +146,7 @@ public class LZZ2DeCompressor implements DeCompressor {
             timeOffset = System.currentTimeMillis() - unPacker.startTime;
             timer = new Timer();
             timer.scheduleAtFixedRate(
-                    new DeCompTimerTask(tempResult), 0, 1000 / Constants.LZZ_GUI_UPDATES_PER_S);
+                    new DeCompTimerTask(tempResult), 0, 1000 / Constants.GUI_UPDATES_PER_S);
         }
 //        long currentTime;
 
@@ -283,7 +283,7 @@ public class LZZ2DeCompressor implements DeCompressor {
             long position = out.getIndex();
             unPacker.progress.set(position);
             accumulator++;
-            if (accumulator % Constants.LZZ_GUI_UPDATES_PER_S == 0) {  // whole second
+            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {  // whole second
                 double finished = ((double) position) / unPacker.getTotalOrigSize();
                 double rounded = (double) Math.round(finished * 1000) / 10;
                 unPacker.percentage.set(String.valueOf(rounded));
@@ -292,7 +292,7 @@ public class LZZ2DeCompressor implements DeCompressor {
                 int ratio = newUpdated / 1024;
                 unPacker.ratio.set(String.valueOf(ratio));
 
-                long timeUsed = accumulator * 1000L / Constants.LZZ_GUI_UPDATES_PER_S;
+                long timeUsed = accumulator * 1000L / Constants.GUI_UPDATES_PER_S;
                 unPacker.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
                 long expectTime = (unPacker.getTotalOrigSize() - position) / ratio / 1024;
                 unPacker.timeExpected.set(Util.secondToString(expectTime));

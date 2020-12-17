@@ -200,7 +200,7 @@ public class LZZ2Compressor implements Compressor {
         Timer timer = null;
         if (packer != null) {
             timer = new Timer();
-            timer.scheduleAtFixedRate(new CompTimerTask(), 0, 1000 / Constants.LZZ_GUI_UPDATES_PER_S);
+            timer.scheduleAtFixedRate(new CompTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
         }
 
         while (true) {
@@ -285,29 +285,6 @@ public class LZZ2Compressor implements Compressor {
         }
         return -1;
     }
-
-//    private void updateInfo(long current, long updateTime) {
-//        packer.progress.set(current);
-//        if (timeAccumulator == 19) {
-//            timeAccumulator = 0;
-//            double finished = ((double) current) / totalLength;
-//            double rounded = (double) Math.round(finished * 1000) / 10;
-//            packer.percentage.set(String.valueOf(rounded));
-//            int newUpdated = (int) (current - lastUpdateProgress);
-//            lastUpdateProgress = packer.progress.get();
-//            int ratio = newUpdated / 1024;
-//            packer.ratio.set(String.valueOf(ratio));
-//
-//            long timeUsed = updateTime - startTime;
-//            packer.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
-//            long expectTime = (totalLength - current) / ratio / 1024;
-//            packer.timeExpected.set(Util.secondToString(expectTime));
-//
-//            packer.passedLength.set(Util.sizeToReadable(current));
-//        } else {
-//            timeAccumulator += 1;
-//        }
-//    }
 
     protected void deleteTemp() {
         Util.deleteFile(mainTempName);
@@ -420,7 +397,7 @@ public class LZZ2Compressor implements Compressor {
         public void run() {
             packer.progress.set(position);
             accumulator++;
-            if (accumulator % Constants.LZZ_GUI_UPDATES_PER_S == 0) {  // whole second
+            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {  // whole second
                 double finished = ((double) position) / totalLength;
                 double rounded = (double) Math.round(finished * 1000) / 10;
                 packer.percentage.set(String.valueOf(rounded));
@@ -429,7 +406,7 @@ public class LZZ2Compressor implements Compressor {
                 int ratio = newUpdated / 1024;
                 packer.ratio.set(String.valueOf(ratio));
 
-                long timeUsed = accumulator * 1000L / Constants.LZZ_GUI_UPDATES_PER_S;
+                long timeUsed = accumulator * 1000L / Constants.GUI_UPDATES_PER_S;
                 packer.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
                 long expectTime = (totalLength - position) / ratio / 1024;
                 packer.timeExpected.set(Util.secondToString(expectTime));

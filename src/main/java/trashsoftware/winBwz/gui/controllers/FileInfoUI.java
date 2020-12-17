@@ -118,7 +118,7 @@ public class FileInfoUI implements Initializable {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         algLabel.setText(": " + alg);
-        versionLabel.setText(pzUnPacker.getArchiveFullVersion());
+        versionLabel.setText(": " + pzUnPacker.getArchiveFullVersion());
         versionNeededLabel.setText(": " + translateVersion(pzUnPacker.versionNeeded()));
         compressRateLabel.setText(": " + roundedRate + " %");
         netRateLabel.setText(": " + roundedNetRate + " %");
@@ -204,6 +204,7 @@ public class FileInfoUI implements Initializable {
         else if (versionInt == 24) return "0.7.2 - 0.7.3";
         else if (versionInt == 25) return "1.0 Alpha+";
         else if (versionInt == 26) return "1.0 Alpha 12+";
+        else if (versionInt == 27) return "1.0 Alpha 15+";
         else return bundle.getString("unknown");
     }
 

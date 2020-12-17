@@ -13,6 +13,7 @@ public class LengthOutputStream extends OutputStream {
     private final byte[] buffer;
     private long writtenLength;
     private int bufferIndex;
+    private boolean closeOut = true;
 
     public LengthOutputStream(OutputStream base) {
         this(base, BUFFER_SIZE);
@@ -21,6 +22,13 @@ public class LengthOutputStream extends OutputStream {
     public LengthOutputStream(OutputStream base, int bufferSize) {
         this.base = base;
         buffer = new byte[bufferSize];
+    }
+
+    /**
+     * Do not close the base stream while closing this stream.
+     */
+    public void notCloseOut() {
+        closeOut = false;
     }
 
     /**
@@ -79,7 +87,9 @@ public class LengthOutputStream extends OutputStream {
 
     @Override
     public void close() throws IOException {
-        base.close();
-        super.close();
+        if (closeOut) {
+            base.close();
+            super.close();
+        }
     }
 }

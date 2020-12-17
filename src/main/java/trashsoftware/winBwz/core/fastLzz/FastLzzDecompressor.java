@@ -45,7 +45,7 @@ public class FastLzzDecompressor implements DeCompressor {
         if (unPacker != null) {
             timeOffset = System.currentTimeMillis() - unPacker.startTime;
             timer = new Timer();
-            timer.scheduleAtFixedRate(new DeFLTimerTask(), 0, 1000 / Constants.LZZ_GUI_UPDATES_PER_S);
+            timer.scheduleAtFixedRate(new DeFLTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
         }
 
         int indexInBuffer = 0;
@@ -149,7 +149,7 @@ public class FastLzzDecompressor implements DeCompressor {
         public void run() {
             unPacker.progress.set(totalOutLength);
             accumulator++;
-            if (accumulator % Constants.LZZ_GUI_UPDATES_PER_S == 0) {  // whole second
+            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {  // whole second
                 double finished = ((double) totalOutLength) / unPacker.getTotalOrigSize();
                 double rounded = (double) Math.round(finished * 1000) / 10;
                 unPacker.percentage.set(String.valueOf(rounded));
@@ -158,7 +158,7 @@ public class FastLzzDecompressor implements DeCompressor {
                 int ratio = newUpdated / 1024;
                 unPacker.ratio.set(String.valueOf(ratio));
 
-                long timeUsed = accumulator * 1000L / Constants.LZZ_GUI_UPDATES_PER_S;
+                long timeUsed = accumulator * 1000L / Constants.GUI_UPDATES_PER_S;
                 unPacker.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
                 long expectTime = (unPacker.getTotalOrigSize() - totalOutLength) / ratio / 1024;
                 unPacker.timeExpected.set(Util.secondToString(expectTime));

@@ -18,6 +18,7 @@
 package trashsoftware.winBwz.packer;
 
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
+import trashsoftware.winBwz.core.deflate.DeflateCompressor;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.core.Compressor;
@@ -47,7 +48,7 @@ public class PzPacker extends Packer {
      * <p>
      * Any change of this value will result the incompatibility between the program and older archive file.
      */
-    public final static byte primaryVersion = 26;
+    public final static byte primaryVersion = 27;
 
     public static final int FIXED_HEAD_LENGTH = 27;
 
@@ -252,6 +253,10 @@ public class PzPacker extends Packer {
                 inf = (byte) (inf | 0b00110000);  // 11
                 algVersion = FastLzzCompressor.VERSION;
                 break;
+            case "deflate":
+                inf = (byte) (inf | 0b00010000);  // 01
+                algVersion = 0;
+                break;
             default:
                 throw new RuntimeException("Unknown algorithm");
         }
@@ -348,6 +353,9 @@ public class PzPacker extends Packer {
                 case "bwz":
                     headCompressor = new BWZCompressor(tempHeadName, defaultWindowSize);
                     break;
+                case "deflate":
+                    headCompressor = new DeflateCompressor(tempHeadName, 6);
+                    break;
                 default:
                     throw new NoSuchAlgorithmException("No such algorithm");
             }
@@ -363,6 +371,9 @@ public class PzPacker extends Packer {
                     break;
                 case "bwz":
                     headCompressor = new BWZCompressor(tempHeadName, windowSize);
+                    break;
+                case "deflate":
+                    headCompressor = new DeflateCompressor(tempHeadName, cmpLevel);
                     break;
                 default:
                     throw new NoSuchAlgorithmException("No such algorithm");
@@ -446,6 +457,9 @@ public class PzPacker extends Packer {
                     break;
                 case "bwz":
                     mainCompressor = new BWZCompressor(mis, windowSize);
+                    break;
+                case "deflate":
+                    mainCompressor = new DeflateCompressor(mis, cmpLevel, totalLength);
                     break;
                 default:
                     throw new NoSuchAlgorithmException("No such algorithm");

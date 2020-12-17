@@ -30,7 +30,8 @@ public class CompressUI implements Initializable {
     private static final AlgBoxItem[] PZ_ALG = {
             new AlgBoxItem("BWZ", "bwz"),
             new AlgBoxItem("LZZ2", "lzz2"),
-            new AlgBoxItem("FastLZZ", "fastLzz")
+            new AlgBoxItem("FastLZZ", "fastLzz"),
+            new AlgBoxItem("Deflate", "deflate")
     };
     private static final AlgBoxItem[] ZIP_ALG = {
             new AlgBoxItem("Deflate", "deflate")
@@ -473,7 +474,7 @@ public class CompressUI implements Initializable {
                 case "deflate":
                     window = 32768;
                     buffer = bufferBox.getSelectionModel().getSelectedItem();
-                    // special for zip
+                    // special for deflate
                     cmpLevel = presetLevelBox.getSelectionModel().getSelectedIndex();
                     break;
                 default:

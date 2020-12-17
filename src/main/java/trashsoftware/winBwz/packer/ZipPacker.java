@@ -86,7 +86,7 @@ public class ZipPacker extends Packer {
         if (interrupted) return;
         timeOffset = System.currentTimeMillis() - startTime;
         Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new ZipTimerTask(), 0, 1000 / Constants.LZZ_GUI_UPDATES_PER_S);
+        timer.scheduleAtFixedRate(new ZipTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
 
         LengthOutputStream los = new LengthOutputStream(new FileOutputStream(outFileName));
         ZipOutputStream zipOutputStream = new ZipOutputStream(los);
@@ -164,7 +164,7 @@ public class ZipPacker extends Packer {
         public void run() {
             progress.set(passedLengthBytes);
             accumulator++;
-            if (accumulator % Constants.LZZ_GUI_UPDATES_PER_S == 0) {
+            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {
                 double finished = ((double) passedLengthBytes) / totalLength;
                 double rounded = (double) Math.round(finished * 1000) / 10;
                 percentage.set(String.valueOf(rounded));
@@ -173,7 +173,7 @@ public class ZipPacker extends Packer {
                 int ratioInt = newUpdated / 1024;
                 ratio.set(String.valueOf(ratioInt));
 
-                long timeUsedV = accumulator * 1000L / Constants.LZZ_GUI_UPDATES_PER_S;
+                long timeUsedV = accumulator * 1000L / Constants.GUI_UPDATES_PER_S;
                 timeUsed.set(Util.secondToString((timeUsedV + timeOffset) / 1000));
                 long expectTime = (totalLength - passedLengthBytes) / ratioInt / 1024;
                 timeExpected.set(Util.secondToString(expectTime));

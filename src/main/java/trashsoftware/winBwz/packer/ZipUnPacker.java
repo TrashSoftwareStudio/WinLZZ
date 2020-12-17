@@ -99,7 +99,7 @@ public class ZipUnPacker extends UnPacker {
     @Override
     public boolean testPack() {
         Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new ZupTimerTask(), 0, 1000 / Constants.LZZ_GUI_UPDATES_PER_S);
+        timer.scheduleAtFixedRate(new ZupTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
         try {
             totalProgress.set(totalOrigSize);
             progress.set(0);
@@ -144,6 +144,7 @@ public class ZipUnPacker extends UnPacker {
 
         fos.flush();
         fos.close();
+        passedLengthBytes = lastProgress + fos.getWrittenLength();
     }
 
     @Override
@@ -161,7 +162,7 @@ public class ZipUnPacker extends UnPacker {
         progress.set(0);
         passedLengthBytes = 0;
         Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new ZupTimerTask(), 0, 1000 / Constants.LZZ_GUI_UPDATES_PER_S);
+        timer.scheduleAtFixedRate(new ZupTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
         try {
             traversalExtract(targetDir, (ZipCatalogNode) node, dirOffset);
         } finally {
@@ -290,7 +291,7 @@ public class ZipUnPacker extends UnPacker {
             progress.set(passedLengthBytes);
 //            long position = progress.get();
             accumulator++;
-            if (accumulator % Constants.LZZ_GUI_UPDATES_PER_S == 0) {
+            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {
                 double finished = ((double) passedLengthBytes) / totalProgress.get();
                 double rounded = (double) Math.round(finished * 1000) / 10;
                 percentage.set(String.valueOf(rounded));
@@ -299,7 +300,7 @@ public class ZipUnPacker extends UnPacker {
                 int ratioInt = newUpdated / 1024;
                 ratio.set(String.valueOf(ratioInt));
 
-                long timeUsedV = accumulator * 1000L / Constants.LZZ_GUI_UPDATES_PER_S;
+                long timeUsedV = accumulator * 1000L / Constants.GUI_UPDATES_PER_S;
                 timeUsed.set(Util.secondToString(timeUsedV / 1000));
                 long expectTime = (totalProgress.get() - passedLengthBytes) / ratioInt / 1024;
                 timeExpected.set(Util.secondToString(expectTime));

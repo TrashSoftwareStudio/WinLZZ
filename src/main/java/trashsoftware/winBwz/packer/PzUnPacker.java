@@ -1,17 +1,18 @@
 package trashsoftware.winBwz.packer;
 
+import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.core.bwz.BWZDeCompressor;
+import trashsoftware.winBwz.core.deflate.DeflateDeCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
-import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
-import trashsoftware.winBwz.encrypters.bzse.BZSEStreamDecoder;
-import trashsoftware.winBwz.core.DeCompressor;
-import trashsoftware.winBwz.encrypters.Decipher;
-import trashsoftware.winBwz.core.lzz2.LZZ2DeCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzDecompressor;
-import trashsoftware.winBwz.utility.*;
+import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
+import trashsoftware.winBwz.core.lzz2.LZZ2DeCompressor;
+import trashsoftware.winBwz.encrypters.Decipher;
 import trashsoftware.winBwz.encrypters.WrongPasswordException;
+import trashsoftware.winBwz.encrypters.bzse.BZSEStreamDecoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileDecoder;
+import trashsoftware.winBwz.utility.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -35,17 +36,23 @@ public class PzUnPacker extends UnPacker {
      */
     private final String mapName;
     private final String cmpMapName;
-    private String tempName;
     private final String cmpTempName;
     private final String encMapName;
     private final String encMainName;
+    /**
+     * List of {@code IndexNodeUnp}'s.
+     * <p>
+     * This list is order-sensitive. Each node represents an actual file except the root node.
+     */
+    private final ArrayList<IndexNodeUnp> indexNodes = new ArrayList<>();
+    public long startTime;
+    public boolean isInterrupted;
+    private String tempName;
     private String combineName;
-
     /**
      * The input stream of this archive file itself.
      */
     private InputStream bis;
-
     /**
      * Primary version of the current opening archive.
      * <p>
@@ -53,37 +60,23 @@ public class PzUnPacker extends UnPacker {
      * decompression program.
      */
     private byte primaryVersion;
-
     /**
      * Secondary version of the current opening archive.
      */
     private byte algVersion;
-
-    /**
-     * List of {@code IndexNodeUnp}'s.
-     * <p>
-     * This list is order-sensitive. Each node represents an actual file except the root node.
-     */
-    private final ArrayList<IndexNodeUnp> indexNodes = new ArrayList<>();
-
     /**
      * The root {@code ContextNode} of the archive.
      * <p>
      * This node does not represent an actual directory.
      */
     private PzCatalogNode rootNode;
-
     private boolean isSeparated;
-
     private int partCount;
-
     private int fileCount, dirCount;
-
     /**
      * The length of context map after compression.
      */
     private int cmpMapLen;
-
     /**
      * The user-defined size of sliding window/block of block-based or sliding-window-based compression algorithm.
      * <p>
@@ -91,58 +84,40 @@ public class PzUnPacker extends UnPacker {
      * This value will be 0 if there is no compression.
      */
     private int windowSize;
-
     private int encryptLevel, threadNumber;
-
     private String encryption = "bzse";
-
     private String passwordAlg = "sha-256";
-
     /**
      * Length of the main part.
      */
     private long cmpMainLength;
-
     /**
      * Length of this archive file.
      */
     private long archiveLength;
-
     /**
      * Length of the original file (uncompressed).
      */
     private long origSize;
-
     private String password;
     private boolean passwordSet;
-
     private boolean isTest;
-
     /**
      * 16-byte array representing the checksum of original password, if exists.
      */
     private byte[] origPasswordChecksum;
-
     private byte[] passwordSalt;
-
     private byte[] extraField;
-
     /**
      * String abbreviation of compression algorithm of this archive.
      */
     private String alg;
-
     /**
      * String annotation of this archive.
      */
     private String annotation;
-
     private String failInfo;
-
-    public long startTime;
     private long creationTime, crc32Checksum, crc32Context;
-
-    public boolean isInterrupted;
 
     /**
      * Creates a new UnPacker instance, with <code>packName</code> as the input archive name.
@@ -158,6 +133,31 @@ public class PzUnPacker extends UnPacker {
         cmpTempName = packName + ".cmp";
         encMapName = packName + ".map.enc";
         encMainName = packName + ".enc";
+    }
+
+    /**
+     * Checks the signature of the archive file.
+     *
+     * @return {@code 0} if this archive is a WinLZZ archive,
+     * {@code 1} if it is a WinLZZ archive section,
+     * {@code 2} if unrecognizable.
+     */
+    public static int checkSignature(String path) {
+        try {
+            FileInputStream fis = new FileInputStream(path);
+            byte[] sigBytes = new byte[4];
+            if (fis.read(sigBytes) != 4) {
+                fis.close();
+                return 2;
+            }
+            fis.close();
+            int signature = Bytes.bytesToInt32(sigBytes);
+            if (signature == PzPacker.SIGNATURE) return 0;
+            else if (signature == PzPacker.PART_SIGNATURE) return 1;
+            else return 2;
+        } catch (IOException e) {
+            return 2;
+        }
     }
 
     /**
@@ -199,6 +199,7 @@ public class PzUnPacker extends UnPacker {
         String encInfo = Bytes.byteToBitString(infoBytes[1]);
         if (primaryVersion == 25) readInfoByte25(infoBytes[0]);
         else if (primaryVersion == 26) readInfoByte26(infoBytes[0]);
+        else if (primaryVersion == 27) readInfoByte27(infoBytes[0]);
         else throw new UnsupportedVersionException("Unsupported file version");
 
         String encAlgName = encInfo.substring(0, 2);
@@ -372,6 +373,51 @@ public class PzUnPacker extends UnPacker {
             case "1100":
                 alg = "fastLzz";
                 programAlgVersion = FastLzzCompressor.VERSION;
+                break;
+            default:
+                throw new RuntimeException("Unknown algorithm");
+        }
+        if (programAlgVersion != algVersion)
+            throw new UnsupportedVersionException("Unsupported algorithm version");
+
+        char sepRep = info.charAt(7);
+        isSeparated = sepRep == '1';
+    }
+
+    private void readInfoByte27(byte infoByte) {
+        String info = Bytes.byteToBitString(infoByte);
+        String enc = info.substring(0, 2);  // The encrypt level of this archive.
+        switch (enc) {
+            case "00":
+                encryptLevel = 0;
+                passwordSet = true;
+                break;
+            case "10":
+                encryptLevel = 1;
+                break;
+            case "01":
+                encryptLevel = 2;
+                break;
+        }
+
+        String algCode = info.substring(2, 6);
+        int programAlgVersion;
+        switch (algCode) {
+            case "0000":
+                alg = "lzz2";
+                programAlgVersion = LZZ2Compressor.VERSION;
+                break;
+            case "1000":
+                alg = "bwz";
+                programAlgVersion = BWZCompressor.VERSION;
+                break;
+            case "1100":
+                alg = "fastLzz";
+                programAlgVersion = FastLzzCompressor.VERSION;
+                break;
+            case "0100":
+                alg = "deflate";
+                programAlgVersion = 0;
                 break;
             default:
                 throw new RuntimeException("Unknown algorithm");
@@ -729,12 +775,14 @@ public class PzUnPacker extends UnPacker {
             case "bwz":
                 mainDec = new BWZDeCompressor(cmpTempName, windowSize, 0);
                 break;
+            case "deflate":
+                mainDec = new DeflateDeCompressor(cmpTempName);
+                break;
             default:
                 throw new NoSuchAlgorithmException("No such algorithm");
         }
         return mainDec;
     }
-
 
     /**
      * Extracts and uncompress all files and directories to the path <code>targetDir</code>, recursively.
@@ -811,7 +859,6 @@ public class PzUnPacker extends UnPacker {
         Util.deleteFile(cmpMapName);
         Util.deleteFile(encMapName);
     }
-
 
     /**
      * Returns whether the compressed file is undamaged.
@@ -1008,31 +1055,6 @@ public class PzUnPacker extends UnPacker {
         return f.exists() && f.length() == origSize;
     }
 
-    /**
-     * Checks the signature of the archive file.
-     *
-     * @return {@code 0} if this archive is a WinLZZ archive,
-     * {@code 1} if it is a WinLZZ archive section,
-     * {@code 2} if unrecognizable.
-     */
-    public static int checkSignature(String path) {
-        try {
-            FileInputStream fis = new FileInputStream(path);
-            byte[] sigBytes = new byte[4];
-            if (fis.read(sigBytes) != 4) {
-                fis.close();
-                return 2;
-            }
-            fis.close();
-            int signature = Bytes.bytesToInt32(sigBytes);
-            if (signature == PzPacker.SIGNATURE) return 0;
-            else if (signature == PzPacker.PART_SIGNATURE) return 1;
-            else return 2;
-        } catch (IOException e) {
-            return 2;
-        }
-    }
-
     public String getArchiveFullVersion() {
         String primary = String.valueOf(primaryVersion & 0xff);
         switch (alg) {
@@ -1042,6 +1064,8 @@ public class PzUnPacker extends UnPacker {
                 return primary + String.format(".%d.%d.%d", BWZCompressor.VERSION, algVersion, FastLzzCompressor.VERSION);
             case "fastLzz":
                 return primary + String.format(".%d.%d.%d", BWZCompressor.VERSION, LZZ2Compressor.VERSION, algVersion);
+            case "deflate":
+                return primary;
             default:
                 throw new RuntimeException("Unknown algorithm");
         }

@@ -516,6 +516,7 @@ public class MainUI implements Initializable {
                 st.close();
             }
         });
+        nameField.setOnAction(confirm.getOnAction());
 
         Button cancel = new Button(bundle.getString("cancel"));
         cancel.setOnAction(e -> st.close());

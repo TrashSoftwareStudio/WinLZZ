@@ -28,7 +28,7 @@
     <GridPane alignment="CENTER" prefWidth="400.0" vgap="5.0">
         <columnConstraints>
             <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
-            <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="200.0"/>
+            <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="240.0"/>
         </columnConstraints>
         <rowConstraints>
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
@@ -46,24 +46,24 @@
             <Insets bottom="20.0" left="50.0" right="50.0" top="10.0"/>
         </padding>
         <Label text="%compressFmt"/>
-        <ComboBox fx:id="fmtBox" prefWidth="200.0" GridPane.columnIndex="1"/>
+        <ComboBox fx:id="fmtBox" prefWidth="240.0" GridPane.columnIndex="1"/>
         <Label text="%compressAlg" GridPane.rowIndex="1"/>
-        <ComboBox fx:id="algBox" prefWidth="200.0" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+        <ComboBox fx:id="algBox" prefWidth="240.0" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
         <Label text="%compressLv" GridPane.rowIndex="2"/>
-        <ComboBox fx:id="presetLevelBox" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+        <ComboBox fx:id="presetLevelBox" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
         <Label text="%dictSize" GridPane.rowIndex="3"/>
         <Label text="%wordSize" GridPane.rowIndex="4"/>
-        <ComboBox fx:id="windowNameBox" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
-        <ComboBox fx:id="bufferBox" disable="true" prefWidth="200.0" GridPane.columnIndex="1"
+        <ComboBox fx:id="windowNameBox" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+        <ComboBox fx:id="bufferBox" disable="true" prefWidth="240.0" GridPane.columnIndex="1"
                   GridPane.rowIndex="4"/>
         <Label text="%strongMode" GridPane.rowIndex="5"/>
-        <ComboBox fx:id="modeBox" disable="true" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+        <ComboBox fx:id="modeBox" disable="true" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
         <Label text="%threadNumber" GridPane.rowIndex="7"/>
-        <ComboBox fx:id="threadBox" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="7"/>
+        <ComboBox fx:id="threadBox" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="7"/>
         <Label text="%splitSize" GridPane.rowIndex="6"/>
-        <HBox prefHeight="100.0" prefWidth="200.0" maxWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="6">
-            <ComboBox fx:id="partialBox" editable="true" prefWidth="135.0"/>
-            <ComboBox fx:id="unitBox" prefWidth="65.0"/>
+        <HBox prefHeight="100.0" prefWidth="240.0" maxWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="6">
+            <ComboBox fx:id="partialBox" editable="true" prefWidth="160.0"/>
+            <ComboBox fx:id="unitBox" prefWidth="80.0"/>
         </HBox>
 
         <Label GridPane.rowIndex="8" text="%memoryNeededCompress"/>

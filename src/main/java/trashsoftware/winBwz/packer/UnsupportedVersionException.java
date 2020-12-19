@@ -16,7 +16,7 @@ public class UnsupportedVersionException extends RuntimeException {
      *
      * @param message the error message
      */
-    UnsupportedVersionException(String message) {
+    public UnsupportedVersionException(String message) {
         super(message);
     }
 }

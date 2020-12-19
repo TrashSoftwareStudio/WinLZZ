@@ -1,4 +1,6 @@
-package trashsoftware.winBwz.packer;
+package trashsoftware.winBwz.packer.zip;
+
+import trashsoftware.winBwz.packer.CatalogNode;
 
 import java.util.zip.ZipEntry;
 

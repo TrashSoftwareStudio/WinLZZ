@@ -4,7 +4,7 @@ import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.core.bwz.bwt.BWTDecoder;
 import trashsoftware.winBwz.huffman.MapCompressor.BwzMapDeCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanInputStream;
-import trashsoftware.winBwz.packer.PzUnPacker;
+import trashsoftware.winBwz.packer.pz.PzUnPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 

@@ -1,26 +1,21 @@
 package trashsoftware.winBwz.core.deflate;
 
-import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
-import trashsoftware.winBwz.packer.PzPacker;
+import trashsoftware.winBwz.core.RegularCompressor;
+import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.utility.LengthOutputStream;
-import trashsoftware.winBwz.utility.Util;
 
 import java.io.*;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
-public class DeflateCompressor implements Compressor {
+public class DeflateCompressor extends RegularCompressor {
     static final int bufferSize = 8192;
     //    private String inFile;
     private final InputStream is;
     private int level;
     private long compressedSize;
-    private PzPacker packer;
-    private long timeOffset;
-    private final long totalLength;
     private long position;
 
     public DeflateCompressor(String inFile, int presetLevel) throws IOException {
@@ -28,9 +23,14 @@ public class DeflateCompressor implements Compressor {
     }
 
     public DeflateCompressor(InputStream inputStream, int presetLevel, long totalLength) {
+        super(totalLength);
         this.level = presetLevel;
         this.is = inputStream;
-        this.totalLength = totalLength;
+    }
+
+    @Override
+    public long getPosition() {
+        return position;
     }
 
     @Override
@@ -39,7 +39,7 @@ public class DeflateCompressor implements Compressor {
         if (packer != null) {
             timeOffset = System.currentTimeMillis() - packer.startTime;
             timer = new Timer();
-            timer.scheduleAtFixedRate(new DefTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
+            timer.scheduleAtFixedRate(new CompTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
         }
         LengthOutputStream los = new LengthOutputStream(out);
         los.notCloseOut();  // avoid 'out' being closed by dos.close
@@ -77,33 +77,5 @@ public class DeflateCompressor implements Compressor {
     @Override
     public long getCompressedSize() {
         return compressedSize;
-    }
-
-    class DefTimerTask extends TimerTask {
-        private int accumulator;
-
-        private long lastUpdateProgress;
-
-        @Override
-        public void run() {
-            packer.progress.set(position);
-            accumulator++;
-            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {  // whole second
-                double finished = ((double) position) / totalLength;
-                double rounded = (double) Math.round(finished * 1000) / 10;
-                packer.percentage.set(String.valueOf(rounded));
-                int newUpdated = (int) (position - lastUpdateProgress);
-                lastUpdateProgress = position;
-                int ratio = newUpdated / 1024;
-                packer.ratio.set(String.valueOf(ratio));
-
-                long timeUsed = accumulator * 1000L / Constants.GUI_UPDATES_PER_S;
-                packer.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
-                long expectTime = (totalLength - position) / ratio / 1024;
-                packer.timeExpected.set(Util.secondToString(expectTime));
-
-                packer.passedLength.set(Util.sizeToReadable(position));
-            }
-        }
     }
 }

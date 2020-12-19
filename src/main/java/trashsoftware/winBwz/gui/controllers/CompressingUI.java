@@ -13,8 +13,8 @@ import javafx.scene.control.ProgressBar;
 import javafx.stage.Stage;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.packer.Packer;
-import trashsoftware.winBwz.packer.PzPacker;
-import trashsoftware.winBwz.packer.ZipPacker;
+import trashsoftware.winBwz.packer.pz.PzPacker;
+import trashsoftware.winBwz.packer.zip.ZipPacker;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.File;

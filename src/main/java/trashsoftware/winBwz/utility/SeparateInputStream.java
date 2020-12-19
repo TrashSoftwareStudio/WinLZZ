@@ -1,6 +1,6 @@
 package trashsoftware.winBwz.utility;
 
-import trashsoftware.winBwz.packer.PzUnPacker;
+import trashsoftware.winBwz.packer.pz.PzUnPacker;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;

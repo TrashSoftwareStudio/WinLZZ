@@ -3,6 +3,8 @@ package trashsoftware.winBwz.console;
 import trashsoftware.winBwz.Main;
 import trashsoftware.winBwz.packer.*;
 import trashsoftware.winBwz.encrypters.WrongPasswordException;
+import trashsoftware.winBwz.packer.pz.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzUnPacker;
 
 import java.io.File;
 import java.security.NoSuchAlgorithmException;

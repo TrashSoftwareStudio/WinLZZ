@@ -41,7 +41,7 @@ public abstract class CatalogNode {
      *
      * @param child the {@code ContextNode} that will be add to this {@code ContextNode} as a child.
      */
-    void addChild(CatalogNode child) {
+    public void addChild(CatalogNode child) {
         children.add(child);
     }
 

@@ -2,13 +2,13 @@ package trashsoftware.winBwz.core.lzz2;
 
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
+import trashsoftware.winBwz.core.RegularCompressor;
 import trashsoftware.winBwz.core.bwz.MTFTransform;
 import trashsoftware.winBwz.huffman.HuffmanCompressor;
 import trashsoftware.winBwz.huffman.HuffmanCompressorBase;
 import trashsoftware.winBwz.huffman.HuffmanCompressorTwoBytes;
 import trashsoftware.winBwz.huffman.MapCompressor.MapCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanUtil;
-import trashsoftware.winBwz.packer.PzPacker;
 import trashsoftware.winBwz.utility.FileBitOutputStream;
 import trashsoftware.winBwz.utility.FileInputBufferArray;
 import trashsoftware.winBwz.utility.MultipleInputStream;
@@ -16,7 +16,6 @@ import trashsoftware.winBwz.utility.Util;
 
 import java.io.*;
 import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * LZZ2 (Lempel-Ziv-ZBH 2) compressor, implements {@code Compressor} interface.
@@ -27,7 +26,7 @@ import java.util.TimerTask;
  * @see Compressor
  * @since 0.4
  */
-public class LZZ2Compressor implements Compressor {
+public class LZZ2Compressor extends RegularCompressor {
 
     public static final int VERSION = 2;
 
@@ -43,17 +42,11 @@ public class LZZ2Compressor implements Compressor {
 
     private final InputStream sis;
     private final int windowSize;  // Size of sliding window.
-    protected long totalLength;
     protected String mainTempName, lenHeadTempName, disHeadTempName, flagTempName, dlBodyTempName;
     protected long cmpSize;
     protected int itemCount;
-    protected PzPacker packer;
     private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
     private int dictSize;
-    /**
-     * Time used by any launching process before this {@code LZZ2Compressor} starts.
-     */
-    private long timeOffset;
 
     private int compressionLevel;
 
@@ -68,11 +61,12 @@ public class LZZ2Compressor implements Compressor {
      * @throws IOException if error occurs during file reading or writing.
      */
     public LZZ2Compressor(String inFile, int windowSize, int bufferSize) throws IOException {
+        super(new File(inFile).length());
+
         this.windowSize = windowSize;
         this.bufferMaxSize = bufferSize + MINIMUM_MATCH_LEN + 1;
         this.dictSize = windowSize - bufferMaxSize - 1;
 
-        this.totalLength = new File(inFile).length();
         this.sis = new FileInputStream(inFile);
         setTempNames(inFile);
     }
@@ -86,12 +80,18 @@ public class LZZ2Compressor implements Compressor {
      * @param totalLength the total length of the files to be compressed
      */
     public LZZ2Compressor(MultipleInputStream mis, int windowSize, int bufferSize, long totalLength) {
+        super(totalLength);
+
         this.windowSize = windowSize;
         this.bufferMaxSize = bufferSize + MINIMUM_MATCH_LEN + 1;
         this.dictSize = windowSize - bufferMaxSize - 1;
-        this.totalLength = totalLength;
         this.sis = mis;
         setTempNames("lzz2");
+    }
+
+    @Override
+    public long getPosition() {
+        return position;
     }
 
     private static int sliderArraySize(int dictSize, int compressionLevel) {
@@ -375,45 +375,12 @@ public class LZZ2Compressor implements Compressor {
     }
 
     @Override
-    public void setPacker(PzPacker packer) {
-        this.packer = packer;
-    }
-
-    @Override
     public void setThreads(int threads) {
     }
 
     @Override
     public void setCompressionLevel(int compressionLevel) {
         this.compressionLevel = compressionLevel;
-    }
-
-    class CompTimerTask extends TimerTask {
-        private int accumulator;
-
-        private long lastUpdateProgress;
-
-        @Override
-        public void run() {
-            packer.progress.set(position);
-            accumulator++;
-            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {  // whole second
-                double finished = ((double) position) / totalLength;
-                double rounded = (double) Math.round(finished * 1000) / 10;
-                packer.percentage.set(String.valueOf(rounded));
-                int newUpdated = (int) (position - lastUpdateProgress);
-                lastUpdateProgress = position;
-                int ratio = newUpdated / 1024;
-                packer.ratio.set(String.valueOf(ratio));
-
-                long timeUsed = accumulator * 1000L / Constants.GUI_UPDATES_PER_S;
-                packer.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
-                long expectTime = (totalLength - position) / ratio / 1024;
-                packer.timeExpected.set(Util.secondToString(expectTime));
-
-                packer.passedLength.set(Util.sizeToReadable(position));
-            }
-        }
     }
 
 //    public static void main(String[] args) {

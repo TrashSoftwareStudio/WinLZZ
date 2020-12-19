@@ -2,7 +2,7 @@ package trashsoftware.winBwz.core.fastLzz;
 
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
-import trashsoftware.winBwz.packer.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.utility.*;
 
 import java.io.*;

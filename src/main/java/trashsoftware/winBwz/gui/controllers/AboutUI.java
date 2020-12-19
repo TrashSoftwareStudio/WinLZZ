@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.gui.controllers;
 
 import trashsoftware.winBwz.Main;
-import trashsoftware.winBwz.packer.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzPacker;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Label;

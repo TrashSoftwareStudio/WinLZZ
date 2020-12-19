@@ -1,6 +1,6 @@
 package trashsoftware.winBwz;
 
-import trashsoftware.winBwz.packer.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzPacker;
 
 import java.io.File;
 

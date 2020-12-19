@@ -1,7 +1,6 @@
 package trashsoftware.winBwz.gui.graphicUtil;
 
 import trashsoftware.winBwz.packer.CatalogNode;
-import trashsoftware.winBwz.packer.PzCatalogNode;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.File;

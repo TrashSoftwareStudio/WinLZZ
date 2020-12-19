@@ -222,6 +222,7 @@ public class CompressUI implements Initializable {
                         0 : algIndex);
                 presetLevelBox.getSelectionModel().select(levelIndex >= presetLevelBox.getItems().size() ?
                         3 : levelIndex);
+                setZipUi();
 
                 LoaderManager.getCacheSaver().writeCache("fmtName", newValue);
             }
@@ -262,7 +263,7 @@ public class CompressUI implements Initializable {
                     modeBox.getSelectionModel().select(1);
                     break;
                 case "deflate":
-                    setZipUi();
+                    setDeflateUi();
                     modeBox.getSelectionModel().select(1);
                     break;
                 default:
@@ -314,6 +315,8 @@ public class CompressUI implements Initializable {
                         )
                 );
                 break;
+            case "deflate":
+                break;
         }
     }
 
@@ -334,6 +337,10 @@ public class CompressUI implements Initializable {
     }
 
     private void setZipUi() {
+        
+    }
+
+    private void setDeflateUi() {
         presetLevelBox.setDisable(false);
         windowNameBox.setDisable(false);
         windowNameBox.getItems().clear();

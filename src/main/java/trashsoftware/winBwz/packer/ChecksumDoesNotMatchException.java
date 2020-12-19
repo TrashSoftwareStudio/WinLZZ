@@ -17,7 +17,7 @@ public class ChecksumDoesNotMatchException extends Exception {
      *
      * @param message the error message
      */
-    ChecksumDoesNotMatchException(String message) {
+    public ChecksumDoesNotMatchException(String message) {
         super(message);
     }
 }

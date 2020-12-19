@@ -2,18 +2,18 @@ package trashsoftware.winBwz.core.lzz2;
 
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.DeCompressor;
+import trashsoftware.winBwz.core.RegularDeCompressor;
 import trashsoftware.winBwz.core.bwz.MTFInverse;
 import trashsoftware.winBwz.core.bwz.ZeroRLCDecoder;
 import trashsoftware.winBwz.huffman.HuffmanCompressorTwoBytes;
 import trashsoftware.winBwz.huffman.MapCompressor.MapDeCompressor;
-import trashsoftware.winBwz.packer.PzUnPacker;
+import trashsoftware.winBwz.packer.pz.PzUnPacker;
 import trashsoftware.winBwz.utility.FileBitInputStream;
 import trashsoftware.winBwz.utility.IndexedOutputStream;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.*;
 import java.util.Timer;
-import java.util.TimerTask;
 
 import static trashsoftware.winBwz.core.lzz2.LZZ2Compressor.*;
 
@@ -24,29 +24,20 @@ import static trashsoftware.winBwz.core.lzz2.LZZ2Compressor.*;
  * @see DeCompressor
  * @since 0.4
  */
-public class LZZ2DeCompressor implements DeCompressor {
+public class LZZ2DeCompressor extends RegularDeCompressor {
 
     private final static int readBufferSize = 8192;
     private final String inFile;
     private final BufferedInputStream bis;
     private final int disHeadLen;
-    private int dlbLen;
     private final int mainLen;
     private final int csqLen;
-
     private final int windowSize;
-
+    private int dlbLen;
+    private long outPosition;
     private String dlBodyTempName;
 
     private String cmpMainTempName, cmpDisHeadTempName;
-
-    private PzUnPacker unPacker;
-
-//    private int timeAccumulator;
-
-    private long lastUpdateProgress;
-
-    private long timeOffset;
 
     private int[] mainMap;
     private int[] disHeadMap;
@@ -81,6 +72,11 @@ public class LZZ2DeCompressor implements DeCompressor {
 
         dlbLen = length - disHeadLen - dlbLen - csqLen - sizeBlockSize - 1;
         this.bis = new BufferedInputStream(new FileInputStream(inFile));
+    }
+
+    @Override
+    public long getPosition() {
+        return outPosition;
     }
 
     private void generateTempNames() {
@@ -145,8 +141,7 @@ public class LZZ2DeCompressor implements DeCompressor {
         if (unPacker != null) {
             timeOffset = System.currentTimeMillis() - unPacker.startTime;
             timer = new Timer();
-            timer.scheduleAtFixedRate(
-                    new DeCompTimerTask(tempResult), 0, 1000 / Constants.GUI_UPDATES_PER_S);
+            timer.scheduleAtFixedRate(new DeCompTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
         }
 //        long currentTime;
 
@@ -179,11 +174,8 @@ public class LZZ2DeCompressor implements DeCompressor {
 
                     recoverMatch(tempResult, distance, length);
                 }
+                outPosition = tempResult.getIndex();
                 if (unPacker != null && unPacker.isInterrupted) break;
-//                if (unPacker != null && (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
-//                    updateInfo(tempResult.getIndex(), currentTime);
-//                    lastCheckTime = currentTime;
-//                }
             }
         } catch (Exception e) {
             tempResult.flush();
@@ -245,60 +237,5 @@ public class LZZ2DeCompressor implements DeCompressor {
 //        deleteCmpTemp();
         uncompressMain(outFile);
         deleteTemp();
-    }
-
-//    private void updateInfo(long current, long updateTime) {
-//        unPacker.progress.set(current);
-//        if (timeAccumulator == 19) {
-//            timeAccumulator = 0;
-//            double finished = ((double) current) / unPacker.getTotalOrigSize();
-//            double rounded = (double) Math.round(finished * 1000) / 10;
-//            unPacker.percentage.set(String.valueOf(rounded));
-//            int newUpdated = (int) (current - lastUpdateProgress);
-//            lastUpdateProgress = unPacker.progress.get();
-//            int ratio = newUpdated / 1024;
-//            unPacker.ratio.set(String.valueOf(ratio));
-//
-//            long timeUsed = updateTime - startTime;
-//            unPacker.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
-//            long expectTime = (unPacker.getTotalOrigSize() - current) / ratio / 1024;
-//            unPacker.timeExpected.set(Util.secondToString(expectTime));
-//
-//            unPacker.passedLength.set(Util.sizeToReadable(current));
-//        } else {
-//            timeAccumulator += 1;
-//        }
-//    }
-
-    class DeCompTimerTask extends TimerTask {
-        private int accumulator;
-        private final IndexedOutputStream out;
-
-        DeCompTimerTask(IndexedOutputStream out) {
-            this.out = out;
-        }
-
-        @Override
-        public void run() {
-            long position = out.getIndex();
-            unPacker.progress.set(position);
-            accumulator++;
-            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {  // whole second
-                double finished = ((double) position) / unPacker.getTotalOrigSize();
-                double rounded = (double) Math.round(finished * 1000) / 10;
-                unPacker.percentage.set(String.valueOf(rounded));
-                int newUpdated = (int) (position - lastUpdateProgress);
-                lastUpdateProgress = unPacker.progress.get();
-                int ratio = newUpdated / 1024;
-                unPacker.ratio.set(String.valueOf(ratio));
-
-                long timeUsed = accumulator * 1000L / Constants.GUI_UPDATES_PER_S;
-                unPacker.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
-                long expectTime = (unPacker.getTotalOrigSize() - position) / ratio / 1024;
-                unPacker.timeExpected.set(Util.secondToString(expectTime));
-
-                unPacker.passedLength.set(Util.sizeToReadable(position));
-            }
-        }
     }
 }

@@ -2,7 +2,7 @@ package trashsoftware.winBwz.encrypters;
 
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
-import trashsoftware.winBwz.packer.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzPacker;
 
 import java.io.IOException;
 import java.io.OutputStream;

@@ -1,7 +1,6 @@
 package trashsoftware.winBwz.gui.controllers;
 
 import trashsoftware.winBwz.packer.CatalogNode;
-import trashsoftware.winBwz.packer.PzCatalogNode;
 import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.utility.Util;
 import javafx.application.Platform;

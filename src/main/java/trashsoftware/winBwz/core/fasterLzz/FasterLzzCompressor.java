@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.core.fasterLzz;
 
 import trashsoftware.winBwz.core.Compressor;
-import trashsoftware.winBwz.packer.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.utility.*;
 
 import java.io.*;

@@ -1,4 +1,4 @@
-package trashsoftware.winBwz.packer;
+package trashsoftware.winBwz.packer.pz;
 
 import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
@@ -12,6 +12,10 @@ import trashsoftware.winBwz.encrypters.Decipher;
 import trashsoftware.winBwz.encrypters.WrongPasswordException;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamDecoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileDecoder;
+import trashsoftware.winBwz.packer.CatalogNode;
+import trashsoftware.winBwz.packer.ChecksumDoesNotMatchException;
+import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.UnsupportedVersionException;
 import trashsoftware.winBwz.utility.*;
 
 import java.io.*;

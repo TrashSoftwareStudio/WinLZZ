@@ -1,11 +1,8 @@
 package trashsoftware.winBwz;
 
-import trashsoftware.winBwz.packer.ZipPacker;
+import trashsoftware.winBwz.packer.zip.ZipPacker;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.zip.ZipOutputStream;
 
 public class ZipTest {
 

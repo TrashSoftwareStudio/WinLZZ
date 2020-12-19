@@ -15,7 +15,7 @@
  * n bytes: context
  */
 
-package trashsoftware.winBwz.packer;
+package trashsoftware.winBwz.packer.pz;
 
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.core.deflate.DeflateCompressor;
@@ -24,9 +24,9 @@ import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.encrypters.Encipher;
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
+import trashsoftware.winBwz.packer.Packer;
 import trashsoftware.winBwz.utility.*;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
-import javafx.beans.property.*;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
 
 import java.io.*;

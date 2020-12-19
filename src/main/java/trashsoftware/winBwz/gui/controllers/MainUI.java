@@ -23,7 +23,6 @@ import trashsoftware.trashGraphics.core.ImageViewer;
 import trashsoftware.trashGraphics.gui.TrashGraphicsClient;
 import trashsoftware.winBwz.gui.GUIClient;
 import trashsoftware.winBwz.gui.graphicUtil.*;
-import trashsoftware.winBwz.gui.widgets.FileView;
 import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
 import trashsoftware.winBwz.utility.Util;
 

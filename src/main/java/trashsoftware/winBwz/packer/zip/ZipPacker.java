@@ -1,7 +1,8 @@
-package trashsoftware.winBwz.packer;
+package trashsoftware.winBwz.packer.zip;
 
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
+import trashsoftware.winBwz.packer.Packer;
 import trashsoftware.winBwz.utility.LengthOutputStream;
 import trashsoftware.winBwz.utility.Util;
 

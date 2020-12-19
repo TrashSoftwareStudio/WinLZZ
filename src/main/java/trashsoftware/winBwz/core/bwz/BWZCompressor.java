@@ -15,7 +15,7 @@ import trashsoftware.winBwz.core.bwz.bwt.BWTEncoder;
 import trashsoftware.winBwz.huffman.MapCompressor.BwzMapCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanCompressorRam;
 import trashsoftware.winBwz.longHuffman.LongHuffmanUtil;
-import trashsoftware.winBwz.packer.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 

@@ -2,7 +2,7 @@ package trashsoftware.winBwz.core.fastLzz;
 
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.DeCompressor;
-import trashsoftware.winBwz.packer.PzUnPacker;
+import trashsoftware.winBwz.packer.pz.PzUnPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.FileBitInputStream;
 import trashsoftware.winBwz.utility.Util;

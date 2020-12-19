@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.encrypters.zse;
 
 import trashsoftware.winBwz.encrypters.Encipher;
-import trashsoftware.winBwz.packer.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzPacker;
 
 import java.io.IOException;
 import java.io.InputStream;

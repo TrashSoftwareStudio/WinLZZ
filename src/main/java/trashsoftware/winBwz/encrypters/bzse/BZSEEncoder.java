@@ -12,7 +12,7 @@ class BZSEEncoder {
 
     private byte[][] matrix = new byte[4][];
 
-    private ZseKeyGenerator keyGenerator;
+    private final ZseKeyGenerator keyGenerator;
 
     /**
      * Creates a new {@code BZSEEncoder} instance.

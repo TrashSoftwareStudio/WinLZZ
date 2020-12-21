@@ -23,6 +23,20 @@ public class Lz4Compressor implements Compressor {
         this.totalLength = totalLength;
     }
 
+    private static int hashPosition(byte[] buffer, int index) {
+        return hash16bits(Bytes.bytesToInt32(buffer, index));
+    }
+
+    private static int hash16bits(long sequence) {
+        return (int) (((sequence) * PRIME) >> ((MIN_MATCH * 8) - (HASH_LOG)));
+    }
+
+    public static void main(String[] args) {
+        byte[] r = {-127, 3, 22, 100};
+        int hash = hashPosition(r, 0);
+        System.out.println(hash);
+    }
+
     private void compressContent(OutputStream out) throws IOException {
         long index = 0;
         byte[] readBuf = new byte[4];
@@ -54,19 +68,5 @@ public class Lz4Compressor implements Compressor {
     @Override
     public long getCompressedSize() {
         return 0;
-    }
-
-    private static int hashPosition(byte[] buffer, int index) {
-        return hash16bits(Bytes.bytesToInt32(buffer, index));
-    }
-
-    private static int hash16bits(long sequence) {
-        return (int) (((sequence) * PRIME) >> ((MIN_MATCH * 8) - (HASH_LOG)));
-    }
-
-    public static void main(String[] args) {
-        byte[] r = {-127, 3, 22, 100};
-        int hash = hashPosition(r, 0);
-        System.out.println(hash);
     }
 }

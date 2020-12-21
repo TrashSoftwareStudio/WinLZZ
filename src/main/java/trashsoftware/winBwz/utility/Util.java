@@ -16,6 +16,11 @@ import java.util.ResourceBundle;
 public abstract class Util {
 
     /**
+     * A commonly used io buffer size.
+     */
+    public static final int DEFAULT_BUFFER = 8192;
+
+    /**
      * Deletes the {@code File} which has path/name <code>fileName</code> if such a file exists.
      *
      * @param fileName the path or name of the file to be deleted.
@@ -244,21 +249,51 @@ public abstract class Util {
      * Writes the input stream <code>bis</code> into the output stream <code>bos</code>, with <code>length</code>
      * number of bytes copied.
      *
+     * @param bis    the input stream
+     * @param bos    the {@code OutputStream} to be written
+     * @param length the total length to be written
+     * @return the number of bytes has been processed
+     * @throws IOException if any IO error occurs
+     */
+    public static long fileTruncate(InputStream bis, OutputStream bos, long length) throws IOException {
+        return fileTruncate(bis, bos, DEFAULT_BUFFER, length);
+    }
+
+    /**
+     * Writes the input stream <code>bis</code> into the output stream <code>bos</code>.
+     *
+     * @param bis the input stream
+     * @param bos the {@code OutputStream} to be written
+     * @return the number of bytes has been processed
+     * @throws IOException if any IO error occurs
+     */
+    public static long fileTruncate(InputStream bis, OutputStream bos) throws IOException {
+        return fileTruncate(bis, bos, Long.MAX_VALUE);
+    }
+
+    /**
+     * Writes the input stream <code>bis</code> into the output stream <code>bos</code>, with <code>length</code>
+     * number of bytes copied.
+     *
      * @param bis        the input stream
      * @param bos        the {@code OutputStream} to be written
      * @param bufferSize the size of the IO buffer,
      *                   which is the number of bytes store in random access memory during process
      * @param length     the total length to be written
+     * @return the number of bytes has been processed
      * @throws IOException if any IO error occurs
      */
-    public static void fileTruncate(InputStream bis, OutputStream bos, int bufferSize, long length) throws IOException {
+    public static long fileTruncate(InputStream bis, OutputStream bos, int bufferSize, long length) throws IOException {
         long lengthRem = length;
         byte[] buffer = new byte[bufferSize];
         int read;
+        long res = 0;
         while ((read = bis.read(buffer, 0, (int) Math.min(bufferSize, lengthRem))) != -1 && lengthRem != 0) {
             bos.write(buffer, 0, read);
             lengthRem -= read;
+            res += read;
         }
+        return res;
     }
 
     /**
@@ -384,7 +419,7 @@ public abstract class Util {
      * <p>
      * This method shows a number that at most 1,024 and a corresponding suffix
      *
-     * @param size   the size to be converted
+     * @param size the size to be converted
      * @return the readable {@code String}
      */
     public static String sizeToReadable(long size) {

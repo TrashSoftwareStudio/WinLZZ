@@ -2,7 +2,9 @@ package trashsoftware.winBwz.core.fasterLzz;
 
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.packer.pz.PzPacker;
-import trashsoftware.winBwz.utility.*;
+import trashsoftware.winBwz.utility.Bytes;
+import trashsoftware.winBwz.utility.MultipleInputStream;
+import trashsoftware.winBwz.utility.Util;
 
 import java.io.*;
 import java.util.concurrent.ExecutorService;
@@ -20,46 +22,29 @@ import java.util.concurrent.TimeUnit;
  */
 public class FasterLzzCompressor implements Compressor {
 
+    public static final int VERSION = 0;
+    public static final int MAXIMUM_DISTANCE = 65535 + FasterLzzUtil.MINIMUM_DISTANCE;
+    public static final int MAXIMUM_LENGTH = 276 + FasterLzzUtil.MINIMUM_LENGTH;
     /**
      * Load this size and process every time.
      */
     final static int MEMORY_BUFFER_SIZE = 16777216;  // 16 MB
-
-    public static final int VERSION = 0;
-
-    private InputStream sis;
-
     protected long totalLength;
-
-    private long processedLength;
-
-    private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
-
-    private int dictSize;
-
-    public static final int MAXIMUM_DISTANCE = 65535 + FasterLzzUtil.MINIMUM_DISTANCE;
-
-    public static final int MAXIMUM_LENGTH = 276 + FasterLzzUtil.MINIMUM_LENGTH;
-
     protected long cmpSize;
-
     protected PzPacker parent;
-
+    long lastCheckTime;
+    boolean notInterrupted = true;
+    private InputStream sis;
+    private long processedLength;
+    private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
+    private int dictSize;
     private int timeAccumulator;
-
     private long lastUpdateProgress;
-
     private long startTime;
     private long timeOffset;
-    long lastCheckTime;
-
     private int compressionLevel;
-
     private byte[] buffer;
-
     private int threads = 1;
-
-    boolean notInterrupted = true;
 
     /**
      * Constructor of a new {@code LZZ2Compressor} instance.
@@ -91,6 +76,34 @@ public class FasterLzzCompressor implements Compressor {
         this.dictSize = windowSize - bufferMaxSize - 1;
         this.totalLength = totalLength;
         this.sis = mis;
+    }
+
+    private static int hash(byte b0, byte b1) {
+        return (b0 & 0xff) << 8 | (b1 & 0xff);
+    }
+
+    /**
+     * returns the estimated memory usage during compression and decompression
+     *
+     * @param threads    the thread number
+     * @param windowSize the window size
+     * @param modeLevel  the strong level
+     * @return {@code long[2]{memory when compress, memory when uncompress}}
+     */
+    public static long[] estimateMemoryUsage(int threads, int windowSize, int modeLevel) {
+        long cmpMemOneThread = 1024;  // other objects
+        cmpMemOneThread += MEMORY_BUFFER_SIZE;  // memory buffer
+        if (modeLevel == 0) {  // FixedIntSlider
+            cmpMemOneThread += 65536 * 4;
+        } else {  // FixedArraySlider
+            int fadSize = 24 + 8 + 16 * 4;
+            cmpMemOneThread += 65536 * fadSize;
+        }
+        long cmpTotal = cmpMemOneThread * threads;
+
+        long uncMem = 1024; // other objects
+        uncMem += MEMORY_BUFFER_SIZE;  // memory buffer
+        return new long[]{cmpTotal, uncMem};
     }
 
     private void validateWindowSize() {
@@ -150,10 +163,6 @@ public class FasterLzzCompressor implements Compressor {
         outFile.flush();
     }
 
-    private static int hash(byte b0, byte b1) {
-        return (b0 & 0xff) << 8 | (b1 & 0xff);
-    }
-
     private void updateInfo(long current, long updateTime) {
         parent.progress.set(current);
         if (timeAccumulator == 19) {
@@ -211,30 +220,6 @@ public class FasterLzzCompressor implements Compressor {
     @Override
     public void setCompressionLevel(int compressionLevel) {
         this.compressionLevel = compressionLevel;
-    }
-
-    /**
-     * returns the estimated memory usage during compression and decompression
-     *
-     * @param threads    the thread number
-     * @param windowSize the window size
-     * @param modeLevel  the strong level
-     * @return {@code long[2]{memory when compress, memory when uncompress}}
-     */
-    public static long[] estimateMemoryUsage(int threads, int windowSize, int modeLevel) {
-        long cmpMemOneThread = 1024;  // other objects
-        cmpMemOneThread += MEMORY_BUFFER_SIZE;  // memory buffer
-        if (modeLevel == 0) {  // FixedIntSlider
-            cmpMemOneThread += 65536 * 4;
-        } else {  // FixedArraySlider
-            int fadSize = 24 + 8 + 16 * 4;
-            cmpMemOneThread += 65536 * fadSize;
-        }
-        long cmpTotal = cmpMemOneThread * threads;
-
-        long uncMem = 1024; // other objects
-        uncMem += MEMORY_BUFFER_SIZE;  // memory buffer
-        return new long[]{cmpTotal, uncMem};
     }
 
     private class EncodeThread implements Runnable {

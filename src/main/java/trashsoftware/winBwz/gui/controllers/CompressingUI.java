@@ -13,7 +13,9 @@ import javafx.scene.control.ProgressBar;
 import javafx.stage.Stage;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.packer.Packer;
-import trashsoftware.winBwz.packer.pz.PzPacker;
+import trashsoftware.winBwz.packer.SeparateException;
+import trashsoftware.winBwz.packer.pz.PzSolidPacker;
+import trashsoftware.winBwz.packer.pzNonSolid.PzNsPacker;
 import trashsoftware.winBwz.packer.zip.ZipPacker;
 import trashsoftware.winBwz.utility.Util;
 
@@ -41,7 +43,7 @@ public class CompressingUI implements Initializable {
     private String name, alg;
     private File[] path;
     private int windowSize, bufferSize, cmpLevel, encryptLevel, threads;
-    private String fmt;
+    private CompressUI.FmtBoxItem fmt;
     private String password;
     private String encAlg;
     private String passAlg;
@@ -86,7 +88,7 @@ public class CompressingUI implements Initializable {
         this.path = path;
     }
 
-    void setPref(String format, int windowSize, int bufferSize, int compressionLevel, String algorithm, int threads,
+    void setPref(CompressUI.FmtBoxItem format, int windowSize, int bufferSize, int compressionLevel, String algorithm, int threads,
                  AnnotationNode annotation, long partSize) {
         this.fmt = format;
         this.windowSize = windowSize;
@@ -155,6 +157,12 @@ public class CompressingUI implements Initializable {
             Alert info = new Alert(Alert.AlertType.INFORMATION);
             info.setTitle("WinLZZ");
             info.setHeaderText(bundle.getString("compressFailed"));
+
+            Throwable thr = e.getSource().getException();
+            if (thr instanceof SeparateException) {
+                info.setContentText(String.format(bundle.getString("fileStructureSpaceNotEnough"),
+                        Util.sizeToReadable(((SeparateException) thr).getBytesRequired())));
+            }
 
             info.show();
             System.gc();
@@ -241,9 +249,11 @@ public class CompressingUI implements Initializable {
                 @Override
                 protected Void call() throws Exception {
                     startTime = System.currentTimeMillis();
-                    if (fmt.equals("pz"))
-                        packer = new PzPacker(path);
-                    else if (fmt.equals("zip"))
+                    if (fmt == CompressUI.FmtBoxItem.PZ)
+                        packer = new PzSolidPacker(path);
+                    else if (fmt == CompressUI.FmtBoxItem.PZN)
+                        packer = new PzNsPacker(path);
+                    else if (fmt == CompressUI.FmtBoxItem.ZIP)
                         packer = new ZipPacker(path);
                     else
                         throw new RuntimeException("No such format " + fmt);

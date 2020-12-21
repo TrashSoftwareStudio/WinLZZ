@@ -3,6 +3,7 @@ package trashsoftware.winBwz.core.deflate;
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.RegularCompressor;
 import trashsoftware.winBwz.packer.pz.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 import trashsoftware.winBwz.utility.LengthOutputStream;
 
 import java.io.*;

@@ -1,47 +1,27 @@
-/*
- * PZ archive packer.
- *
- * Archive header info:
- * 4 bytes: PZ header
- * 2 bytes: version
- * 2 bytes: info bytes
- * 1 byte: window size
- * 4 bytes: time of creation
- * 4 bytes: CRC32 checksum for context
- * 4 bytes: CRC32 checksum for main text
- * 4 bytes: followed context length (n)
- * 2 bytes: extra field length (m)
- * m bytes: extra field
- * n bytes: context
- */
-
 package trashsoftware.winBwz.packer.pz;
 
+import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.core.deflate.DeflateCompressor;
-import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
-import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
-import trashsoftware.winBwz.core.Compressor;
-import trashsoftware.winBwz.encrypters.Encipher;
-import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
-import trashsoftware.winBwz.packer.Packer;
-import trashsoftware.winBwz.utility.*;
-import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
+import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
+import trashsoftware.winBwz.encrypters.Encipher;
+import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
+import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
+import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
+import trashsoftware.winBwz.packer.Packer;
+import trashsoftware.winBwz.packer.SeparateException;
+import trashsoftware.winBwz.utility.Bytes;
+import trashsoftware.winBwz.utility.Security;
+import trashsoftware.winBwz.utility.SeparateOutputStream;
+import trashsoftware.winBwz.utility.Util;
 
 import java.io.*;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.zip.CRC32;
 
-/**
- * The .pz archive packing program.
- * This program packs multiple files and directories into one .pz archive file.
- *
- * @author zbh
- * @since 0.4
- */
-public class PzPacker extends Packer {
+public abstract class PzPacker extends Packer {
 
     /**
      * The primary core version.
@@ -53,9 +33,14 @@ public class PzPacker extends Packer {
     public static final int FIXED_HEAD_LENGTH = 27;
 
     /**
-     * The signature for a WinLZZ archive (*.pz) file.
+     * The signature for a solid WinLZZ archive (*.pz) file.
      */
     public final static int SIGNATURE = 0x03F92FBD;
+
+    /**
+     * The signature for a non-solid WinLZZ archive (*.pz) file.
+     */
+    public final static int SIGNATURE_NS = 0x03F92FBE;
 
     /**
      * The digital signature of a section of a split compress file.
@@ -68,50 +53,7 @@ public class PzPacker extends Packer {
      * The value will be applied only if the user sets the {@code windowSize} to 0.
      */
     static final int defaultWindowSize = 32768;
-
-    private int fileCount, threads;
-
-    /**
-     * The detailed-level of compression.
-     * <p>
-     * Often specified in each implementation of {@code Compressor}.
-     */
-    private int cmpLevel;
-
-    /**
-     * The encryption level of this archive.
-     * <p>
-     * 0 for no encryption, 1 for there is encryption for content, 2 for encryption for both content and context map.
-     */
-    private int encryptLevel;
-
-    /**
-     * Maximum length of each archive file. 0 if do not separate.
-     */
-    private long partSize;
-
-    /**
-     * List of {@code IndexNode}'s.
-     * <p>
-     * This list is order-sensitive. Each node represents an actual file except the root node.
-     */
-    private final ArrayList<IndexNode> indexNodes = new ArrayList<>();
-
-    private String password;
-
-    /**
-     * The encryption algorithm.
-     */
-    private String encryption;
-
-    private String passwordAlg;
-    private String alg;
-
-    /**
-     * The CRC32 checksum generator of the context.
-     */
-    private final CRC32 contextCrc = new CRC32();
-
+    public final long startTime = System.currentTimeMillis();
     /**
      * List of extra field blocks.
      * <p>
@@ -128,97 +70,80 @@ public class PzPacker extends Packer {
      * 1: annotation
      * None: partition info
      */
-    private final ArrayList<byte[]> extraFields = new ArrayList<>();
-
-    public long startTime = System.currentTimeMillis();
-    public boolean isInterrupted;
+    protected final ArrayList<byte[]> extraFields = new ArrayList<>();
+    protected long fileStructurePos;
 
     /**
-     * Creates a new {@code Packer} instance.
+     * List of {@code IndexNode}'s.
      * <p>
-     * All input root files should be under a same path.
-     *
-     * @param inFiles the input root files.
+     * This list is order-sensitive. Each node represents an actual file except the root node.
      */
+    protected final List<IndexNode> indexNodes = new ArrayList<>();
+    /**
+     * The CRC32 checksum generator of the context.
+     */
+    protected final CRC32 contextCrc = new CRC32();
+    public boolean isInterrupted;
+    protected String password;
+    /**
+     * The encryption algorithm.
+     */
+    protected String encryption;
+    protected String passwordAlg;
+    protected String alg;
+    /**
+     * Maximum length of each archive file. 0 if do not separate.
+     */
+    protected long partSize;
+    protected int fileCount, threads;
+    /**
+     * The detailed-level of compression.
+     * <p>
+     * Often specified in each implementation of {@code Compressor}.
+     */
+    protected int cmpLevel;
+    /**
+     * The encryption level of this archive.
+     * <p>
+     * 0 for no encryption, 1 for there is encryption for content, 2 for encryption for both content and context map.
+     */
+    protected int encryptLevel;
+
     public PzPacker(File[] inFiles) {
         super(inFiles);
     }
 
-    /**
-     * Builds the file structure.
-     */
-    @Override
-    public void build() {
-        RootFile rf = new RootFile(inFiles);
-        IndexNode rootNode = new IndexNode(rf);
-        fileCount = 1;
-        indexNodes.add(rootNode);
-        buildIndexTree(rf, rootNode);
-        totalOrigLengthWrapper.set(totalLength);
-    }
-
-    private void buildIndexTree(File file, IndexNode currentNode) {
-        if (isInterrupted) return;
-        if (file.isDirectory()) {
-            this.file.setValue(file.getAbsolutePath() + "\\");
-            File[] sub = file.listFiles();
-
-            int currentCount = fileCount;
-            assert sub != null;
-            IndexNode[] tempArr = new IndexNode[sub.length];
-            int arrIndex = 0;
-            for (File f : sub) {
-                IndexNode in = new IndexNode(f.getName(), f);
-                tempArr[arrIndex++] = in;
-                indexNodes.add(in);
-                fileCount += 1;
-            }
-            currentNode.setChildrenRange(currentCount, fileCount);
-            for (int i = 0; i < sub.length; i++) if (!sub[i].isDirectory()) buildIndexTree(sub[i], tempArr[i]);
-            for (int i = 0; i < sub.length; i++) if (sub[i].isDirectory()) buildIndexTree(sub[i], tempArr[i]);
-        } else {
-            long start = totalLength;
-            totalLength += file.length();
-            currentNode.setSize(start, totalLength);
-        }
-    }
-
-    private void writeMapToStream(OutputStream headBos, LinkedList<File> mainList) throws IOException {
-        for (IndexNode in : indexNodes) {
-            byte[] array = in.toByteArray();
-            contextCrc.update(array, 0, array.length);
-            headBos.write(array);
-            if (!in.isDir()) mainList.addLast(in.getFile());
-        }
-    }
+    protected abstract int getSignature();
 
     /**
-     * Pack the directory into a *.pz file.
+     * Writes or compresses the main part and returns the crc32 checksum
      *
-     * @param outFile    the output package file.
-     * @param windowSize size of sliding window.
-     * @param bufferSize size of look ahead buffer (if algorithm supported).
-     * @throws Exception if any IO error occurs.
+     * @param outFile      name of archive file
+     * @param bos          output stream of archive
+     * @param inputStreams input files
+     * @param windowSize   window size
+     * @param bufferSize   buffer size
+     * @return the CRC32 checksum
+     * @throws Exception if any exception occurs
      */
-    public void pack(String outFile, int windowSize, int bufferSize) throws Exception {
-//        if (lanLoader != null) step.setValue(lanLoader.get(270));
-        if (bundle != null) step.setValue(bundle.getString("createDatabase"));
-        percentage.set("0.0");
-        OutputStream bos;
-        if (partSize == 0) bos = new BufferedOutputStream(new FileOutputStream(outFile));
-        else {
-            bos = new SeparateOutputStream(outFile, partSize, true, PART_SIGNATURE);
-            setPartialInfo();
-        }
-        bos.write(Bytes.intToBytes32(SIGNATURE));  // Write header : 4 bytes
+    protected abstract long writeBody(String outFile,
+                                      OutputStream bos,
+                                      Deque<File> inputStreams,
+                                      int windowSize,
+                                      int bufferSize) throws Exception;
+
+    protected void writeInfoHead(OutputStream bos,
+                                 int windowSize)
+            throws IOException {
+        bos.write(Bytes.intToBytes32(getSignature()));  // Write signature : 4 bytes
         bos.write(primaryVersion);  // Write version : 1 byte
         // another 1 byte written after alg
 
         /*
          * Info:
          * [0:2) encrypt level
-         * [2:4) algorithm
-         * [5] if separate
+         * [2:6) algorithm
+         * [7] if separate
          */
         byte inf = (byte) 0;
 
@@ -300,8 +225,8 @@ public class PzPacker extends Packer {
          * Reserved bytes
          * 4 for creation time,
          * 4 for crc32 checksum of context
-         * 4 for crc32 checksum of main file
-         * 4 for context size
+         * 4 for crc32 checksum of main file, or nothing
+         * 4 for file structure size
          */
         bos.write(new byte[16]);
 
@@ -318,16 +243,28 @@ public class PzPacker extends Packer {
         bos.write(extraFieldLength2);  // Extra field length
         bos.write(extraField);
 
-        String tempHeadName = outFile + ".head";
-        BufferedOutputStream headBos = new BufferedOutputStream(new FileOutputStream(tempHeadName));
+//        BufferedOutputStream headBos = new BufferedOutputStream(new FileOutputStream(tempHeadName));
+//
+//        writeMapToStream(headBos, inputStreams);  // Traverses the whole directory
+//
+//        headBos.flush();
+//        headBos.close();
+    }
 
-        LinkedList<File> inputStreams = new LinkedList<>();
+    protected void writeCmpMapToTemp(String tempHeadName, Deque<File> inputStreams) throws IOException {
+        BufferedOutputStream headBos = new BufferedOutputStream(new FileOutputStream(tempHeadName));
 
         writeMapToStream(headBos, inputStreams);  // Traverses the whole directory
 
         headBos.flush();
         headBos.close();
+    }
 
+    protected long writeCmpHead(String outFile,
+                                String tempHeadName,
+                                OutputStream bos,
+                                int windowSize,
+                                int bufferSize) throws Exception {
         // Stores the hashing value of password, with salt
         if (encryptLevel != 0) {
             byte[] hashPassword = Security.secureHashing(password, passwordAlg);
@@ -412,108 +349,58 @@ public class PzPacker extends Packer {
 
         Util.deleteFile(tempHeadName);
 
-//        if (lanLoader != null) step.setValue(lanLoader.get(206));
+        return cmpHeadLen;
+    }
+
+    protected void writeInfoToFirstFile(RandomAccessFile rafOfFirst) throws IOException {
+    }
+
+    /**
+     * Pack the directory into a *.pz file.
+     *
+     * @param outFile    the output package file.
+     * @param windowSize size of sliding window.
+     * @param bufferSize size of look ahead buffer (if algorithm supported).
+     * @throws Exception if any IO error occurs.
+     */
+    @Override
+    public void pack(String outFile, int windowSize, int bufferSize) throws Exception {
+        if (bundle != null) step.setValue(bundle.getString("createDatabase"));
+        percentage.set("0.0");
+        OutputStream bos;
+        if (partSize == 0) bos = new BufferedOutputStream(new FileOutputStream(outFile));
+        else {
+            bos = new SeparateOutputStream(outFile, partSize, true, PART_SIGNATURE);
+            setPartialInfo();
+        }
+
+        String tempHeadName = outFile + ".head";
+        Deque<File> inputStreams = new LinkedList<>();
+        writeInfoHead(bos, windowSize);
+        writeCmpMapToTemp(tempHeadName, inputStreams);
+
+//        fileStructurePos = compressedLength;
+
+        long cmpHeadLen = writeCmpHead(outFile, tempHeadName, bos, windowSize, bufferSize);
+
+        if (bos instanceof SeparateOutputStream && ((SeparateOutputStream) bos).getCount() != 1) {
+            bos.flush();
+            bos.close();
+            throw new SeparateException(
+                    "First part of this archive does not have enough space to contain the file structure",
+                    ((SeparateOutputStream) bos).getCumulativeLength());
+        }
+
         if (bundle != null) step.setValue(bundle.getString("compressing"));
 
-        String encMainName = outFile + ".enc";
+        long bodyCrc32 = writeBody(outFile, bos, inputStreams, windowSize, bufferSize);
 
-        MultipleInputStream mis;
-        if (windowSize == 0) {
-            if (encryptLevel == 0) {
-                mis = new MultipleInputStream(inputStreams, this, false);
-                Util.fileTruncate(mis, bos, 8192, totalLength);
-                compressedLength += totalLength;
-            } else {
-                Encipher encipher;
-                switch (encryption) {
-                    case "zse":
-                        mis = new MultipleInputStream(inputStreams, this, false);
-                        encipher = new ZSEFileEncoder(mis, password);
-                        break;
-                    case "bzse":
-                        mis = new MultipleInputStream(inputStreams, this, true);
-                        encipher = new BZSEStreamEncoder(mis, password);
-                        break;
-                    default:
-                        throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
-                }
-                if (bundle != null) step.setValue(bundle.getString("encrypting"));
-//                step.setValue(lanLoader.get(271));
-                progress.set(1);
-                percentage.setValue("0.0");
-                encipher.setParent(this, totalLength);
-                encipher.encrypt(bos);
-                compressedLength += encipher.encryptedLength();
-            }
-        } else if (totalLength != 0) {
-            mis = new MultipleInputStream(inputStreams, this, false);
-            Compressor mainCompressor;
-            switch (alg) {
-                case "lzz2":
-                    mainCompressor = new LZZ2Compressor(mis, windowSize, bufferSize, totalLength);
-                    break;
-                case "fastLzz":
-                    mainCompressor = new FastLzzCompressor(mis, windowSize, bufferSize, totalLength);
-                    break;
-                case "bwz":
-                    mainCompressor = new BWZCompressor(mis, windowSize);
-                    break;
-                case "deflate":
-                    mainCompressor = new DeflateCompressor(mis, cmpLevel, totalLength);
-                    break;
-                default:
-                    throw new NoSuchAlgorithmException("No such algorithm");
-            }
-            mainCompressor.setPacker(this);
-            mainCompressor.setCompressionLevel(cmpLevel);
-            mainCompressor.setThreads(threads);
-            if (encryptLevel == 0) {
-                mainCompressor.compress(bos);
-            } else {
-                FileOutputStream encFos = new FileOutputStream(encMainName);
-                mainCompressor.compress(encFos);
-                encFos.flush();
-                encFos.close();
-
-                InputStream encMainIs;
-                Encipher encipher;
-                switch (encryption) {
-                    case "zse":
-                        encMainIs = new FileInputStream(encMainName);
-                        encipher = new ZSEFileEncoder(encMainIs, password);
-                        break;
-                    case "bzse":
-                        encMainIs = new BufferedInputStream(new FileInputStream(encMainName));
-                        encipher = new BZSEStreamEncoder(encMainIs, password);
-                        break;
-                    default:
-                        throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
-                }
-                if (bundle != null) step.setValue(bundle.getString("encrypting"));
-                file.setValue(outFile);
-                progress.set(1);
-                percentage.setValue("0.0");
-                encipher.setParent(this, mainCompressor.getCompressedSize());
-                encipher.encrypt(bos);
-                encMainIs.close();
-            }
-            compressedLength += mainCompressor.getCompressedSize();
-        } else {
-            mis = new MultipleInputStream();
-        }
-        long crc32 = mis.getCrc32Checksum();
-        byte[] fullBytes = Bytes.longToBytes(crc32);
-        byte[] crc32Checksum = new byte[4];
-        System.arraycopy(fullBytes, 4, crc32Checksum, 0, 4);
-
-        Util.deleteFile(encMainName);
         bos.flush();
         bos.close();
-        mis.close();
-        if (isInterrupted) {
-            Util.deleteFile(outFile);
-            return;
-        }
+
+        byte[] fullBytes = Bytes.longToBytes(bodyCrc32);
+        byte[] crc32Checksum = new byte[4];
+        System.arraycopy(fullBytes, 4, crc32Checksum, 0, 4);
 
         long contextCrcValue = contextCrc.getValue();
         byte[] contextCrcArray = Arrays.copyOfRange(Bytes.longToBytes(contextCrcValue), 4, 8);
@@ -538,10 +425,11 @@ public class PzPacker extends Packer {
             raf.writeInt(fCount);
             raf.writeLong(((SeparateOutputStream) bos).getCumulativeLength());
         }
+        writeInfoToFirstFile(raf);
         raf.close();
     }
 
-    private void setPartialInfo() {
+    protected void setPartialInfo() {
         byte[] block = new byte[12];  // This is not a standard extra block
         // Structure:
         // blocks count: 4 bytes
@@ -549,6 +437,8 @@ public class PzPacker extends Packer {
         extraFields.add(0, block);  // To make sure this is the first block, which is because when compresses
         // partially, this block should be in the first archive part.
     }
+
+    protected abstract void writeMapToStream(OutputStream headBos, Deque<File> mainList) throws IOException;
 
     /**
      * Sets up the compression algorithm.
@@ -643,187 +533,56 @@ public class PzPacker extends Packer {
         extraFields.add(result);
     }
 
-    public static String getProgramFullVersion() {
-        return String.format("%d.%d.%d.%d",
-                PzPacker.primaryVersion & 0xff,
-                BWZCompressor.VERSION,
-                LZZ2Compressor.VERSION,
-                FastLzzCompressor.VERSION);
-    }
-}
+    public abstract static class IndexNode {
+        protected final String name;
+        /**
+         * The {@code File} file.
+         */
+        protected final File file;
+        /**
+         * Whether this IndexNode represents a directory.
+         */
+        protected boolean isDir;
+        /**
+         * The start and end position of children of this IndexNode in the uncompressed context map.
+         */
+        protected int[] childrenRange;
 
-
-/**
- * A class used for recording information of a file in an archive in the time of packing.
- *
- * @author zbh
- * @since 0.4
- */
-class IndexNode {
-
-    private final String name;
-
-    /**
-     * The start position of this file in the uncompressed main part of archive.
-     */
-    private long start;
-
-    /**
-     * The end position of this file in the uncompressed main part of archive.
-     */
-    private long end;
-
-    /**
-     * Whether this IndexNode represents a directory.
-     */
-    private boolean isDir;
-
-    /**
-     * The {@code File} file.
-     */
-    private final File file;
-
-    /**
-     * The start and end position of children of this IndexNode in the uncompressed context map.
-     */
-    private int[] childrenRange;
-
-    /**
-     * Creates a new {@code IndexNode} instance for a directory.
-     *
-     * @param name directory path.
-     */
-    IndexNode(String name, File file) {
-        this.file = file;
-        this.name = name;
-        isDir = true;
-    }
-
-    /**
-     * Creates a new {@code IndexNode} instance for the virtual root file <code>rf</code>.
-     *
-     * @param rf the virtual root file.
-     */
-    IndexNode(RootFile rf) {
-        this.file = rf;
-        this.name = "";
-        isDir = true;
-    }
-
-    /**
-     * Returns the actual file, or virtual {@code RootFile} represented by this {@code IndexNode}.
-     *
-     * @return the actual file, or virtual {@code RootFile} represented by this {@code IndexNode}.
-     */
-    public File getFile() {
-        return file;
-    }
-
-    /**
-     * Returns the length of the file.
-     *
-     * @return the length of the file.
-     */
-    public long getSize() {
-        return end - start;
-    }
-
-    /**
-     * Sets up the start and end position of this file in the uncompressed main part of this archive.
-     *
-     * @param start the start position.
-     * @param end   the end position.
-     */
-    void setSize(long start, long end) {
-        this.start = start;
-        this.end = end;
-        isDir = false;
-    }
-
-    /**
-     * Sets up the children {@code IndexNode}'s beginning and stop position in the total {@code IndexNode} list.
-     *
-     * @param begin the children's beginning position in node list.
-     * @param stop  the children's stop position in node list.
-     */
-    void setChildrenRange(int begin, int stop) {
-        childrenRange = new int[]{begin, stop};
-    }
-
-    /**
-     * Returns the byte array representation of this {@code IndexNode}.
-     *
-     * @return the byte array representation of this {@code IndexNode}.
-     * @throws UnsupportedEncodingException if the file name is too long (>255 bytes) or,
-     *                                      the name cannot be encoded.
-     */
-    byte[] toByteArray() throws UnsupportedEncodingException {
-        byte[] nameBytes = Bytes.stringEncode(name);
-        int len = nameBytes.length;
-        if (len > 255) throw new UnsupportedEncodingException();
-        byte[] result = new byte[len + 18];
-        if (isDir) {
-            result[0] = 0;
-            result[1] = (byte) len;
-            System.arraycopy(nameBytes, 0, result, 2, nameBytes.length);
-            System.arraycopy(Bytes.longToBytes(childrenRange[0]), 0, result, len + 2, 8);
-            System.arraycopy(Bytes.longToBytes(childrenRange[1]), 0, result, len + 10, 8);
-        } else {
-            result[0] = 1;
-            result[1] = (byte) len;
-            System.arraycopy(nameBytes, 0, result, 2, nameBytes.length);
-            System.arraycopy(Bytes.longToBytes(start), 0, result, len + 2, 8);
-            System.arraycopy(Bytes.longToBytes(end), 0, result, len + 10, 8);
+        public IndexNode(String name, File file) {
+            this.name = name;
+            this.file = file;
+            isDir = true;
         }
-        return result;
-    }
 
-    /**
-     * Returns whether the file represented by this {@code IndexNode} is a directory.
-     *
-     * @return {@code true} if the file represented by this {@code IndexNode} is a directory.
-     */
-    boolean isDir() {
-        return isDir;
-    }
+        /**
+         * Returns the actual file, or virtual {@code RootFile} represented by this {@code IndexNode}.
+         *
+         * @return the actual file, or virtual {@code RootFile} represented by this {@code IndexNode}.
+         */
+        public File getFile() {
+            return file;
+        }
 
-    @Override
-    public String toString() {
-        if (isDir) return "Dir(" + name + ", " + Arrays.toString(childrenRange) + ")";
-        else return "File(" + name + ": " + start + ", " + end + ")";
-    }
-}
+        /**
+         * Sets up the children {@code IndexNode}'s beginning and stop position in the total {@code IndexNode} list.
+         *
+         * @param begin the children's beginning position in node list.
+         * @param stop  the children's stop position in node list.
+         */
+        public void setChildrenRange(int begin, int stop) {
+            childrenRange = new int[]{begin, stop};
+        }
 
+        /**
+         * Returns whether the file represented by this {@code IndexNode} is a directory.
+         *
+         * @return {@code true} if the file represented by this {@code IndexNode} is a directory.
+         */
+        public boolean isDir() {
+            return isDir;
+        }
 
-/**
- * A special kind of file which marks the root directory of a archive file.
- * <p>
- * This kind of file does not exist on the disk.
- *
- * @author zbh
- * @since 0.7
- */
-class RootFile extends File {
-
-    private final File[] children;
-
-    /**
-     * Creates a new {@code RootFile} instance.
-     *
-     * @param children children if this {@code RootFile}.
-     */
-    RootFile(File[] children) {
-        super("");
-        this.children = children;
-    }
-
-    @Override
-    public boolean isDirectory() {
-        return true;
-    }
-
-    @Override
-    public File[] listFiles() {
-        return children;
+        public abstract byte[] toByteArray() throws UnsupportedEncodingException;
     }
 }
+

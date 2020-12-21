@@ -79,7 +79,7 @@ public class LZZ2Compressor extends RegularCompressor {
      * @param bufferSize  size of look ahead buffer.
      * @param totalLength the total length of the files to be compressed
      */
-    public LZZ2Compressor(MultipleInputStream mis, int windowSize, int bufferSize, long totalLength) {
+    public LZZ2Compressor(InputStream mis, int windowSize, int bufferSize, long totalLength) {
         super(totalLength);
 
         this.windowSize = windowSize;

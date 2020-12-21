@@ -12,7 +12,7 @@ import java.util.Arrays;
  * @author zbh
  * @since 0.4
  */
-public class PzCatalogNode extends CatalogNode {
+public class PzSolidCatalogNode extends CatalogNode {
 
     private boolean isDir = true;
     private long[] location;
@@ -23,7 +23,7 @@ public class PzCatalogNode extends CatalogNode {
      * @param path   the relative path of the file represented by this {@code ContextNode} in the archive.
      * @param parent the parent dir
      */
-    PzCatalogNode(String path, PzCatalogNode parent) {
+    PzSolidCatalogNode(String path, PzSolidCatalogNode parent) {
         super(path, parent);
     }
 

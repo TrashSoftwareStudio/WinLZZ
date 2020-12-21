@@ -62,4 +62,12 @@ public abstract class CatalogNode {
     public abstract boolean isDir();
 
     public abstract long getSize();
+
+    public long getCmpSize() {
+        return 0;
+    }
+
+    public boolean hasCmpSize() {
+        return false;
+    }
 }

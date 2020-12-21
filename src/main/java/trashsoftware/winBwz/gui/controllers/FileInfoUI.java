@@ -4,7 +4,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import trashsoftware.winBwz.packer.*;
-import trashsoftware.winBwz.packer.pz.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 import trashsoftware.winBwz.packer.pz.PzUnPacker;
 import trashsoftware.winBwz.packer.zip.ZipUnPacker;
 import trashsoftware.winBwz.utility.Bytes;
@@ -51,7 +51,7 @@ public class FileInfoUI implements Initializable {
     }
 
     private void drawCompressRate(long lengthBeforeCmp, long otherInfoLen, long contextLen, long mainLen) {
-        double headRatio = (double) PzPacker.FIXED_HEAD_LENGTH / lengthBeforeCmp;
+        double headRatio = (double) PzSolidPacker.FIXED_HEAD_LENGTH / lengthBeforeCmp;
         double otherInfoRatio = (double) otherInfoLen / lengthBeforeCmp;
         double contextRatio = (double) contextLen / lengthBeforeCmp;
         double mainRatio = (double) mainLen / lengthBeforeCmp;

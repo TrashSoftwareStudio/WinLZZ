@@ -1,13 +1,13 @@
 package trashsoftware.winBwz;
 
-import trashsoftware.winBwz.packer.pz.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 
 import java.io.File;
 
 public class cliTest {
 
     public static void main(String[] args) throws Exception {
-        PzPacker packer = new PzPacker(new File[]{new File("E:\\Programs\\compTest\\cmpFiles")});
+        PzSolidPacker packer = new PzSolidPacker(new File[]{new File("E:\\Programs\\compTest\\cmpFiles")});
 
         long st = System.currentTimeMillis();
 

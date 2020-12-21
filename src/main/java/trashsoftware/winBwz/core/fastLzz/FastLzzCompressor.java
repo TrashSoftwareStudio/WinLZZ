@@ -3,6 +3,7 @@ package trashsoftware.winBwz.core.fastLzz;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.packer.pz.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 import trashsoftware.winBwz.utility.*;
 
 import java.io.*;
@@ -70,7 +71,7 @@ public class FastLzzCompressor implements Compressor {
      * @param bufferSize  size of look ahead buffer.
      * @param totalLength the total length of the files to be compressed
      */
-    public FastLzzCompressor(MultipleInputStream mis, int windowSize, int bufferSize, long totalLength) {
+    public FastLzzCompressor(InputStream mis, int windowSize, int bufferSize, long totalLength) {
         this.bufferMaxSize = bufferSize;
         this.dictSize = windowSize - bufferMaxSize - 1;
         this.totalLength = totalLength;

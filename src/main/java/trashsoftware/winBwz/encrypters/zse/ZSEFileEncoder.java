@@ -18,9 +18,9 @@ public class ZSEFileEncoder implements Encipher {
 
     static final int blockSize = 8192;
 
-    private InputStream fis;
+    private final InputStream fis;
 
-    private String password;
+    private final String password;
 
     private long encodeLength;
 

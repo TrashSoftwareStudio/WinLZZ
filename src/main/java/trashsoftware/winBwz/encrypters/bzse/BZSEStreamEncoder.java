@@ -17,9 +17,9 @@ import java.io.OutputStream;
  */
 public class BZSEStreamEncoder implements Encipher {
 
-    private InputStream is;
+    private final InputStream is;
 
-    private String password;
+    private final String password;
 
     private long length;
 

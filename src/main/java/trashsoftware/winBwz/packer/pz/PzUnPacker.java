@@ -16,6 +16,7 @@ import trashsoftware.winBwz.packer.CatalogNode;
 import trashsoftware.winBwz.packer.ChecksumDoesNotMatchException;
 import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.packer.UnsupportedVersionException;
+import trashsoftware.winBwz.packer.pzNonSolid.PzNsPacker;
 import trashsoftware.winBwz.utility.*;
 
 import java.io.*;
@@ -33,30 +34,24 @@ import java.util.zip.CRC32;
  * @author zbh
  * @since 0.4
  */
-public class PzUnPacker extends UnPacker {
+public abstract class PzUnPacker extends UnPacker {
 
     /**
      * Names of temporary files that will be created for unpacking and decompressing.
      */
-    private final String mapName;
-    private final String cmpMapName;
-    private final String cmpTempName;
+    protected final String mapName;
+    protected final String cmpMapName;
+    protected final String cmpTempName;
     private final String encMapName;
     private final String encMainName;
-    /**
-     * List of {@code IndexNodeUnp}'s.
-     * <p>
-     * This list is order-sensitive. Each node represents an actual file except the root node.
-     */
-    private final ArrayList<IndexNodeUnp> indexNodes = new ArrayList<>();
     public long startTime;
     public boolean isInterrupted;
-    private String tempName;
-    private String combineName;
+    protected String tempName;
+    protected String combineName;
     /**
      * The input stream of this archive file itself.
      */
-    private InputStream bis;
+    protected InputStream bis;
     /**
      * Primary version of the current opening archive.
      * <p>
@@ -68,15 +63,10 @@ public class PzUnPacker extends UnPacker {
      * Secondary version of the current opening archive.
      */
     private byte algVersion;
-    /**
-     * The root {@code ContextNode} of the archive.
-     * <p>
-     * This node does not represent an actual directory.
-     */
-    private PzCatalogNode rootNode;
-    private boolean isSeparated;
-    private int partCount;
-    private int fileCount, dirCount;
+
+    protected boolean isSeparated;
+    protected int partCount;
+    protected int fileCount, dirCount;
     /**
      * The length of context map after compression.
      */
@@ -87,25 +77,25 @@ public class PzUnPacker extends UnPacker {
      * This value is read from archive.
      * This value will be 0 if there is no compression.
      */
-    private int windowSize;
-    private int encryptLevel, threadNumber;
-    private String encryption = "bzse";
-    private String passwordAlg = "sha-256";
+    protected int windowSize;
+    protected int encryptLevel, threadNumber;
+    protected String encryption = "bzse";
+    protected String passwordAlg = "sha-256";
     /**
      * Length of the main part.
      */
-    private long cmpMainLength;
+    protected long cmpMainLength;
     /**
      * Length of this archive file.
      */
-    private long archiveLength;
+    protected long archiveLength;
     /**
      * Length of the original file (uncompressed).
      */
-    private long origSize;
-    private String password;
-    private boolean passwordSet;
-    private boolean isTest;
+    protected long origSize;
+    protected String password;
+    protected boolean passwordSet;
+    protected boolean isTest;
     /**
      * 16-byte array representing the checksum of original password, if exists.
      */
@@ -115,18 +105,21 @@ public class PzUnPacker extends UnPacker {
     /**
      * String abbreviation of compression algorithm of this archive.
      */
-    private String alg;
+    protected String alg;
     /**
      * String annotation of this archive.
      */
     private String annotation;
-    private String failInfo;
-    private long creationTime, crc32Checksum, crc32Context;
+    protected String failInfo;
+    private long creationTime;
+    protected long crc32Checksum;
+    protected long crc32Context;
 
     /**
      * Creates a new UnPacker instance, with <code>packName</code> as the input archive name.
      *
-     * @param packName the name/path of the input archive file.
+     * @param packName       the name/path of the input archive file.
+     * @param resourceBundle resources bundle
      */
     public PzUnPacker(String packName, ResourceBundle resourceBundle) {
         super(packName, resourceBundle);
@@ -142,9 +135,10 @@ public class PzUnPacker extends UnPacker {
     /**
      * Checks the signature of the archive file.
      *
-     * @return {@code 0} if this archive is a WinLZZ archive,
-     * {@code 1} if it is a WinLZZ archive section,
-     * {@code 2} if unrecognizable.
+     * @return {@code 0} if this archive is a solid WinLZZ archive,
+     * {@code 1} if it is a solid WinLZZ archive section,
+     * {@code 2} if it is a non-solid WinLZZ archive,
+     * {@code -1} if unrecognizable.
      */
     public static int checkSignature(String path) {
         try {
@@ -152,15 +146,16 @@ public class PzUnPacker extends UnPacker {
             byte[] sigBytes = new byte[4];
             if (fis.read(sigBytes) != 4) {
                 fis.close();
-                return 2;
+                return -1;
             }
             fis.close();
             int signature = Bytes.bytesToInt32(sigBytes);
-            if (signature == PzPacker.SIGNATURE) return 0;
-            else if (signature == PzPacker.PART_SIGNATURE) return 1;
-            else return 2;
+            if (signature == PzSolidPacker.SIGNATURE) return 0;
+            else if (signature == PzSolidPacker.PART_SIGNATURE) return 1;
+            else if (signature == PzNsPacker.SIGNATURE_NS) return 2;
+            else return -1;
         } catch (IOException e) {
-            return 2;
+            return -1;
         }
     }
 
@@ -281,7 +276,7 @@ public class PzUnPacker extends UnPacker {
             String prefixName = prefixName1.substring(0, prefixName1.lastIndexOf("."));
             String suffixName = packName.substring(packName.lastIndexOf("."));
             bis.close();
-            bis = SeparateInputStream.createNew(prefixName, suffixName, partCount, this, PzPacker.PART_SIGNATURE);
+            bis = SeparateInputStream.createNew(prefixName, suffixName, partCount, this, PzSolidPacker.PART_SIGNATURE);
             ((SeparateInputStream) bis).setLanLoader(bundle);
             if (bis.skip(39) != 39) throw new IOException("Error occurs while reading");
             extraLen = 12;
@@ -441,17 +436,9 @@ public class PzUnPacker extends UnPacker {
      *
      * @throws Exception if any error occurs during reading.
      */
-    public void readFileStructure() throws Exception {
-        unCompressMap();
-        readContext();
-        deleteTemp();
+    public abstract void readFileStructure() throws Exception;
 
-        rootNode = new PzCatalogNode(indexNodes.get(0).getName(), null);
-        buildContextTree(rootNode, indexNodes.get(0));
-        interpretExtraField();
-    }
-
-    private void unCompressMap() throws Exception {
+    protected void unCompressMap() throws Exception {
         if (encryptLevel == 2) {
             FileOutputStream fos = new FileOutputStream(cmpMapName);
             Decipher decipher;
@@ -490,64 +477,9 @@ public class PzUnPacker extends UnPacker {
         fos.close();
     }
 
-    private void readContext() throws IOException, ChecksumDoesNotMatchException {
-        BufferedInputStream mapInputStream = new BufferedInputStream(new FileInputStream(mapName));
-        CRC32 contextChecker = new CRC32();
+    protected abstract void readStructure() throws IOException;
 
-        byte[] flag = new byte[2];
-        byte[] buffer8 = new byte[8];
-
-        while (mapInputStream.read(flag) == 2) {
-            contextChecker.update(flag, 0, flag.length);
-            boolean isDir = (flag[0] & 0xff) == 0;
-            int nameLen = flag[1] & 0xff;
-            byte[] nameBytes = new byte[nameLen];
-            if (mapInputStream.read(nameBytes) != nameLen) throw new IOException("Error occurs while reading");
-            contextChecker.update(nameBytes, 0, nameBytes.length);
-            String name = Bytes.stringDecode(nameBytes);
-            IndexNodeUnp inu = new IndexNodeUnp(name);
-
-            if (mapInputStream.read(buffer8) != 8) throw new IOException("Error occurs while reading");
-            contextChecker.update(buffer8, 0, buffer8.length);
-            long start = Bytes.bytesToLong(buffer8);
-            if (mapInputStream.read(buffer8) != 8) throw new IOException("Error occurs while reading");
-            contextChecker.update(buffer8, 0, buffer8.length);
-            long end = Bytes.bytesToLong(buffer8);
-            if (isDir) {
-                inu.setChildrenRange((int) start, (int) end);
-                dirCount += 1;
-            } else {
-                inu.setScale(start, end);
-                origSize = end;
-                fileCount += 1;
-            }
-            indexNodes.add(inu);
-        }
-        mapInputStream.close();
-        totalProgress.set(origSize);
-
-        if (contextChecker.getValue() != crc32Context) {
-//            throw new ChecksumDoesNotMatchException("Context damaged");
-            System.err.println("CRC32 Checksum does not match");
-        }
-    }
-
-    private void buildContextTree(PzCatalogNode node, IndexNodeUnp inu) {
-        if (inu.isDir()) {
-            List<IndexNodeUnp> children = indexNodes.subList(inu.getChildrenRange()[0], inu.getChildrenRange()[1]);
-            String path = node.getPath();
-            for (IndexNodeUnp n : children) {
-                PzCatalogNode cn = new PzCatalogNode(path + File.separator + n.getName(), node);
-                node.addChild(cn);
-            }
-            for (int i = 0; i < children.size(); i++)
-                buildContextTree((PzCatalogNode) node.getChildren().get(i), children.get(i));
-        } else {
-            node.setLocation(inu.getStart(), inu.getEnd());
-        }
-    }
-
-    private void interpretExtraField() {
+    protected void interpretExtraField() {
         int i = 0;
         while (i < extraField.length) {
             byte flag = extraField[i];
@@ -642,15 +574,6 @@ public class PzUnPacker extends UnPacker {
     }
 
     /**
-     * Returns the root node.
-     *
-     * @return {@code rootNode} the root node.
-     */
-    public PzCatalogNode getRootNode() {
-        return rootNode;
-    }
-
-    /**
      * Returns the primary version needed for decompression program to uncompress this archive.
      *
      * @return {@code primaryVersion} the primary version.
@@ -659,115 +582,7 @@ public class PzUnPacker extends UnPacker {
         return primaryVersion;
     }
 
-    private void unCompressMainPureBWZ() throws Exception {
-        String name;
-        long startPos;
-        if (isSeparated) {
-            step.setValue(bundle.getString("merging"));
-            combineName = packName + ".comb";
-            name = combineName;
-            try {
-                combineSplitBwz();
-            } catch (IOInterruptedException e) {
-                Util.deleteFile(cmpTempName);
-                Util.deleteFile(combineName);
-                return;
-            }
-            startPos = 0;
-        } else {
-            name = packName;
-            startPos = archiveLength - cmpMainLength;
-        }
-        if (isTest) step.setValue(bundle.getString("testing"));
-        else step.setValue(bundle.getString("uncIng"));
-
-        BWZDeCompressor mainDec = new BWZDeCompressor(name, windowSize, startPos);
-        mainDec.setUnPacker(this);
-        mainDec.setThreads(threadNumber);
-        FileOutputStream mainFos = new FileOutputStream(tempName);
-        try {
-            mainDec.uncompress(mainFos);
-            mainFos.close();
-        } catch (Exception e) {
-            mainDec.deleteCache();
-            throw e;
-        } finally {
-            bis.close();
-            Util.deleteFile(combineName);
-            Util.deleteFile(cmpTempName);
-            deleteTemp();
-        }
-
-//        if (isInterrupted) return;
-//        long currentCRC32 = Security.generateCRC32(tempName);
-//        if (currentCRC32 != crc32Checksum) throw new ChecksumDoesNotMatchException("CRC32 Checksum does not match");
-    }
-
-    private void combineSplitBwz() throws IOException {
-        Util.fileTruncate(bis, combineName, 8192, cmpMainLength);
-    }
-
-    private void unCompressMain() throws Exception {
-        if (origSize == 0) {
-            File f = new File(tempName);
-            if (!f.createNewFile()) System.out.println("Creation failed");
-        } else if (!isUnCompressed()) {
-            if (encryptLevel != 0) {
-                step.setValue(bundle.getString("decrypting"));
-                Decipher decipher;
-                FileOutputStream fos = new FileOutputStream(cmpTempName);
-                switch (encryption) {
-                    case "zse":
-                        decipher = new ZSEFileDecoder(bis, password, cmpMainLength);
-                        break;
-                    case "bzse":
-                        decipher = new BZSEStreamDecoder(bis, password, cmpMainLength);
-                        break;
-                    default:
-                        throw new NoSuchAlgorithmException("No such algorithm");
-                }
-                decipher.setParent(this);
-                decipher.decrypt(fos);
-                fos.flush();
-                fos.close();
-            } else if (windowSize != 0 && alg.equals("bwz")) {
-                unCompressMainPureBWZ();
-                return;
-            } else {
-                try {
-                    Util.fileTruncate(bis, cmpTempName, 8192, cmpMainLength);
-                } catch (IOInterruptedException e) {
-                    Util.deleteFile(cmpTempName);
-                    return;
-                }
-            }
-
-            if (windowSize == 0) {
-                tempName = cmpTempName;
-            } else {
-                if (isTest) step.setValue(bundle.getString("testing"));
-                else step.setValue(bundle.getString("uncIng"));
-
-                DeCompressor mainDec;
-                mainDec = getDeCompressor(cmpTempName, windowSize);
-                mainDec.setUnPacker(this);
-                mainDec.setThreads(threadNumber);
-                FileOutputStream mainFos = new FileOutputStream(tempName);
-                try {
-                    mainDec.uncompress(mainFos);
-                    mainFos.close();
-                } catch (Exception e) {
-                    mainDec.deleteCache();
-                    throw e;
-                } finally {
-                    Util.deleteFile(cmpTempName);
-                    bis.close();
-                }
-            }
-        }
-    }
-
-    private DeCompressor getDeCompressor(String cmpTempName, int windowSize) throws IOException, NoSuchAlgorithmException {
+    protected DeCompressor getDeCompressor(String cmpTempName, int windowSize) throws IOException, NoSuchAlgorithmException {
         DeCompressor mainDec;
         switch (alg) {
             case "lzz2":
@@ -788,101 +603,11 @@ public class PzUnPacker extends UnPacker {
         return mainDec;
     }
 
-    /**
-     * Extracts and uncompress all files and directories to the path <code>targetDir</code>, recursively.
-     * <p>
-     * Original path structure will be kept.
-     *
-     * @param targetDir path to extract contents.
-     * @throws Exception if any failure happens during extraction and decompression.
-     */
-    public void unCompressAll(String targetDir) throws Exception {
-        for (CatalogNode cn : rootNode.getChildren()) unCompressFrom(targetDir, cn);
-    }
-
-    /**
-     * Extracts and uncompress all files and directories which are under <code>cn</code> to the path
-     * <code>targetDir</code>, recursively.
-     * <p>
-     * * Original path structure will be kept.
-     *
-     * @param targetDir path to extract contents.
-     * @param cn        the ContextNode to start extraction.
-     * @throws Exception if any failure happens during extraction and decompression.
-     */
-    public void unCompressFrom(String targetDir, CatalogNode cn) throws Exception {
-        PzCatalogNode pcn = (PzCatalogNode) cn;
-        isTest = false;
-        startTime = System.currentTimeMillis();
-        progress.set(1);
-        unCompressMain();
-
-        if (isInterrupted) {
-            failInfo = bundle.getString("operationInterrupted");
-            throw new IOInterruptedException();
-        }
-
-        step.setValue(bundle.getString("verifying"));
-        long currentCRC32 = Security.generateCRC32(tempName);
-        if (currentCRC32 != crc32Checksum) {
-            failInfo = bundle.getString("fileDamaged");
-//            throw new ChecksumDoesNotMatchException("CRC32 Checksum does not match");
-            System.err.println("CRC32 Checksum does not match");
-        }
-
-        RandomAccessFile raf = new RandomAccessFile(tempName, "r");
-        String dirOffset;
-        if (!pcn.getPath().contains(File.separator)) dirOffset = "";
-        else dirOffset = pcn.getPath().substring(0, pcn.getPath().lastIndexOf(File.separator));
-        step.setValue(bundle.getString("extracting"));
-        traversalExtract(targetDir, pcn, raf, dirOffset);
-        raf.close();
-    }
-
-    private void traversalExtract(String targetDir, PzCatalogNode cn, RandomAccessFile raf, String dirOffset)
-            throws IOException {
-        String path = targetDir + File.separator + cn.getPath().substring(dirOffset.length());
-        File f = new File(path);
-        if (cn.isDir()) {
-            if (!f.exists()) {
-                if (!f.mkdirs()) System.out.println("Failed to create directory");
-            }
-            for (CatalogNode scn : cn.getChildren())
-                traversalExtract(targetDir, (PzCatalogNode) scn, raf, dirOffset);
-        } else {
-            currentFile.setValue(cn.getPath().substring(1));
-            long[] location = cn.getLocation();
-            raf.seek(location[0]);
-            Util.fileTruncate(raf, path, 8192, location[1] - location[0]);
-        }
-    }
-
-    private void deleteTemp() {
+    protected void deleteTemp() {
         Util.deleteFile(encMainName);
         Util.deleteFile(mapName);
         Util.deleteFile(cmpMapName);
         Util.deleteFile(encMapName);
-    }
-
-    /**
-     * Returns whether the compressed file is undamaged.
-     *
-     * @return true if the file can be uncompress successfully and the uncompressed file is the same as the
-     * original file
-     */
-    public boolean testPack() {
-        isTest = true;
-        startTime = System.currentTimeMillis();
-        try {
-            unCompressMain();
-            if (isInterrupted) return false;
-            step.setValue(bundle.getString("verifying"));
-            long currentCRC32 = Security.generateCRC32(tempName);
-            return currentCRC32 == crc32Checksum;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
     }
 
     /**
@@ -1054,10 +779,7 @@ public class PzUnPacker extends UnPacker {
         }
     }
 
-    private boolean isUnCompressed() {
-        File f = new File(tempName);
-        return f.exists() && f.length() == origSize;
-    }
+    protected abstract boolean isUnCompressed();
 
     public String getArchiveFullVersion() {
         String primary = String.valueOf(primaryVersion & 0xff);

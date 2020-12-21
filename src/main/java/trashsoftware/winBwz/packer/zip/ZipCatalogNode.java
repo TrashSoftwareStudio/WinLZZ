@@ -40,4 +40,14 @@ public class ZipCatalogNode extends CatalogNode {
     public long getSize() {
         return entry.getSize();
     }
+
+    @Override
+    public boolean hasCmpSize() {
+        return true;
+    }
+
+    @Override
+    public long getCmpSize() {
+        return entry.getCompressedSize();
+    }
 }

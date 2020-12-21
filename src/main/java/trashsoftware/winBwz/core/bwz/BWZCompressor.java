@@ -351,12 +351,12 @@ public class BWZCompressor implements Compressor {
      */
     class EncodeThread implements Runnable {
 
-        long bwtTime, mtfTime, mapTime, hufTime;
         private final byte[] buffer;
         private final int beginIndex;
         private final int partSize;
         private final int threadId;
         private final boolean useDc3;
+        long bwtTime, mtfTime, mapTime, hufTime;
         int hufBlocksCount;
         private byte[][] results;
         private byte[][] maps;

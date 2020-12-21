@@ -73,6 +73,14 @@ public class FileNode {
         }
     }
 
+    public String getCmpSize() {
+        if (isDir || !cn.hasCmpSize()) {
+            return "";
+        } else {
+            return Util.sizeToReadable(cn.getCmpSize());
+        }
+    }
+
     /**
      * Returns the {@code ContextNode} represents the file of this {@code FileNode}.
      *

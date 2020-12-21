@@ -3,7 +3,8 @@ package trashsoftware.winBwz.console;
 import trashsoftware.winBwz.Main;
 import trashsoftware.winBwz.packer.*;
 import trashsoftware.winBwz.encrypters.WrongPasswordException;
-import trashsoftware.winBwz.packer.pz.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzSolidPacker;
+import trashsoftware.winBwz.packer.pz.PzSolidUnPacker;
 import trashsoftware.winBwz.packer.pz.PzUnPacker;
 
 import java.io.File;
@@ -58,7 +59,7 @@ public class Console {
             switch (mode) {
                 case "-c": {
                     int[] pref = getPreferences(alg, level);
-                    PzPacker p = new PzPacker(new File[]{new File(inFile)});
+                    PzSolidPacker p = new PzSolidPacker(new File[]{new File(inFile)});
                     p.setAlgorithm(alg);
                     p.setThreads(threads);
                     p.setCmpLevel(pref[2]);
@@ -91,7 +92,7 @@ public class Console {
                         System.out.println("File may not be a WinLZZ archive");
                         return;
                     }
-                    PzUnPacker up = new PzUnPacker(inFile, null);
+                    PzUnPacker up = new PzSolidUnPacker(inFile, null);
                     try {
                         up.readInfo();
                     } catch (UnsupportedVersionException e) {

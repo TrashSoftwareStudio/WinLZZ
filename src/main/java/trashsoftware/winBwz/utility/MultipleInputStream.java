@@ -1,6 +1,7 @@
 package trashsoftware.winBwz.utility;
 
 import trashsoftware.winBwz.packer.pz.PzPacker;
+import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 
 import java.io.*;
 import java.util.Deque;
@@ -27,7 +28,7 @@ public class MultipleInputStream extends InputStream {
 
     Deque<File> files;
 
-    private CRC32 crc32 = new CRC32();
+    private final CRC32 crc32 = new CRC32();
 
     private PzPacker parent;
 

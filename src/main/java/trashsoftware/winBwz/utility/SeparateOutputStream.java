@@ -17,19 +17,19 @@ public class SeparateOutputStream extends OutputStream {
     /**
      * The count of generated files.
      */
-    private int count;
+    private int count = 1;
 
     /**
      * The fixed prefix file name.
      */
-    private String prefixName;
+    private final String prefixName;
 
     /**
      * The fixed suffix file name (extension).
      */
-    private String ext;
+    private final String ext;
 
-    private long blockSize;
+    private final long blockSize;
 
     /**
      * The remaining available length of the current writing file.
@@ -43,7 +43,7 @@ public class SeparateOutputStream extends OutputStream {
      */
     private OutputStream currentOutputStream;
 
-    private boolean buffered;
+    private final boolean buffered;
 
     private int signature;
 
@@ -57,15 +57,17 @@ public class SeparateOutputStream extends OutputStream {
      * @throws IOException if the output files are not writable
      */
     public SeparateOutputStream(String fileName, long blockSize, boolean buffered, int signature) throws IOException {
-        this.prefixName = fileName.substring(0, fileName.lastIndexOf("."));
-        this.ext = fileName.substring(fileName.lastIndexOf("."));
-        this.blockSize = blockSize;
-        this.currentLength = blockSize;
-        this.buffered = buffered;
+        this(fileName, blockSize, buffered);
         this.signature = signature;
-        String name = getCurrentName();
-        if (buffered) currentOutputStream = new BufferedOutputStream(new FileOutputStream(name));
-        else currentOutputStream = new FileOutputStream(name);
+        //        this.prefixName = fileName.substring(0, fileName.lastIndexOf("."));
+//        this.ext = fileName.substring(fileName.lastIndexOf("."));
+//        this.blockSize = blockSize;
+//        this.currentLength = blockSize;
+//        this.buffered = buffered;
+//        this.signature = signature;
+//        String name = getCurrentName();
+//        if (buffered) currentOutputStream = new BufferedOutputStream(new FileOutputStream(name));
+//        else currentOutputStream = new FileOutputStream(name);
     }
 
     /**
@@ -132,13 +134,13 @@ public class SeparateOutputStream extends OutputStream {
                 currentOutputStream.write(b, b.length - remain, partLen);
                 remain -= partLen;
                 currentLength = blockSize;
+                count++;
                 String name = getCurrentName();
                 currentOutputStream.flush();
                 currentOutputStream.close();
                 if (buffered) currentOutputStream = new BufferedOutputStream(new FileOutputStream(name));
                 else currentOutputStream = new FileOutputStream(name);
                 currentOutputStream.write(Bytes.intToBytes32(signature));
-//                cumulativeLength += 4;
                 currentLength -= 4;
             }
         }
@@ -146,7 +148,7 @@ public class SeparateOutputStream extends OutputStream {
     }
 
     private String getCurrentName() {
-        return String.format("%s.%d%s", prefixName, ++count, ext);
+        return String.format("%s.%d%s", prefixName, count, ext);
     }
 
     /**
@@ -175,6 +177,7 @@ public class SeparateOutputStream extends OutputStream {
     @Override
     public void flush() throws IOException {
         currentOutputStream.flush();
+        super.flush();
     }
 
     public long getCumulativeLength() {
@@ -189,5 +192,6 @@ public class SeparateOutputStream extends OutputStream {
     @Override
     public void close() throws IOException {
         currentOutputStream.close();
+        super.close();
     }
 }

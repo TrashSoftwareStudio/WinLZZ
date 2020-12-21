@@ -13,6 +13,7 @@ import javafx.stage.Stage;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
+import trashsoftware.winBwz.gui.GUIClient;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
 import trashsoftware.winBwz.utility.Util;
@@ -24,9 +25,12 @@ import java.util.ResourceBundle;
 
 public class CompressUI implements Initializable {
 
-    private static final String[] fmts = {"pz", "zip"};
-    //    private static final String[] algNames = {"BWZ", "LZZ2", "FastLZZ"};
-//    private static final String[] algValues = {"bwz", "lzz2", "fastLzz"};
+    private static final FmtBoxItem[] fmts = {
+            FmtBoxItem.PZ,
+            FmtBoxItem.PZN,
+            FmtBoxItem.ZIP
+    };
+
     private static final AlgBoxItem[] PZ_ALG = {
             new AlgBoxItem("BWZ", "bwz"),
             new AlgBoxItem("LZZ2", "lzz2"),
@@ -57,7 +61,9 @@ public class CompressUI implements Initializable {
     @FXML
     private TextField nameText;
     @FXML
-    private ComboBox<String> fmtBox, presetLevelBox, windowNameBox, modeBox, partialBox, unitBox;
+    private ComboBox<String> presetLevelBox, windowNameBox, modeBox, partialBox, unitBox;
+    @FXML
+    private ComboBox<FmtBoxItem> fmtBox;
     @FXML
     private ComboBox<AlgBoxItem> algBox;
     @FXML
@@ -101,7 +107,8 @@ public class CompressUI implements Initializable {
         setWindowNameBoxListener();
         setModeBoxListener();
         fmtBox.getSelectionModel().select(
-                LoaderManager.getCacheSaver().readString("fmtName", "pz")
+                FmtBoxItem.valueOf(
+                        LoaderManager.getCacheSaver().readString("fmtName", "pz").toUpperCase())
         );
         algBox.getSelectionModel().select(
                 LoaderManager.getCacheSaver().readInt("algBoxIndex", 0));
@@ -205,13 +212,13 @@ public class CompressUI implements Initializable {
             if (newValue != null) {
                 int algIndex = LoaderManager.getCacheSaver().readInt("algBoxIndex", 0);
                 int levelIndex = LoaderManager.getCacheSaver().readInt("levelBoxIndex", 3);
-                if (newValue.equals("pz")) {
+                if (newValue == FmtBoxItem.PZ || newValue == FmtBoxItem.PZN) {
                     algBox.getItems().clear();
                     algBox.getItems().addAll(PZ_ALG);
                     presetLevelBox.getItems().clear();
                     presetLevelBox.getItems().addAll(compressionLevels);
                     replaceNameExt("pz");
-                } else if (newValue.equals("zip")) {
+                } else if (newValue == FmtBoxItem.ZIP) {
                     algBox.getItems().clear();
                     algBox.getItems().addAll(ZIP_ALG);
                     presetLevelBox.getItems().clear();
@@ -224,7 +231,7 @@ public class CompressUI implements Initializable {
                         3 : levelIndex);
                 setZipUi();
 
-                LoaderManager.getCacheSaver().writeCache("fmtName", newValue);
+                LoaderManager.getCacheSaver().writeCache("fmtName", newValue.name());
             }
         }));
     }
@@ -332,12 +339,12 @@ public class CompressUI implements Initializable {
         if (abi != null)
             return abi.code;
         else
-            if (fmtBox.getValue().equals("pz")) return "bwz";
+            if (fmtBox.getValue() == FmtBoxItem.PZ || fmtBox.getValue() == FmtBoxItem.PZN) return "bwz";
             else return "deflate";
     }
 
     private void setZipUi() {
-        
+
     }
 
     private void setDeflateUi() {
@@ -451,8 +458,8 @@ public class CompressUI implements Initializable {
     @FXML
     void startCompress() throws Exception {
         String name = nameText.getText();
-        String fmt = fmtBox.getSelectionModel().getSelectedItem();
-        if (!name.endsWith("." + fmt)) name += "." + fmt;
+        FmtBoxItem fmt = fmtBox.getSelectionModel().getSelectedItem();
+        if (!name.endsWith("." + fmt.fmt)) name += "." + fmt.fmt;
 
         String alg = getAlgCode();
 
@@ -608,6 +615,25 @@ public class CompressUI implements Initializable {
                 return new int[]{3, -1, 0};
             case 5:
                 return new int[]{5, -1, 0};
+        }
+    }
+
+    enum FmtBoxItem {
+        PZ(GUIClient.getBundle().getString("solid") + "pz", "pz"),
+        PZN("pz", "pz"),
+        ZIP("zip", "zip");
+
+        final String shown;
+        final String fmt;
+
+        FmtBoxItem(String shown, String fmt) {
+            this.shown = shown;
+            this.fmt = fmt;
+        }
+
+        @Override
+        public String toString() {
+            return shown;
         }
     }
 

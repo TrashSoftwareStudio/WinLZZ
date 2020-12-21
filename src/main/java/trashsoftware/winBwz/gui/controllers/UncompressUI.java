@@ -1,14 +1,5 @@
 package trashsoftware.winBwz.gui.controllers;
 
-import javafx.stage.Modality;
-import trashsoftware.winBwz.gui.graphicUtil.FileNode;
-import trashsoftware.winBwz.packer.*;
-import trashsoftware.winBwz.packer.pz.PzPacker;
-import trashsoftware.winBwz.packer.pz.PzUnPacker;
-import trashsoftware.winBwz.packer.zip.ZipUnPacker;
-import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
-import trashsoftware.winBwz.utility.Util;
-import trashsoftware.winBwz.encrypters.WrongPasswordException;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -21,8 +12,22 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import trashsoftware.winBwz.encrypters.WrongPasswordException;
+import trashsoftware.winBwz.gui.graphicUtil.FileNode;
+import trashsoftware.winBwz.packer.CatalogNode;
+import trashsoftware.winBwz.packer.ChecksumDoesNotMatchException;
+import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.UnsupportedVersionException;
+import trashsoftware.winBwz.packer.pz.PzSolidPacker;
+import trashsoftware.winBwz.packer.pz.PzSolidUnPacker;
+import trashsoftware.winBwz.packer.pz.PzUnPacker;
+import trashsoftware.winBwz.packer.pzNonSolid.PzNsUnPacker;
+import trashsoftware.winBwz.packer.zip.ZipUnPacker;
+import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
+import trashsoftware.winBwz.utility.Util;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,6 +50,8 @@ public class UncompressUI implements Initializable {
 
     @FXML
     private TableColumn<FileNode, String> nameColumn, origSizeColumn, typeColumn;
+
+    private TableColumn<FileNode, String> cmpSizeColumn;
 
     @FXML
     private ComboBox<Integer> threadNumberBox;
@@ -81,10 +88,21 @@ public class UncompressUI implements Initializable {
         this.packFile = packFile;
     }
 
+    private void enableCmpSize() {
+        cmpSizeColumn = new TableColumn<>(bundle.getString("cmpSize"));
+        fileList.getColumns().add(cmpSizeColumn);
+        cmpSizeColumn.setCellValueFactory(new PropertyValueFactory<>("cmpSize"));
+    }
+
     void loadPzHead() throws Exception {
         int sigCheck = PzUnPacker.checkSignature(packFile.getAbsolutePath());
-        if (sigCheck == 0) {
-            unPacker = new PzUnPacker(packFile.getAbsolutePath(), bundle);
+        if (sigCheck == 0 || sigCheck == 2) {
+            if (sigCheck == 0)
+                unPacker = new PzSolidUnPacker(packFile.getAbsolutePath(), bundle);
+            else {
+                unPacker = new PzNsUnPacker(packFile.getAbsolutePath(), bundle);
+                enableCmpSize();
+            }
 
             try {
                 unPacker.readInfo();
@@ -94,7 +112,7 @@ public class UncompressUI implements Initializable {
                 alert.setHeaderText(bundle.getString("unsupportedVersion"));
                 alert.setContentText(String.format("%s %s, %s %s",
                         bundle.getString("curSoftCoreVer"),
-                        PzPacker.getProgramFullVersion(),
+                        PzSolidPacker.getProgramFullVersion(),
                         bundle.getString("uncNeedCoreVer"),
                         ((PzUnPacker) unPacker).getArchiveFullVersion()));
                 alert.showAndWait();
@@ -111,7 +129,7 @@ public class UncompressUI implements Initializable {
             alert.showAndWait();
             stage.close();
             return;
-        } else if (sigCheck == 2) {
+        } else {
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle(bundle.getString("cannotOpenFile"));
             alert.setHeaderText(bundle.getString("unsupportedFormat"));
@@ -128,6 +146,7 @@ public class UncompressUI implements Initializable {
 
     void loadZipHead() {
         unPacker = new ZipUnPacker(packFile.getAbsolutePath(), bundle);
+        enableCmpSize();
         try {
             unPacker.readInfo();
             dirText.setText("");
@@ -189,14 +208,8 @@ public class UncompressUI implements Initializable {
     @FXML
     private void goBackAction() {
         if (currentNode.getParent().getParent() == null) {
-//            dirText.setText("");
-//            fileList.getItems().clear();
-//            fileList.getItems().add(new FileNode(currentNode, bundle));
             goBackButton.setDisable(true);
         }
-//        else {
-//
-//        }
         currentNode = currentNode.getParent();
         showFiles();
     }
@@ -448,17 +461,6 @@ public class UncompressUI implements Initializable {
             }
         });
     }
-
-//    private void fillText() {
-//        nameColumn.setText(lanLoader.get(300));
-//        typeColumn.setText(lanLoader.get(301));
-//        origSizeColumn.setText(lanLoader.get(302));
-//        testButton.setText(lanLoader.get(303));
-//        threadNumberLabel.setText(lanLoader.get(304));
-//        uncompressPart.setText(lanLoader.get(305));
-//        uncompressAll.setText(lanLoader.get(306));
-//        annotationButton.setText(lanLoader.get(900));
-//    }
 }
 
 

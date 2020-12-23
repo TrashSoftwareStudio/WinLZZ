@@ -1,7 +1,6 @@
 package trashsoftware.winBwz.utility;
 
 import trashsoftware.winBwz.packer.pz.PzPacker;
-import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 
 import java.io.*;
 import java.util.Deque;
@@ -25,6 +24,11 @@ public class MultipleInputStream extends InputStream {
      * The length of the part of the current opening file that has not been read.
      */
     long currentLength;
+
+    /**
+     * The total length read or skipped.
+     */
+    protected long position;
 
     Deque<File> files;
 
@@ -115,7 +119,9 @@ public class MultipleInputStream extends InputStream {
             System.arraycopy(array, 0, copy, 0, copy.length);
             crc32.update(copy, 0, copy.length);
         }
-        return array.length - remain;
+        int read = array.length - remain;
+        position += read;
+        return read;
     }
 
     /**
@@ -134,5 +140,9 @@ public class MultipleInputStream extends InputStream {
      */
     public void close() throws IOException {
         currentInputStream.close();
+    }
+
+    public long getPosition() {
+        return position;
     }
 }

@@ -1,6 +1,8 @@
 package trashsoftware.winBwz.packer.pzNonSolid;
 
+import javafx.beans.property.ReadOnlyLongWrapper;
 import trashsoftware.winBwz.core.Compressor;
+import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.core.deflate.DeflateCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
@@ -8,9 +10,11 @@ import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
 import trashsoftware.winBwz.encrypters.Encipher;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
+import trashsoftware.winBwz.packer.SeparateException;
 import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.packer.pz.RootFile;
 import trashsoftware.winBwz.utility.Bytes;
+import trashsoftware.winBwz.utility.Security;
 import trashsoftware.winBwz.utility.SeparateOutputStream;
 import trashsoftware.winBwz.utility.Util;
 
@@ -20,7 +24,12 @@ import java.util.*;
 
 public class PzNsPacker extends PzPacker {
 
-    private final List<long[]> compressedPosLen = new ArrayList<>();
+    private final List<long[]> compressedPosLenCrc = new ArrayList<>();
+
+    private final ReadOnlyLongWrapper secondaryTotalProgress = new ReadOnlyLongWrapper();
+    private final ReadOnlyLongWrapper secondaryProgress = new ReadOnlyLongWrapper();
+
+    private long totalLenOfProcessedFiles;
 
     /**
      * Creates a new non solid {@code PzNsPacker} instance.
@@ -44,101 +53,116 @@ public class PzNsPacker extends PzPacker {
                              Deque<File> inputStreams,
                              int windowSize,
                              int bufferSize) throws Exception {
-        long diff = compressedLength;
-        String encName = outFile + ".enc";
-        for (File file : inputStreams) {
-            long startPos = compressedLength - diff;
-            long fileLen = file.length();
-            this.file.setValue(file.getAbsolutePath());
-            InputStream fis = new FileInputStream(file);
-            if (windowSize == 0) {
-                if (encryptLevel == 0) {
-                    Util.fileTruncate(fis, bos, fileLen);
-                    compressedPosLen.add(new long[]{startPos, fileLen});
-                    compressedLength += fileLen;
-                } else {
-                    Encipher encipher;
-                    switch (encryption) {
-                        case "zse":
-                            encipher = new ZSEFileEncoder(fis, password);
+        Timer timer = new Timer();
+        CompTimerTask ctt = new CompTimerTask();
+        timer.scheduleAtFixedRate(ctt, 0, 1000 / Constants.GUI_UPDATES_PER_S);
+
+        try {
+            long diff = compressedLength;
+            String encName = outFile + ".enc";
+            for (File file : inputStreams) {
+                long startPos = compressedLength - diff;
+                long fileLen = file.length();
+                long crc = Security.generateCRC32(file.getAbsolutePath());
+
+                this.file.setValue(file.getAbsolutePath());
+                secondaryTotalProgress.set(fileLen);
+                secondaryProgress.set(0);
+
+                InputStream fis = new FileInputStream(file);
+                if (windowSize == 0) {
+                    if (encryptLevel == 0) {
+                        Util.fileTruncate(fis, bos, fileLen);
+                        compressedPosLenCrc.add(new long[]{startPos, fileLen, crc});
+                        compressedLength += fileLen;
+                    } else {
+                        Encipher encipher;
+                        switch (encryption) {
+                            case "zse":
+                                encipher = new ZSEFileEncoder(fis, password);
+                                break;
+                            case "bzse":
+                                encipher = new BZSEStreamEncoder(fis, password);
+                                break;
+                            default:
+                                throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
+                        }
+                        if (bundle != null) step.setValue(bundle.getString("encrypting"));
+                        progress.set(0);
+                        percentage.setValue("0.0");
+                        encipher.setParent(this, fileLen);
+                        encipher.encrypt(bos);
+                        long encLen = encipher.encryptedLength();
+                        compressedPosLenCrc.add(new long[]{startPos, encLen, crc});
+                        compressedLength += encLen;
+                    }
+                } else if (fileLen != 0) {
+                    Compressor mainCompressor;
+                    switch (alg) {
+                        case "lzz2":
+                            mainCompressor = new LZZ2Compressor(fis, windowSize, bufferSize, fileLen);
                             break;
-                        case "bzse":
-                            encipher = new BZSEStreamEncoder(fis, password);
+                        case "fastLzz":
+                            mainCompressor = new FastLzzCompressor(fis, windowSize, bufferSize, fileLen);
+                            break;
+                        case "bwz":
+                            mainCompressor = new BWZCompressor(fis, windowSize);
+                            break;
+                        case "deflate":
+                            mainCompressor = new DeflateCompressor(fis, cmpLevel, fileLen);
                             break;
                         default:
-                            throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
+                            throw new NoSuchAlgorithmException("No such algorithm");
                     }
-                    if (bundle != null) step.setValue(bundle.getString("encrypting"));
-                    progress.set(1);
-                    percentage.setValue("0.0");
-                    encipher.setParent(this, fileLen);
-                    encipher.encrypt(bos);
-                    long encLen = encipher.encryptedLength();
-                    compressedPosLen.add(new long[]{startPos, encLen});
-                    compressedLength += encLen;
-                }
-            } else if (fileLen != 0) {
-                Compressor mainCompressor;
-                switch (alg) {
-                    case "lzz2":
-                        mainCompressor = new LZZ2Compressor(fis, windowSize, bufferSize, fileLen);
-                        break;
-                    case "fastLzz":
-                        mainCompressor = new FastLzzCompressor(fis, windowSize, bufferSize, fileLen);
-                        break;
-                    case "bwz":
-                        mainCompressor = new BWZCompressor(fis, windowSize);
-                        break;
-                    case "deflate":
-                        mainCompressor = new DeflateCompressor(fis, cmpLevel, fileLen);
-                        break;
-                    default:
-                        throw new NoSuchAlgorithmException("No such algorithm");
-                }
-                mainCompressor.setPacker(this);
-                mainCompressor.setCompressionLevel(cmpLevel);
-                mainCompressor.setThreads(threads);
-                if (encryptLevel == 0) {
-                    mainCompressor.compress(bos);
-                    long cmpLen = mainCompressor.getCompressedSize();
-                    compressedPosLen.add(new long[]{startPos, cmpLen});
-                    compressedLength += cmpLen;
+                    mainCompressor.setPacker(this);
+                    mainCompressor.setCompressionLevel(cmpLevel);
+                    mainCompressor.setThreads(threads);
+                    ctt.setCompressor(mainCompressor);
+                    if (encryptLevel == 0) {
+                        mainCompressor.compress(bos);
+                        long cmpLen = mainCompressor.getCompressedSize();
+                        compressedPosLenCrc.add(new long[]{startPos, cmpLen, crc});
+                        compressedLength += cmpLen;
+                    } else {
+                        OutputStream encFos = new FileOutputStream(encName);
+                        mainCompressor.compress(encFos);
+                        encFos.flush();
+                        encFos.close();
+
+                        InputStream encMainIs;
+                        Encipher encipher;
+                        switch (encryption) {
+                            case "zse":
+                                encMainIs = new FileInputStream(encName);
+                                encipher = new ZSEFileEncoder(encMainIs, password);
+                                break;
+                            case "bzse":
+                                encMainIs = new BufferedInputStream(new FileInputStream(encName));
+                                encipher = new BZSEStreamEncoder(encMainIs, password);
+                                break;
+                            default:
+                                throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
+                        }
+                        if (bundle != null) step.setValue(bundle.getString("encrypting"));
+                        progress.set(0);
+                        percentage.setValue("0.0");
+                        encipher.setParent(this, mainCompressor.getCompressedSize());
+                        encipher.encrypt(bos);
+                        encMainIs.close();
+                        Util.deleteFile(encName);
+
+                        long encLen = encipher.encryptedLength();
+                        compressedPosLenCrc.add(new long[]{startPos, encLen, crc});
+                        compressedLength += encLen;
+                    }
                 } else {
-                    OutputStream encFos = new FileOutputStream(encName);
-                    mainCompressor.compress(encFos);
-                    encFos.flush();
-                    encFos.close();
-
-                    InputStream encMainIs;
-                    Encipher encipher;
-                    switch (encryption) {
-                        case "zse":
-                            encMainIs = new FileInputStream(encName);
-                            encipher = new ZSEFileEncoder(encMainIs, password);
-                            break;
-                        case "bzse":
-                            encMainIs = new BufferedInputStream(new FileInputStream(encName));
-                            encipher = new BZSEStreamEncoder(encMainIs, password);
-                            break;
-                        default:
-                            throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
-                    }
-                    if (bundle != null) step.setValue(bundle.getString("encrypting"));
-                    progress.set(1);
-                    percentage.setValue("0.0");
-                    encipher.setParent(this, mainCompressor.getCompressedSize());
-                    encipher.encrypt(bos);
-                    encMainIs.close();
-                    Util.deleteFile(encName);
-
-                    long encLen = encipher.encryptedLength();
-                    compressedPosLen.add(new long[]{startPos, encLen});
-                    compressedLength += encLen;
+                    compressedPosLenCrc.add(new long[]{startPos, 0, 0});
                 }
-            } else {
-                compressedPosLen.add(new long[]{startPos, 0});
+                totalLenOfProcessedFiles += fileLen;
+                fis.close();
             }
-            fis.close();
+        } finally {
+            timer.cancel();
         }
         return 0;
     }
@@ -169,8 +193,8 @@ public class PzNsPacker extends PzPacker {
         for (IndexNode indexNode : indexNodes) {
             IndexNodeNs inn = (IndexNodeNs) indexNode;
             if (!inn.isDir()) {
-                long[] posSize = compressedPosLen.get(fileIndex++);
-                inn.setCmpSize(posSize[0] + fileStructurePos, posSize[1]);
+                long[] posSizeCrc = compressedPosLenCrc.get(fileIndex++);
+                inn.setCmpSizeCrc(posSizeCrc[0], posSizeCrc[1], posSizeCrc[2]);
             }
         }
 //        System.out.println(fileIndex + " " + compressedPosLen.size());
@@ -189,6 +213,7 @@ public class PzNsPacker extends PzPacker {
 
     @Override
     public void pack(String outFile, int windowSize, int bufferSize) throws Exception {
+        long startTime = System.currentTimeMillis();
         if (bundle != null) step.setValue(bundle.getString("createDatabase"));
         percentage.set("0.0");
         OutputStream bos;
@@ -203,56 +228,38 @@ public class PzNsPacker extends PzPacker {
         writeInfoHead(bos, windowSize);
         generateFileList(inputStreams);
 
-//        System.out.println(contextCrc.getValue());
-
-        fileStructurePos = compressedLength;
-//        System.out.println(compressedLength);
-
-//        long cmpHeadLen = writeCmpHead(outFile, tempHeadName, bos, windowSize, bufferSize);
         String mainOutName = outFile + ".main";
         OutputStream mainOut = new FileOutputStream(mainOutName);
 
-//        if (bos instanceof SeparateOutputStream && ((SeparateOutputStream) bos).getCount() != 1) {
-//            bos.flush();
-//            bos.close();
-//            throw new SeparateException(
-//                    "First part of this archive does not have enough space to contain the file structure",
-//                    ((SeparateOutputStream) bos).getCumulativeLength());
-//        }
-
         if (bundle != null) step.setValue(bundle.getString("compressing"));
 
-//        long len = compressedLength;
+        timeOffset = System.currentTimeMillis() - startTime;
         writeBody(outFile, mainOut, inputStreams, windowSize, bufferSize);
-//        long mainLen = compressedLength - len;
 
         mainOut.flush();
         mainOut.close();
 
-//        byte[] fullBytes = Bytes.longToBytes(bodyCrc32);
-//        byte[] crc32Checksum = new byte[4];
-//        System.arraycopy(fullBytes, 4, crc32Checksum, 0, 4);
-
         if (bundle != null) step.setValue(bundle.getString("integrating"));
 
-//        System.out.println(contextCrc.getValue());
         updateFileStructure();
         writeCmpMapToTemp(tempHeadName, inputStreams);
-//        System.out.println(contextCrc.getValue());
         long cmpHeadLen = writeCmpHead(outFile, tempHeadName, bos, windowSize, bufferSize);
-//        System.out.println(cmpHeadLen);
-//        System.out.println(inputStreams);
-//        System.out.println(indexNodes);
+
+        if (bos instanceof SeparateOutputStream && ((SeparateOutputStream) bos).getCount() != 1) {
+            bos.flush();
+            bos.close();
+            throw new SeparateException(
+                    "First part of this archive does not have enough space to contain the file structure",
+                    ((SeparateOutputStream) bos).getCumulativeLength());
+        }
 
         long contextCrcValue = contextCrc.getValue();
         byte[] contextCrcArray = Arrays.copyOfRange(Bytes.longToBytes(contextCrcValue), 4, 8);
 
-//        System.out.println(mainLen + " " + new File(mainOutName).length());
         InputStream mainIn = new FileInputStream(mainOutName);
         Util.fileTruncate(mainIn, bos, new File(mainOutName).length());
         mainIn.close();
         Util.deleteFile(mainOutName);
-//        System.out.println(mainLenW);
 
         bos.flush();
         bos.close();
@@ -278,9 +285,6 @@ public class PzNsPacker extends PzPacker {
             raf.writeLong(((SeparateOutputStream) bos).getCumulativeLength());
         }
         writeInfoToFirstFile(raf);
-//        if (compressedLength != raf.length()) {
-//            System.out.println("Failed! " + compressedLength + " " + raf.length());
-//        }
         raf.close();
     }
 
@@ -310,11 +314,30 @@ public class PzNsPacker extends PzPacker {
         }
     }
 
+    @Override
+    public boolean hasSecondaryProgress() {
+        return true;
+    }
+
+    @Override
+    public ReadOnlyLongWrapper secondaryProgressProperty() {
+        return secondaryProgress;
+    }
+
+    @Override
+    public ReadOnlyLongWrapper secondaryTotalProgressProperty() {
+        return secondaryTotalProgress;
+    }
+
     static class IndexNodeNs extends IndexNode {
 
+        /**
+         * Position of the data part of this node in the body of the archive.
+         */
         private long posInArchive;
         private long cmpSize;
         private long size;
+        private long crc32;
 
         public IndexNodeNs(String name, File file) {
             super(name, file);
@@ -334,23 +357,25 @@ public class PzNsPacker extends PzPacker {
                 System.arraycopy(Bytes.longToBytes(childrenRange[1]), 0, result, 10, 8);
                 System.arraycopy(nameBytes, 0, result, 18, nameBytes.length);
             } else {
-                result = new byte[len + 26];
+                result = new byte[len + 30];
                 result[0] = 1;
                 result[1] = (byte) len;
                 // 2 reserved for position in archive
                 // 10 reserved for compressed length in archive
                 System.arraycopy(Bytes.longToBytes(posInArchive), 0, result, 2, 8);
                 System.arraycopy(Bytes.longToBytes(cmpSize), 0, result, 10, 8);
+                System.arraycopy(Bytes.longToBytes(crc32), 4, result, 18, 4);
 
-                System.arraycopy(Bytes.longToBytes(size), 0, result, 18, 8);
-                System.arraycopy(nameBytes, 0, result, 26, nameBytes.length);
+                System.arraycopy(Bytes.longToBytes(size), 0, result, 22, 8);
+                System.arraycopy(nameBytes, 0, result, 30, nameBytes.length);
             }
             return result;
         }
 
-        public void setCmpSize(long posInArchive, long cmpSize) {
+        public void setCmpSizeCrc(long posInArchive, long cmpSize, long crc32) {
             this.posInArchive = posInArchive;
             this.cmpSize = cmpSize;
+            this.crc32 = crc32;
         }
 
         public long getSize() {
@@ -376,6 +401,32 @@ public class PzNsPacker extends PzPacker {
                     ", cmpSize=" + cmpSize +
                     ", size=" + size +
                     '}';
+        }
+    }
+
+    private class CompTimerTask extends PackTimerTask {
+
+        @Override
+        public void run() {
+            update();
+        }
+
+        private synchronized void update() {
+            accumulator++;
+            if (compressor == null) return;
+            long secPos = compressor.getProcessedSize();
+            long position = secPos + totalLenOfProcessedFiles;
+            progress.set(position);
+            secondaryProgress.set(secPos);
+            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {
+                updateTimer(position);
+
+                long cmpSize = compressor.getCompressedSize() + compressedLength;
+                cmpLength.set(Util.sizeToReadable(cmpSize));
+                double cmpRatio = (double) cmpSize / position;
+                double roundedRatio = (double) Math.round(cmpRatio * 1000) / 10;
+                currentCmpRatio.set(roundedRatio + "%");
+            }
         }
     }
 }

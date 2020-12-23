@@ -18,6 +18,7 @@
 package trashsoftware.winBwz.packer.pz;
 
 import trashsoftware.winBwz.core.Compressor;
+import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.core.deflate.DeflateCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
@@ -33,8 +34,7 @@ import java.io.*;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Timer;
 
 /**
  * The .pz archive packing program.
@@ -125,104 +125,114 @@ public class PzSolidPacker extends PzPacker {
                              int bufferSize) throws Exception {
         String encMainName = outFile + ".enc";
 
-        MultipleInputStream mis;
-        if (windowSize == 0) {  // no compress
-            if (encryptLevel == 0) {
-                mis = new MultipleInputStream(inputStreams, this, false);
-                Util.fileTruncate(mis, bos, totalLength);
-                compressedLength += totalLength;
-            } else {
-                Encipher encipher;
-                switch (encryption) {
-                    case "zse":
-                        mis = new MultipleInputStream(inputStreams, this, false);
-                        encipher = new ZSEFileEncoder(mis, password);
-                        break;
-                    case "bzse":
-                        mis = new MultipleInputStream(inputStreams, this, true);
-                        encipher = new BZSEStreamEncoder(mis, password);
-                        break;
-                    default:
-                        throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
-                }
-                if (bundle != null) step.setValue(bundle.getString("encrypting"));
-//                step.setValue(lanLoader.get(271));
-                progress.set(1);
-                percentage.setValue("0.0");
-                encipher.setParent(this, totalLength);
-                encipher.encrypt(bos);
-                compressedLength += encipher.encryptedLength();
-            }
-        } else if (totalLength != 0) {
-            mis = new MultipleInputStream(inputStreams, this, false);
-            Compressor mainCompressor;
-            switch (alg) {
-                case "lzz2":
-                    mainCompressor = new LZZ2Compressor(mis, windowSize, bufferSize, totalLength);
-                    break;
-                case "fastLzz":
-                    mainCompressor = new FastLzzCompressor(mis, windowSize, bufferSize, totalLength);
-                    break;
-                case "bwz":
-                    mainCompressor = new BWZCompressor(mis, windowSize);
-                    break;
-                case "deflate":
-                    mainCompressor = new DeflateCompressor(mis, cmpLevel, totalLength);
-                    break;
-                default:
-                    throw new NoSuchAlgorithmException("No such algorithm");
-            }
-            mainCompressor.setPacker(this);
-            mainCompressor.setCompressionLevel(cmpLevel);
-            mainCompressor.setThreads(threads);
-            if (encryptLevel == 0) {
-                mainCompressor.compress(bos);
-            } else {
-                FileOutputStream encFos = new FileOutputStream(encMainName);
-                mainCompressor.compress(encFos);
-                encFos.flush();
-                encFos.close();
+        Timer timer = new Timer();
+        CompTimerTask ctt = new CompTimerTask();
+        timer.scheduleAtFixedRate(ctt, 0, 1000 / Constants.GUI_UPDATES_PER_S);
 
-                InputStream encMainIs;
-                Encipher encipher;
-                switch (encryption) {
-                    case "zse":
-                        encMainIs = new FileInputStream(encMainName);
-                        encipher = new ZSEFileEncoder(encMainIs, password);
+        try {
+            MultipleInputStream mis;
+            if (windowSize == 0) {  // no compress
+                if (encryptLevel == 0) {
+                    mis = new MultipleInputStream(inputStreams, this, false);
+                    Util.fileTruncate(mis, bos, totalLength);
+                    compressedLength += totalLength;
+                } else {
+                    Encipher encipher;
+                    switch (encryption) {
+                        case "zse":
+                            mis = new MultipleInputStream(inputStreams, this, false);
+                            encipher = new ZSEFileEncoder(mis, password);
+                            break;
+                        case "bzse":
+                            mis = new MultipleInputStream(inputStreams, this, true);
+                            encipher = new BZSEStreamEncoder(mis, password);
+                            break;
+                        default:
+                            throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
+                    }
+                    if (bundle != null) step.setValue(bundle.getString("encrypting"));
+//                step.setValue(lanLoader.get(271));
+                    progress.set(1);
+                    percentage.setValue("0.0");
+                    encipher.setParent(this, totalLength);
+                    encipher.encrypt(bos);
+                    compressedLength += encipher.encryptedLength();
+                }
+            } else if (totalLength != 0) {
+                mis = new MultipleInputStream(inputStreams, this, false);
+                Compressor mainCompressor;
+                switch (alg) {
+                    case "lzz2":
+                        mainCompressor = new LZZ2Compressor(mis, windowSize, bufferSize, totalLength);
                         break;
-                    case "bzse":
-                        encMainIs = new BufferedInputStream(new FileInputStream(encMainName));
-                        encipher = new BZSEStreamEncoder(encMainIs, password);
+                    case "fastLzz":
+                        mainCompressor = new FastLzzCompressor(mis, windowSize, bufferSize, totalLength);
+                        break;
+                    case "bwz":
+                        mainCompressor = new BWZCompressor(mis, windowSize);
+                        break;
+                    case "deflate":
+                        mainCompressor = new DeflateCompressor(mis, cmpLevel, totalLength);
                         break;
                     default:
-                        throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
+                        throw new NoSuchAlgorithmException("No such algorithm");
                 }
-                if (bundle != null) step.setValue(bundle.getString("encrypting"));
-                file.setValue(outFile);
-                progress.set(1);
-                percentage.setValue("0.0");
-                encipher.setParent(this, mainCompressor.getCompressedSize());
-                encipher.encrypt(bos);
-                encMainIs.close();
+                mainCompressor.setPacker(this);
+                mainCompressor.setCompressionLevel(cmpLevel);
+                mainCompressor.setThreads(threads);
+                ctt.setCompressor(mainCompressor);
+                if (encryptLevel == 0) {
+                    mainCompressor.compress(bos);
+                } else {
+                    FileOutputStream encFos = new FileOutputStream(encMainName);
+                    mainCompressor.compress(encFos);
+                    encFos.flush();
+                    encFos.close();
+
+                    InputStream encMainIs;
+                    Encipher encipher;
+                    switch (encryption) {
+                        case "zse":
+                            encMainIs = new FileInputStream(encMainName);
+                            encipher = new ZSEFileEncoder(encMainIs, password);
+                            break;
+                        case "bzse":
+                            encMainIs = new BufferedInputStream(new FileInputStream(encMainName));
+                            encipher = new BZSEStreamEncoder(encMainIs, password);
+                            break;
+                        default:
+                            throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
+                    }
+                    if (bundle != null) step.setValue(bundle.getString("encrypting"));
+                    file.setValue(outFile);
+                    progress.set(1);
+                    percentage.setValue("0.0");
+                    encipher.setParent(this, mainCompressor.getCompressedSize());
+                    encipher.encrypt(bos);
+                    encMainIs.close();
+                }
+                compressedLength += mainCompressor.getCompressedSize();
+            } else {
+                mis = new MultipleInputStream();
             }
-            compressedLength += mainCompressor.getCompressedSize();
-        } else {
-            mis = new MultipleInputStream();
-        }
 //        long crc32 = mis.getCrc32Checksum();
 //        byte[] fullBytes = Bytes.longToBytes(crc32);
 //        byte[] crc32Checksum = new byte[4];
 //        System.arraycopy(fullBytes, 4, crc32Checksum, 0, 4);
 
-        Util.deleteFile(encMainName);
-        bos.flush();
-        bos.close();
-        mis.close();
-        if (isInterrupted) {
-            Util.deleteFile(outFile);
-            return 0;
+            Util.deleteFile(encMainName);
+            bos.flush();
+            bos.close();
+            mis.close();
+
+            if (isInterrupted) {
+                Util.deleteFile(outFile);
+                return 0;
+            }
+            return mis.getCrc32Checksum();
+        } finally {
+            timer.cancel();
         }
-        return mis.getCrc32Checksum();
     }
 
     /**
@@ -305,6 +315,30 @@ public class PzSolidPacker extends PzPacker {
         public String toString() {
             if (isDir) return "Dir(" + name + ", " + Arrays.toString(childrenRange) + ")";
             else return "File(" + name + ": " + start + ", " + end + ")";
+        }
+    }
+
+    private class CompTimerTask extends PackTimerTask {
+
+        @Override
+        public void run() {
+            update();
+        }
+
+        private synchronized void update() {
+            accumulator++;
+            if (compressor == null) return;
+            long position = compressor.getProcessedSize();
+            progress.set(position);
+            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {
+                updateTimer(position);
+
+                long cmpSize = compressor.getCompressedSize() + compressedLength;
+                cmpLength.set(Util.sizeToReadable(cmpSize));
+                double cmpRatio = (double) cmpSize / position;
+                double roundedRatio = (double) Math.round(cmpRatio * 1000) / 10;
+                currentCmpRatio.set(roundedRatio + "%");
+            }
         }
     }
 }

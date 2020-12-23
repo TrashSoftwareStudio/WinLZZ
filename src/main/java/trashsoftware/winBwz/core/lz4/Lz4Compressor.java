@@ -46,6 +46,11 @@ public class Lz4Compressor implements Compressor {
     }
 
     @Override
+    public long getProcessedSize() {
+        return 0;
+    }
+
+    @Override
     public void compress(OutputStream out) throws Exception {
         compressContent(out);
     }

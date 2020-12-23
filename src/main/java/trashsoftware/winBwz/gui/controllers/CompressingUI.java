@@ -26,7 +26,7 @@ import java.util.ResourceBundle;
 public class CompressingUI implements Initializable {
 
     @FXML
-    ProgressBar progressBar;
+    ProgressBar progressBar, secondaryProgressBar;
 
     @FXML
     private Label messageLabel, percentageLabel, ratioLabel, timeUsedLabel, expectTimeLabel, totalSizeLabel,
@@ -35,7 +35,8 @@ public class CompressingUI implements Initializable {
 
     private CompressService service;
 
-    private ChangeListener<Number> progressListener, exitStatusListener;
+    private ChangeListener<Number> progressListener, exitStatusListener,
+            secondaryTotalProgressListener, secondaryProgressListener;
 
     private ChangeListener<String> percentageListener, stepListener, fileListener, speedRatioListener, timeUsedListener,
             timeExpectedListener, passedLengthListener, cmpSizeListener, currentCmpRatioListener;
@@ -208,6 +209,11 @@ public class CompressingUI implements Initializable {
         packer.compressedSizeProperty().removeListener(cmpSizeListener);
         packer.currentCmpRatioProperty().removeListener(currentCmpRatioListener);
 
+        if (packer.hasSecondaryProgress()) {
+            packer.secondaryProgressProperty().removeListener(secondaryProgressListener);
+            packer.secondaryTotalProgressProperty().removeListener(secondaryProgressListener);
+        }
+
         messageLabel.textProperty().unbind();
         progressBar.progressProperty().unbind();
         ratioLabel.textProperty().unbind();
@@ -284,7 +290,7 @@ public class CompressingUI implements Initializable {
                         if (newValue.intValue() != 0) this.cancel();
                     };
 
-                    // Listeners only work under BWT.
+                    // Listeners only work under BWZ.
                     cmpSizeListener = (observable, oldValue, newValue) ->
                             Platform.runLater(() -> compressedSizeLabel.setText(newValue));
                     currentCmpRatioListener = (observable, oldValue, newValue) ->
@@ -311,6 +317,19 @@ public class CompressingUI implements Initializable {
                         packer.currentCmpRatioProperty().addListener(currentCmpRatioListener);
                     if (packer.exitStatusProperty() != null)
                         packer.exitStatusProperty().addListener(exitStatusListener);
+
+                    if (packer.hasSecondaryProgress()) {
+                        // Listeners only work under non-solid packer
+                        secondaryProgressListener = ((observable, oldValue, newValue) ->
+                                Platform.runLater(() -> secondaryProgressBar.setProgress(
+                                        (double) packer.secondaryProgressProperty().longValue() /
+                                                packer.secondaryTotalProgressProperty().longValue()
+                                )));
+                        packer.secondaryProgressProperty().addListener(secondaryProgressListener);
+                        packer.secondaryTotalProgressProperty().addListener(secondaryProgressListener);
+                        secondaryProgressBar.setVisible(true);
+                        secondaryProgressBar.setManaged(true);
+                    }
 
                     updateTitle(bundle.getString("searching"));
                     Platform.runLater(() -> percentageLabel.setText("0.0"));

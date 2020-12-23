@@ -1,7 +1,6 @@
 package trashsoftware.winBwz.core.lzz2;
 
 import trashsoftware.winBwz.core.Compressor;
-import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.RegularCompressor;
 import trashsoftware.winBwz.core.bwz.MTFTransform;
 import trashsoftware.winBwz.huffman.HuffmanCompressor;
@@ -11,11 +10,9 @@ import trashsoftware.winBwz.huffman.MapCompressor.MapCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanUtil;
 import trashsoftware.winBwz.utility.FileBitOutputStream;
 import trashsoftware.winBwz.utility.FileInputBufferArray;
-import trashsoftware.winBwz.utility.MultipleInputStream;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.*;
-import java.util.Timer;
 
 /**
  * LZZ2 (Lempel-Ziv-ZBH 2) compressor, implements {@code Compressor} interface.
@@ -89,11 +86,6 @@ public class LZZ2Compressor extends RegularCompressor {
         setTempNames("lzz2");
     }
 
-    @Override
-    public long getPosition() {
-        return position;
-    }
-
     private static int sliderArraySize(int dictSize, int compressionLevel) {
         int base;
         if (dictSize <= 8192) base = 16;
@@ -130,6 +122,11 @@ public class LZZ2Compressor extends RegularCompressor {
         uncMem += 16384;  // others
 
         return new long[]{cmpMem, uncMem};
+    }
+
+    @Override
+    public long getProcessedSize() {
+        return position;
     }
 
     private void setTempNames(String inFile) {
@@ -192,17 +189,6 @@ public class LZZ2Compressor extends RegularCompressor {
         FileBitOutputStream dlbFos = new FileBitOutputStream(
                 new BufferedOutputStream(new FileOutputStream(dlBodyTempName)));
 
-//        long lastCheckTime = System.currentTimeMillis();
-//        startTime = lastCheckTime;
-        if (packer != null) timeOffset = System.currentTimeMillis() - packer.startTime;
-//        long currentTime;
-
-        Timer timer = null;
-        if (packer != null) {
-            timer = new Timer();
-            timer.scheduleAtFixedRate(new CompTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
-        }
-
         while (true) {
 
             int skip = matcher.search(fba, position);
@@ -258,10 +244,6 @@ public class LZZ2Compressor extends RegularCompressor {
             }
         }
 
-        if (timer != null) timer.cancel();
-
-//        System.out.println();
-
         mainFos.flush();
         mainFos.close();
         disFos.flush();
@@ -296,9 +278,22 @@ public class LZZ2Compressor extends RegularCompressor {
 
     protected boolean isNotCompressible(OutputStream outFile) throws IOException {
         if (itemCount == 0) {
-            Util.fileConcatenate(outFile, new String[]{mainTempName}, 8192);
-            outFile.write((byte) 0);
-            cmpSize = (int) totalLength + 1;
+//            Util.fileConcatenate(outFile, new String[]{mainTempName}, 8192);
+            BufferedInputStream fis = new BufferedInputStream(new FileInputStream(mainTempName));
+            byte[] buffer = new byte[8192];
+            byte[] readBuffer = new byte[2];
+            int bufferIndex = 0;
+            while (fis.read(readBuffer) == 2) {
+                buffer[bufferIndex++] = readBuffer[1];
+                if (bufferIndex == 8192) {
+                    outFile.write(buffer);
+                    bufferIndex = 0;
+                }
+            }
+            fis.close();
+            outFile.write(buffer, 0, bufferIndex);
+            outFile.write(0);
+            cmpSize = totalLength + 1;
             deleteTemp();
             return true;
         }

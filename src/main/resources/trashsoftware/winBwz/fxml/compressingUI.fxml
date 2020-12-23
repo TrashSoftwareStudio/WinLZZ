@@ -98,6 +98,8 @@
             </padding>
             <Label fx:id="fileLabel"/>
         </HBox>
+        <ProgressBar fx:id="secondaryProgressBar" prefWidth="360.0" progress="0.0"
+                     managed="false" visible="false"/>
         <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="200.0" spacing="5.0">
             <padding>
                 <Insets bottom="10.0" left="25.0"/>

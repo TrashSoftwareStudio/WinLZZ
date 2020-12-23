@@ -1,6 +1,5 @@
 package trashsoftware.winBwz.utility;
 
-import trashsoftware.winBwz.packer.pz.PzUnPacker;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -13,6 +12,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import trashsoftware.winBwz.packer.pz.PzUnPacker;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -31,7 +31,9 @@ import java.util.ResourceBundle;
  */
 public class SeparateInputStream extends MultipleInputStream {
 
-    private PzUnPacker unPacker;
+    public static final int SKIP_BUFFER = 8192;
+
+    private final PzUnPacker unPacker;
 
     private ResourceBundle bundle;
 
@@ -46,18 +48,24 @@ public class SeparateInputStream extends MultipleInputStream {
     /**
      * Constructor of a new <code>SeparateInputStream</code> instance.
      *
-     * @param files     queue of files
-     * @param parent    the parent <code>UnPacker</code> instance, which launches this
-     *                  <code>SeparateInputStream</code> instance
-     * @param buffered  whether to use a buffered reader or not
-     * @param signature the signature at the beginning of every part file
+     * @param files          queue of files
+     * @param parent         the parent <code>UnPacker</code> instance, which launches this
+     *                       <code>SeparateInputStream</code> instance
+     * @param resourceBundle resources bundle
+     * @param buffered       whether to use a buffered reader or not
+     * @param signature      the signature at the beginning of every part file
      * @throws IOException if any IO error occurs
      */
-    private SeparateInputStream(Deque<File> files, PzUnPacker parent, boolean buffered, int signature)
+    private SeparateInputStream(Deque<File> files,
+                                PzUnPacker parent,
+                                ResourceBundle resourceBundle,
+                                boolean buffered,
+                                int signature)
             throws IOException {
         super(files, null, buffered);
         this.unPacker = parent;
         this.signature = signature;
+        this.bundle = resourceBundle;
         hasSignature = true;
     }
 
@@ -78,34 +86,60 @@ public class SeparateInputStream extends MultipleInputStream {
     }
 
     /**
-     * Sets up the language loader
-     *
-     * @param lanLoader the <code>ResourceBundle</code> instance used for displaying text
-     */
-    public void setLanLoader(ResourceBundle lanLoader) {
-        this.bundle = lanLoader;
-    }
-
-    /**
      * Returns a new <code>SeparateInputStream</code> instance.
      *
-     * @param prefixName the original (common) name of the input files
-     * @param suffixName the suffix extension name of the input files
-     * @param partCount  the number of files to be read
-     * @param parent     the parent <code>UnPacker</code> instance, which launches this
-     *                   <code>SeparateInputStream</code> instance
-     * @param signature  the signature at the beginning of every part file
+     * @param prefixName     the original (common) name of the input files
+     * @param suffixName     the suffix extension name of the input files
+     * @param partCount      the number of files to be read
+     * @param parent         the parent <code>UnPacker</code> instance, which launches this
+     *                       <code>SeparateInputStream</code> instance
+     * @param resourceBundle resurces bundle
+     * @param signature      the signature at the beginning of every part file
      * @return a newly created <code>SeparateInputStream</code> instance
      * @throws IOException if any IO error occurs
      */
-    public static SeparateInputStream createNew(String prefixName, String suffixName, int partCount, PzUnPacker parent,
+    public static SeparateInputStream createNew(String prefixName,
+                                                String suffixName,
+                                                int partCount,
+                                                PzUnPacker parent,
+                                                ResourceBundle resourceBundle,
                                                 int signature)
             throws IOException {
         LinkedList<File> files = new LinkedList<>();
         for (int i = 1; i <= partCount; i++) {
             files.addLast(new File(String.format("%s.%d%s", prefixName, i, suffixName)));
         }
-        return new SeparateInputStream(files, parent, true, signature);
+        return new SeparateInputStream(files, parent, resourceBundle, true, signature);
+    }
+
+    /**
+     * Sets up the language loader
+     *
+     * @param lanLoader the <code>ResourceBundle</code> instance used for displaying text
+     */
+    @Deprecated
+    public void setLanLoader(ResourceBundle lanLoader) {
+        this.bundle = lanLoader;
+    }
+
+    /**
+     * Skips <code>n</code> bytes while reading.
+     *
+     * @param n the number of bytes to be skipped
+     * @return the number of bytes that are successfully skipped
+     * @throws IOException if the input stream is unavailable to be skipped
+     */
+    @Override
+    public long skip(long n) throws IOException {
+        byte[] skipBuffer = new byte[SKIP_BUFFER];
+        byte[] lastSkipBuffer = new byte[(int) (n % SKIP_BUFFER)];
+        long res = 0;
+        while (n >= SKIP_BUFFER) {
+            res += read(skipBuffer);
+            n -= SKIP_BUFFER;
+        }
+        res += read(lastSkipBuffer);
+        return res;
     }
 
     /**
@@ -158,7 +192,9 @@ public class SeparateInputStream extends MultipleInputStream {
                 }
             }
         }
-        return array.length - remain;
+        int read = array.length - remain;
+        position += read;
+        return read;
     }
 
     private void showPauseInfo() {
@@ -216,21 +252,6 @@ public class SeparateInputStream extends MultipleInputStream {
         pauseStage.showAndWait();
 
         sectionSet = true;
-    }
-
-
-    /**
-     * Skips <code>n</code> bytes while reading.
-     *
-     * @param n the count of bytes to be skipped
-     * @return the counts of bytes that are successfully skipped
-     * @throws IOException if the input stream is unavailable to be skipped
-     */
-    @Override
-    public long skip(long n) throws IOException {
-        long s = currentInputStream.skip(n);
-        currentLength -= s;
-        return s;
     }
 
     /**

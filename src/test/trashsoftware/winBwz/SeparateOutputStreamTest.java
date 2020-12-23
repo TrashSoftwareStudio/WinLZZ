@@ -15,7 +15,8 @@ public class SeparateOutputStreamTest {
         sos.flush();
         sos.close();
 
-        SeparateInputStream sis = SeparateInputStream.createNew("block", ".txt", 4, null, 4);
+        SeparateInputStream sis = SeparateInputStream.
+                createNew("block", ".txt", 4, null, null, 4);
         byte[] b = new byte[6];
 //        System.out.println(sis.skip(1));
         int read;

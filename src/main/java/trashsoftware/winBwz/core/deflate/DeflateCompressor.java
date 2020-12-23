@@ -1,13 +1,10 @@
 package trashsoftware.winBwz.core.deflate;
 
-import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.RegularCompressor;
 import trashsoftware.winBwz.packer.pz.PzPacker;
-import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 import trashsoftware.winBwz.utility.LengthOutputStream;
 
 import java.io.*;
-import java.util.Timer;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
@@ -30,18 +27,12 @@ public class DeflateCompressor extends RegularCompressor {
     }
 
     @Override
-    public long getPosition() {
+    public long getProcessedSize() {
         return position;
     }
 
     @Override
     public void compress(OutputStream out) throws Exception {
-        Timer timer = null;
-        if (packer != null) {
-            timeOffset = System.currentTimeMillis() - packer.startTime;
-            timer = new Timer();
-            timer.scheduleAtFixedRate(new CompTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
-        }
         LengthOutputStream los = new LengthOutputStream(out);
         los.notCloseOut();  // avoid 'out' being closed by dos.close
         Deflater deflater = new Deflater(level);
@@ -53,7 +44,6 @@ public class DeflateCompressor extends RegularCompressor {
             position += read;
             compressedSize = los.getWrittenLength();
         }
-        if (timer != null) timer.cancel();
         is.close();
         dos.flush();
         dos.close();

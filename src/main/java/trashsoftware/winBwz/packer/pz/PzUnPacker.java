@@ -13,7 +13,6 @@ import trashsoftware.winBwz.encrypters.WrongPasswordException;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamDecoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileDecoder;
 import trashsoftware.winBwz.packer.CatalogNode;
-import trashsoftware.winBwz.packer.ChecksumDoesNotMatchException;
 import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.packer.UnsupportedVersionException;
 import trashsoftware.winBwz.packer.pzNonSolid.PzNsPacker;
@@ -22,11 +21,7 @@ import trashsoftware.winBwz.utility.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ResourceBundle;
-import java.util.zip.CRC32;
+import java.util.*;
 
 /**
  * The .pz archive unpacking program.
@@ -81,6 +76,10 @@ public abstract class PzUnPacker extends UnPacker {
     protected int encryptLevel, threadNumber;
     protected String encryption = "bzse";
     protected String passwordAlg = "sha-256";
+    /**
+     * Position of main part.
+     */
+    protected long mainStartPos;
     /**
      * Length of the main part.
      */
@@ -172,11 +171,8 @@ public abstract class PzUnPacker extends UnPacker {
         bis = new BufferedInputStream(new FileInputStream(packName));
 
         byte[] buffer2 = new byte[2];
-//        byte[] buffer4 = new byte[4];
 
         if (bis.skip(4) != 4) throw new IOException("Error occurs while reading");
-//        int headerInt = Bytes.bytesToInt32(buffer4);
-//        if (headerInt != Packer.SIGNATURE) throw new NotAPzFileException("Not a PZ archive");
 
         if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
         primaryVersion = buffer2[0];
@@ -198,7 +194,7 @@ public abstract class PzUnPacker extends UnPacker {
         String encInfo = Bytes.byteToBitString(infoBytes[1]);
         if (primaryVersion == 25) readInfoByte25(infoBytes[0]);
         else if (primaryVersion == 26) readInfoByte26(infoBytes[0]);
-        else if (primaryVersion == 27) readInfoByte27(infoBytes[0]);
+        else if (primaryVersion == 27 || primaryVersion == 28) readInfoByte27or28(infoBytes[0]);
         else throw new UnsupportedVersionException("Unsupported file version");
 
         String encAlgName = encInfo.substring(0, 2);
@@ -276,8 +272,13 @@ public abstract class PzUnPacker extends UnPacker {
             String prefixName = prefixName1.substring(0, prefixName1.lastIndexOf("."));
             String suffixName = packName.substring(packName.lastIndexOf("."));
             bis.close();
-            bis = SeparateInputStream.createNew(prefixName, suffixName, partCount, this, PzSolidPacker.PART_SIGNATURE);
-            ((SeparateInputStream) bis).setLanLoader(bundle);
+            bis = SeparateInputStream.createNew(
+                    prefixName,
+                    suffixName,
+                    partCount,
+                    this,
+                    bundle,
+                    PzSolidPacker.PART_SIGNATURE);
             if (bis.skip(39) != 39) throw new IOException("Error occurs while reading");
             extraLen = 12;
         } else {
@@ -289,7 +290,8 @@ public abstract class PzUnPacker extends UnPacker {
 
         if (bis.read(extraField) != extraFieldLen) throw new IOException("Error occurs while reading");
 
-        cmpMainLength = archiveLength - cmpMapLen - extraFieldLen - extraLen - 27;
+        mainStartPos = cmpMapLen + extraFieldLen + extraLen + PzPacker.FIXED_HEAD_LENGTH;
+        cmpMainLength = archiveLength - mainStartPos;
 
         if (encryptLevel != 0) {
             cmpMainLength -= (passwordPlainLength + 8);
@@ -383,7 +385,7 @@ public abstract class PzUnPacker extends UnPacker {
         isSeparated = sepRep == '1';
     }
 
-    private void readInfoByte27(byte infoByte) {
+    private void readInfoByte27or28(byte infoByte) {
         String info = Bytes.byteToBitString(infoByte);
         String enc = info.substring(0, 2);  // The encrypt level of this archive.
         switch (enc) {
@@ -580,6 +582,19 @@ public abstract class PzUnPacker extends UnPacker {
      */
     public byte versionNeeded() {
         return primaryVersion;
+    }
+
+    /**
+     * Extracts and uncompress all files and directories to the path <code>targetDir</code>, recursively.
+     * <p>
+     * Original path structure will be kept.
+     *
+     * @param targetDir path to extract contents.
+     * @throws Exception if any failure happens during extraction and decompression.
+     */
+    @Override
+    public void unCompressAll(String targetDir) throws Exception {
+        for (CatalogNode cn : getRootNode().getChildren()) unCompressFrom(targetDir, cn);
     }
 
     protected DeCompressor getDeCompressor(String cmpTempName, int windowSize) throws IOException, NoSuchAlgorithmException {

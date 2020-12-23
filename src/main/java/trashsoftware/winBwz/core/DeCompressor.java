@@ -44,4 +44,13 @@ public interface DeCompressor {
      * @param threads the thread number used for decompression.
      */
     void setThreads(int threads);
+
+    /**
+     * Returns the real-time uncompressed length.
+     * <p>
+     * At the end of decompression, this should be equal to the length of the uncompressed file.
+     *
+     * @return the real-time uncompressed length
+     */
+    long getUncompressedLength();
 }

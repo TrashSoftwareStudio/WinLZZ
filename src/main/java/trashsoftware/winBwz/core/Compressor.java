@@ -53,7 +53,18 @@ public interface Compressor {
     /**
      * Returns the file length after compression.
      *
+     * This method should represent the real-time length.
+     *
      * @return the file length after compression.
      */
     long getCompressedSize();
+
+    /**
+     * Returns the number of bytes has been processed.
+     *
+     * When the compression finished, this should be equal to the total original size.
+     *
+     * @return the number of bytes has been processed
+     */
+    long getProcessedSize();
 }

@@ -13,7 +13,8 @@ public class LZZ2Test {
         long start = System.currentTimeMillis();
 
         String name;
-        name = "dsCtrl.txt";
+//        name = "dsCtrl.txt";
+        name = "2.py";
 //        name = "p1.png";
 //        name = "t1.bmp";
 //        name = "t5.bmp";
@@ -31,8 +32,8 @@ public class LZZ2Test {
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
             c.compress(fos);
-            System.out.println(String.format("Size after compression: %d, compress rate: %.2f%%",
-                    c.getCompressedSize(), (double) c.getCompressedSize() / c.getSizeBeforeCompression() * 100));
+            System.out.printf("Size after compression: %d, compress rate: %.2f%%%n",
+                    c.getCompressedSize(), (double) c.getCompressedSize() / c.getSizeBeforeCompression() * 100);
         } catch (Exception e) {
             //
         }

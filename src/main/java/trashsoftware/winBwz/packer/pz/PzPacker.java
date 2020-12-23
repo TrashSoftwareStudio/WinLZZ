@@ -28,7 +28,7 @@ public abstract class PzPacker extends Packer {
      * <p>
      * Any change of this value will result the incompatibility between the program and older archive file.
      */
-    public final static byte primaryVersion = 27;
+    public final static byte primaryVersion = 28;
 
     public static final int FIXED_HEAD_LENGTH = 27;
 

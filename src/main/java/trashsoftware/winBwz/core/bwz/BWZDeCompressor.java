@@ -8,10 +8,7 @@ import trashsoftware.winBwz.packer.pz.PzUnPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.FileChannel;
@@ -43,6 +40,7 @@ public class BWZDeCompressor implements DeCompressor {
     long ratio, pos;
     private int threadNum = 1;  // Default thread number.
     private long lastUpdateProgress;
+//    private long outPosition;
 //    long initBytePos;
 
     /**
@@ -202,12 +200,6 @@ public class BWZDeCompressor implements DeCompressor {
      */
     @Override
     public void uncompress(OutputStream out) throws Exception {
-        Timer timer = null;
-        if (unPacker != null) {
-            timer = new Timer();
-            timer.scheduleAtFixedRate(new DTimer(), 0, 1000);
-        }
-
         try {
             decode(out, fc);
         } catch (InterruptedException | ClosedByInterruptException e) {
@@ -215,12 +207,15 @@ public class BWZDeCompressor implements DeCompressor {
         } catch (Exception e) {
             fc.close();
             throw e;
-        } finally {
-            if (timer != null) timer.cancel();
         }
         fc.close();
 //        fis.close();
         isRunning = false;
+    }
+
+    @Override
+    public long getUncompressedLength() {
+        return pos;
     }
 
     private void updateInfo(long currentTime, long lastCheckTime) {
@@ -294,7 +289,7 @@ public class BWZDeCompressor implements DeCompressor {
             int[] rld = new ZeroRLCDecoder(text, windowSize + 4).Decode();
 //            long t2 = System.currentTimeMillis();
             pos += rld.length / 2;
-            if (unPacker != null) unPacker.progress.set(pos);
+//            if (unPacker != null) unPacker.progress.set(pos);
             int[] mtf = new MTFInverse(rld).decode(257);
 //            long t3 = System.currentTimeMillis();
             result = new BWTDecoder(mtf).Decode();
@@ -313,46 +308,6 @@ public class BWZDeCompressor implements DeCompressor {
          */
         byte[] getResult() {
             return result;
-        }
-    }
-
-
-    /**
-     * An implementation of {@code Runnable}, used to update status of a {@code BWZDeCompressor} instance to a
-     * {@code UnPacker} instance every 1 second.
-     *
-     * @author zbh
-     * @see Runnable
-     * @since 0.5
-     */
-    class DTimer extends TimerTask {
-
-        private int timeUsed;
-
-        /**
-         * Creates a new {@code Timer} instance.
-         */
-        DTimer() {
-        }
-
-        /**
-         * Runs this {@code DTimer}.
-         */
-        @Override
-        public void run() {
-            unPacker.timeUsed.setValue(Util.secondToString(timeUsed));
-
-            if (pos != 0) {
-                TimerHelper.updateBwzProgress(
-                        pos,
-                        unPacker.getTotalOrigSize(),
-                        unPacker.percentage,
-                        unPacker.ratio,
-                        ratio,
-                        unPacker.timeExpected,
-                        unPacker.passedLength);
-            }
-            timeUsed += 1;
         }
     }
 }

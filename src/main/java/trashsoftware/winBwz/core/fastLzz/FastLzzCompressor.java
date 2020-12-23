@@ -1,14 +1,12 @@
 package trashsoftware.winBwz.core.fastLzz;
 
 import trashsoftware.winBwz.core.Compressor;
-import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.packer.pz.PzPacker;
-import trashsoftware.winBwz.packer.pz.PzSolidPacker;
-import trashsoftware.winBwz.utility.*;
+import trashsoftware.winBwz.utility.Bytes;
+import trashsoftware.winBwz.utility.FileBitOutputStream;
+import trashsoftware.winBwz.utility.FixedByteArrayOutputStream;
 
 import java.io.*;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -39,12 +37,9 @@ public class FastLzzCompressor implements Compressor {
     private long processedLength;
     private int bufferMaxSize;  // Size of LAB (Look ahead buffer).
     private int dictSize;
-    private long lastUpdateProgress;
-    private long timeOffset;
     private int compressionLevel;
     private byte[] buffer;
     private int threads = 1;
-    private FLTimerTask timerTask;
 
     /**
      * Constructor of a new {@code LZZ2Compressor} instance.
@@ -119,13 +114,13 @@ public class FastLzzCompressor implements Compressor {
 
 //        lastCheckTime = System.currentTimeMillis();
 //        startTime = lastCheckTime;
-        Timer timer = null;
-        if (packer != null) {
-            timeOffset = System.currentTimeMillis() - packer.startTime;
-            timer = new Timer();
-            timerTask = new FLTimerTask();
-            timer.scheduleAtFixedRate(timerTask, 0, 1000 / Constants.GUI_UPDATES_PER_S);
-        }
+//        Timer timer = null;
+//        if (packer != null) {
+//            timeOffset = System.currentTimeMillis() - packer.startTime;
+//            timer = new Timer();
+//            timerTask = new FLTimerTask();
+//            timer.scheduleAtFixedRate(timerTask, 0, 1000 / Constants.GUI_UPDATES_PER_S);
+//        }
 
         int read;
 
@@ -150,8 +145,6 @@ public class FastLzzCompressor implements Compressor {
             while (start < read) {
                 int end = Math.min(start + MEMORY_BUFFER_SIZE, read);
                 threadArray[i] = new EncodeThread(start, end - start, sliders[i]);
-//                if (i == 0) threadArray[i].timerThread = true;
-                if (i == 0 && timerTask != null) timerTask.thread = threadArray[i];
                 i++;
                 start = end;
             }
@@ -166,11 +159,11 @@ public class FastLzzCompressor implements Compressor {
             for (EncodeThread et : threadArray) {
                 if (et != null) {
                     cmpSize += et.writeToStream(outFile);
-                    processedLength += et.bufferSize;
+//                    processedLength += et.bufferSize;
                 }
             }
         }
-        if (timer != null) timer.cancel();
+//        if (timer != null) timer.cancel();
 
         sis.close();
         outFile.flush();
@@ -210,6 +203,11 @@ public class FastLzzCompressor implements Compressor {
         compressContent(outFile);
     }
 
+    @Override
+    public long getProcessedSize() {
+        return processedLength;
+    }
+
     /**
      * Returns the total output size after compressing.
      *
@@ -242,13 +240,7 @@ public class FastLzzCompressor implements Compressor {
         private final FixedSlider slider;
         private final FileBitOutputStream fos;
 
-//        /**
-//         * Whether to use this thread to drive the gui timer
-//         */
-//        private boolean timerThread;
-
         private int dis, len;
-        private int passedLen;
 
         EncodeThread(int bufferStart, int bufferSize, FixedSlider slider) {
             this.bufferStart = bufferStart;
@@ -262,11 +254,18 @@ public class FastLzzCompressor implements Compressor {
             slider.clear();
             try {
                 int i = 0;
+                FixedArraySlider arraySlider = null;
+                FixedIntSlider intSlider = null;
+                if (compressionLevel > 0) {
+                    arraySlider = (FixedArraySlider) slider;
+                } else {
+                    intSlider = (FixedIntSlider) slider;
+                }
                 while (i < bufferSize - 3) {
                     if (compressionLevel > 0) {
-                        calculateLongestMatch((FixedArraySlider) slider, bufferStart + i);
+                        calculateLongestMatch(arraySlider, bufferStart + i);
                     } else {
-                        calculateLongestMatchSingle((FixedIntSlider) slider, bufferStart + i);
+                        calculateLongestMatchSingle(intSlider, bufferStart + i);
                     }
                     int prevI = i;
 
@@ -289,17 +288,12 @@ public class FastLzzCompressor implements Compressor {
                         notInterrupted = false;
                         break;
                     }
-                    passedLen = i;
-//                    if (timerThread &&
-//                            packer != null &&
-//                            (currentTime = System.currentTimeMillis()) - lastCheckTime >= 50) {
-//                        updateInfo(processedLength + i, currentTime);
-//                        lastCheckTime = currentTime;
-//                    }
+                    processedLength += (i - prevI);
                 }
                 for (; i < bufferSize; i++) {
                     fos.write(0);
                     fos.writeByte(buffer[bufferStart + i]);
+                    processedLength++;
                 }
                 fos.flush();
                 fos.close();
@@ -400,36 +394,6 @@ public class FastLzzCompressor implements Compressor {
             FixedByteArrayOutputStream arrayOutputStream = (FixedByteArrayOutputStream) fos.getStream();
             arrayOutputStream.writeToStream(outputStream);
             return arrayOutputStream.getLength();
-        }
-    }
-
-    class FLTimerTask extends TimerTask {
-        private int accumulator;
-        private EncodeThread thread;
-
-        @Override
-        public void run() {
-            accumulator++;
-            if (thread != null) {
-                long position = processedLength + thread.passedLen;
-                packer.progress.set(position);
-                if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {  // whole second
-                    double finished = ((double) position) / totalLength;
-                    double rounded = (double) Math.round(finished * 1000) / 10;
-                    packer.percentage.set(String.valueOf(rounded));
-                    int newUpdated = (int) (position - lastUpdateProgress);
-                    lastUpdateProgress = packer.progress.get();
-                    int ratio = newUpdated / 1024;
-                    packer.ratio.set(String.valueOf(ratio));
-
-                    long timeUsed = accumulator * 1000L / Constants.GUI_UPDATES_PER_S;
-                    packer.timeUsed.set(Util.secondToString((timeUsed + timeOffset) / 1000));
-                    long expectTime = (totalLength - position) / ratio / 1024;
-                    packer.timeExpected.set(Util.secondToString(expectTime));
-
-                    packer.passedLength.set(Util.sizeToReadable(position));
-                }
-            }
         }
     }
 }

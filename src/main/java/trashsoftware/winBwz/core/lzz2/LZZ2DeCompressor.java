@@ -1,6 +1,5 @@
 package trashsoftware.winBwz.core.lzz2;
 
-import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.core.RegularDeCompressor;
 import trashsoftware.winBwz.core.bwz.MTFInverse;
@@ -13,7 +12,6 @@ import trashsoftware.winBwz.utility.IndexedOutputStream;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.*;
-import java.util.Timer;
 
 import static trashsoftware.winBwz.core.lzz2.LZZ2Compressor.*;
 
@@ -34,7 +32,6 @@ public class LZZ2DeCompressor extends RegularDeCompressor {
     private final int csqLen;
     private final int windowSize;
     private int dlbLen;
-    private long outPosition;
     private String dlBodyTempName;
 
     private String cmpMainTempName, cmpDisHeadTempName;
@@ -46,37 +43,33 @@ public class LZZ2DeCompressor extends RegularDeCompressor {
         this.inFile = inFile;
         File f = new File(inFile);
         int length = (int) f.length();
-        RandomAccessFile raf = new RandomAccessFile(f, "r");
-        raf.seek(length - 1);
-        this.windowSize = windowSize;
+        int sizeBlockSize;
+        try (RandomAccessFile raf = new RandomAccessFile(f, "r")) {
+            raf.seek(length - 1);
+            this.windowSize = windowSize;
 
-        int sizeBlockSize = raf.readByte() & 0xff;
-        if (sizeBlockSize == 0) {
-            csqLen = 0;
-            disHeadLen = 0;
-            dlbLen = 0;
-            mainLen = length - 1;
-            raf.close();
-            this.bis = new BufferedInputStream(new FileInputStream(inFile));
-            return;
+            sizeBlockSize = raf.readByte() & 0xff;
+            if (sizeBlockSize == 0) {
+                csqLen = 0;
+                disHeadLen = 0;
+                dlbLen = 0;
+                mainLen = length - 1;
+                raf.close();
+                this.bis = new BufferedInputStream(new FileInputStream(inFile));
+                return;
+            }
+            byte[] block = new byte[sizeBlockSize];
+            raf.seek(length - sizeBlockSize - 1);
+            raf.read(block);
+
+            long[] sizes = Util.recoverSizeBlock(block, 3);
+            csqLen = (int) sizes[0];
+            mainLen = (int) sizes[1];
+            disHeadLen = (int) sizes[2];
         }
-        byte[] block = new byte[sizeBlockSize];
-        raf.seek(length - sizeBlockSize - 1);
-        raf.read(block);
-
-        long[] sizes = Util.recoverSizeBlock(block, 3);
-        csqLen = (int) sizes[0];
-        mainLen = (int) sizes[1];
-        disHeadLen = (int) sizes[2];
-        raf.close();
 
         dlbLen = length - disHeadLen - dlbLen - csqLen - sizeBlockSize - 1;
         this.bis = new BufferedInputStream(new FileInputStream(inFile));
-    }
-
-    @Override
-    public long getPosition() {
-        return outPosition;
     }
 
     private void generateTempNames() {
@@ -137,14 +130,6 @@ public class LZZ2DeCompressor extends RegularDeCompressor {
         int lastDisIndex = -1;
         int lastLen = -1;
 
-        Timer timer = null;
-        if (unPacker != null) {
-            timeOffset = System.currentTimeMillis() - unPacker.startTime;
-            timer = new Timer();
-            timer.scheduleAtFixedRate(new DeCompTimerTask(), 0, 1000 / Constants.GUI_UPDATES_PER_S);
-        }
-//        long currentTime;
-
         try {
             while (true) {
                 int s = mainHis.readNext();
@@ -184,8 +169,6 @@ public class LZZ2DeCompressor extends RegularDeCompressor {
             dlbBis.close();
             mainHis.close();
             throw e;
-        } finally {
-            if (timer != null) timer.cancel();
         }
         tempResult.flush();
         tempResult.close();

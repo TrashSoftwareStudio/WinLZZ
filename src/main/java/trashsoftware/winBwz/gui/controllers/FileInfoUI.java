@@ -1,17 +1,17 @@
 package trashsoftware.winBwz.gui.controllers;
 
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
-import trashsoftware.winBwz.packer.*;
+import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 import trashsoftware.winBwz.packer.pz.PzUnPacker;
 import trashsoftware.winBwz.packer.zip.ZipUnPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
-import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
-import javafx.scene.control.Label;
 
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -20,22 +20,18 @@ import java.util.ResourceBundle;
 
 public class FileInfoUI implements Initializable {
 
-    private UnPacker unPacker;
-
-    @FXML
-    private Label typeLabel, algLabel, versionLabel, versionNeededLabel, fileCountLabel, dirCountLabel, windowSizeLabel,
-            compressRateLabel, netRateLabel, origSizeLabel, compressSizeLabel, annotationLabel, timeLabel,
-            crcChecksumLabel, encryptionLabel, secretKeyLabel;
-
-    @FXML
-    private Canvas progressBarCanvas;
-
-    private ResourceBundle bundle;
-
     private static final Color headColor = Color.GREEN;
     private static final Color otherInfoColor = Color.GOLD;
     private static final Color contextColor = Color.ORANGERED;
     private static final Color mainColor = Color.DODGERBLUE;
+    private UnPacker unPacker;
+    @FXML
+    private Label typeLabel, algLabel, versionLabel, versionNeededLabel, fileCountLabel, dirCountLabel, windowSizeLabel,
+            compressRateLabel, netRateLabel, origSizeLabel, compressSizeLabel, annotationLabel, timeLabel,
+            crcChecksumLabel, encryptionLabel, secretKeyLabel;
+    @FXML
+    private Canvas progressBarCanvas;
+    private ResourceBundle bundle;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -102,6 +98,9 @@ public class FileInfoUI implements Initializable {
                 break;
             case "bwz":
                 alg = "BWZ";
+                break;
+            case "deflate":
+                alg = "Deflate";
                 break;
             default:
                 alg = bundle.getString("unknown");
@@ -183,32 +182,62 @@ public class FileInfoUI implements Initializable {
     }
 
     private String translateVersion(byte versionInt) {
-        if (versionInt == 1) return "0.1.2";
-        else if (versionInt == 2) return "0.1.3";
-        else if (versionInt == 3) return "0.1.4";
-        else if (versionInt == 4) return "0.1.5 - 0.1.6";
-        else if (versionInt == 5) return "0.1.7";
-        else if (versionInt == 6) return "0.1.8";
-        else if (versionInt == 7) return "0.1.9";
-        else if (versionInt == 8) return "0.1.10";
-        else if (versionInt == 9) return "0.2.3";
-        else if (versionInt == 10) return "0.2.4 - 0.2.11";
-        else if (versionInt == 11) return "0.3.0";
-        else if (versionInt == 12) return "0.3.1";
-        else if (versionInt == 14) return "0.4 - 0.4.1";
-        else if (versionInt == 15) return "0.4.2";
-        else if (versionInt == 16) return "0.4.3";
-        else if (versionInt == 17) return "0.5.0 - 0.5.1";
-        else if (versionInt == 18) return "0.5.2";
-        else if (versionInt == 20) return "0.6.0 - 0.6.1";
-        else if (versionInt == 21) return "0.6.2";
-        else if (versionInt == 22) return "0.7+";
-        else if (versionInt == 23) return "0.7.0 - 0.7.1";
-        else if (versionInt == 24) return "0.7.2 - 0.7.3";
-        else if (versionInt == 25) return "1.0 Alpha+";
-        else if (versionInt == 26) return "1.0 Alpha 12+";
-        else if (versionInt == 27) return "1.0 Alpha 15+";
-        else return bundle.getString("unknown");
+        switch (versionInt & 0xff) {
+            case 1:
+                return "0.1.2";
+            case 2:
+                return "0.1.3";
+            case 3:
+                return "0.1.4";
+            case 4:
+                return "0.1.5 - 0.1.6";
+            case 5:
+                return "0.1.7";
+            case 6:
+                return "0.1.8";
+            case 7:
+                return "0.1.9";
+            case 8:
+                return "0.1.10";
+            case 9:
+                return "0.2.3";
+            case 10:
+                return "0.2.4 - 0.2.11";
+            case 11:
+                return "0.3.0";
+            case 12:
+                return "0.3.1";
+            case 14:
+                return "0.4 - 0.4.1";
+            case 15:
+                return "0.4.2";
+            case 16:
+                return "0.4.3";
+            case 17:
+                return "0.5.0 - 0.5.1";
+            case 18:
+                return "0.5.2";
+            case 20:
+                return "0.6.0 - 0.6.1";
+            case 21:
+                return "0.6.2";
+            case 22:
+                return "0.7";
+            case 23:
+                return "0.7.0 - 0.7.1";
+            case 24:
+                return "0.7.2 - 0.7.3";
+            case 25:
+                return "1.0 Alpha+";
+            case 26:
+                return "1.0 Alpha 12+";
+            case 27:
+                return "1.0 Alpha 15+";
+            case 28:
+                return "1.0 Alpha 16+";
+            default:
+                return bundle.getString("unknown");
+        }
     }
 
     private String sizeToString3Digit(long src) {

@@ -1,11 +1,15 @@
 package trashsoftware.winBwz.packer;
 
 import javafx.beans.property.*;
+import trashsoftware.winBwz.core.Compressor;
+import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
+import trashsoftware.winBwz.utility.Util;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ResourceBundle;
+import java.util.TimerTask;
 
 public abstract class Packer {
 
@@ -32,6 +36,7 @@ public abstract class Packer {
      */
     protected long compressedLength;
     private String errorMsg;
+    protected long timeOffset;
 
     public Packer(File[] inFiles) {
         this.inFiles = inFiles;
@@ -67,6 +72,10 @@ public abstract class Packer {
     public abstract void build();
 
     public abstract void pack(String outFileName, int windowSize, int bufferSize) throws Exception;
+
+    public boolean hasSecondaryProgress() {
+        return false;
+    }
 
     public ReadOnlyLongProperty progressProperty() {
         return progress;
@@ -116,6 +125,14 @@ public abstract class Packer {
         return exitStatus;
     }
 
+    public ReadOnlyLongWrapper secondaryProgressProperty() {
+        return null;
+    }
+
+    public ReadOnlyLongWrapper secondaryTotalProgressProperty() {
+        return null;
+    }
+
     public void setError(String msg, int status) {
         exitStatus.set(status);
         errorMsg = msg;
@@ -134,5 +151,34 @@ public abstract class Packer {
      */
     public void setResourceBundle(ResourceBundle bundle) {
         this.bundle = bundle;
+    }
+
+    public abstract class PackTimerTask extends TimerTask {
+        protected Compressor compressor;
+        protected long lastUpdateProgress;
+        protected int accumulator;
+
+        public synchronized void setCompressor(Compressor compressor) {
+            this.compressor = compressor;
+        }
+
+        protected synchronized void updateTimer(long position) {
+            double finished = ((double) position) / totalLength;
+            double rounded = (double) Math.round(finished * 1000) / 10;
+            percentage.set(String.valueOf(rounded));
+            int newUpdated = (int) (position - lastUpdateProgress);
+            lastUpdateProgress = position;
+            int ratioV = newUpdated / 1024;
+            passedLength.set(Util.sizeToReadable(position));
+
+            long timeUsedV = accumulator * 1000L / Constants.GUI_UPDATES_PER_S;
+            timeUsed.set(Util.secondToString((timeUsedV + timeOffset) / 1000));
+
+            if (ratioV > 0) {
+                ratio.set(String.valueOf(ratioV));
+                long expectTime = (totalLength - position) / ratioV / 1024;
+                timeExpected.set(Util.secondToString(expectTime));
+            }
+        }
     }
 }

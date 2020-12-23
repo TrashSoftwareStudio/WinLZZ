@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.packer.pz;
 
+import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.core.bwz.BWZDeCompressor;
 import trashsoftware.winBwz.encrypters.Decipher;
@@ -16,21 +17,23 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.Timer;
 import java.util.zip.CRC32;
 
 public class PzSolidUnPacker extends PzUnPacker {
-    /**
-     * The root {@code ContextNode} of the archive.
-     * <p>
-     * This node does not represent an actual directory.
-     */
-    protected PzSolidCatalogNode rootNode;
     /**
      * List of {@code IndexNodeUnp}'s.
      * <p>
      * This list is order-sensitive. Each node represents an actual file except the root node.
      */
     private final List<IndexNodeUnp> indexNodes = new ArrayList<>();
+    /**
+     * The root {@code ContextNode} of the archive.
+     * <p>
+     * This node does not represent an actual directory.
+     */
+    protected PzSolidCatalogNode rootNode;
+
     /**
      * Creates a new UnPacker instance, with <code>packName</code> as the input archive name.
      *
@@ -129,19 +132,6 @@ public class PzSolidUnPacker extends PzUnPacker {
     }
 
     /**
-     * Extracts and uncompress all files and directories to the path <code>targetDir</code>, recursively.
-     * <p>
-     * Original path structure will be kept.
-     *
-     * @param targetDir path to extract contents.
-     * @throws Exception if any failure happens during extraction and decompression.
-     */
-    @Override
-    public void unCompressAll(String targetDir) throws Exception {
-        for (CatalogNode cn : rootNode.getChildren()) unCompressFrom(targetDir, cn);
-    }
-
-    /**
      * Extracts and uncompress all files and directories which are under <code>cn</code> to the path
      * <code>targetDir</code>, recursively.
      * <p>
@@ -221,7 +211,7 @@ public class PzSolidUnPacker extends PzUnPacker {
         }
     }
 
-    private void unCompressMainPureBWZ() throws Exception {
+    private void unCompressMainPureBWZ(UnpTimerTask utt) throws Exception {
         String name;
         long startPos;
         if (isSeparated) {
@@ -246,6 +236,7 @@ public class PzSolidUnPacker extends PzUnPacker {
         BWZDeCompressor mainDec = new BWZDeCompressor(name, windowSize, startPos);
         mainDec.setUnPacker(this);
         mainDec.setThreads(threadNumber);
+        utt.setDeCompressor(mainDec);
         FileOutputStream mainFos = new FileOutputStream(tempName);
         try {
             mainDec.uncompress(mainFos);
@@ -275,61 +266,89 @@ public class PzSolidUnPacker extends PzUnPacker {
     }
 
     private void unCompressMain() throws Exception {
-        if (origSize == 0) {
-            File f = new File(tempName);
-            if (!f.createNewFile()) System.out.println("Creation failed");
-        } else if (!isUnCompressed()) {
-            if (encryptLevel != 0) {
-                step.setValue(bundle.getString("decrypting"));
-                Decipher decipher;
-                FileOutputStream fos = new FileOutputStream(cmpTempName);
-                switch (encryption) {
-                    case "zse":
-                        decipher = new ZSEFileDecoder(bis, password, cmpMainLength);
-                        break;
-                    case "bzse":
-                        decipher = new BZSEStreamDecoder(bis, password, cmpMainLength);
-                        break;
-                    default:
-                        throw new NoSuchAlgorithmException("No such algorithm");
-                }
-                decipher.setParent(this);
-                decipher.decrypt(fos);
-                fos.flush();
-                fos.close();
-            } else if (windowSize != 0 && alg.equals("bwz")) {
-                unCompressMainPureBWZ();
-                return;
-            } else {
-                try {
-                    Util.fileTruncate(bis, cmpTempName, 8192, cmpMainLength);
-                } catch (IOInterruptedException e) {
-                    Util.deleteFile(cmpTempName);
+        UnpTimerTask utt = new DeCompTimerTask();
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(utt, 0, 1000 / Constants.GUI_UPDATES_PER_S);
+
+        try {
+            if (origSize == 0) {
+                File f = new File(tempName);
+                if (!f.createNewFile()) System.out.println("Creation failed");
+            } else if (!isUnCompressed()) {
+                if (encryptLevel != 0) {
+                    step.setValue(bundle.getString("decrypting"));
+                    Decipher decipher;
+                    FileOutputStream fos = new FileOutputStream(cmpTempName);
+                    switch (encryption) {
+                        case "zse":
+                            decipher = new ZSEFileDecoder(bis, password, cmpMainLength);
+                            break;
+                        case "bzse":
+                            decipher = new BZSEStreamDecoder(bis, password, cmpMainLength);
+                            break;
+                        default:
+                            throw new NoSuchAlgorithmException("No such algorithm");
+                    }
+                    decipher.setParent(this);
+                    decipher.decrypt(fos);
+                    fos.flush();
+                    fos.close();
+                } else if (windowSize != 0 && alg.equals("bwz")) {
+                    unCompressMainPureBWZ(utt);
                     return;
+                } else {
+                    try {
+                        Util.fileTruncate(bis, cmpTempName, 8192, cmpMainLength);
+                    } catch (IOInterruptedException e) {
+                        Util.deleteFile(cmpTempName);
+                        return;
+                    }
+                }
+
+                if (windowSize == 0) {
+                    tempName = cmpTempName;
+                } else {
+                    if (isTest) step.setValue(bundle.getString("testing"));
+                    else step.setValue(bundle.getString("uncIng"));
+
+                    DeCompressor mainDec;
+                    mainDec = getDeCompressor(cmpTempName, windowSize);
+                    mainDec.setUnPacker(this);
+                    mainDec.setThreads(threadNumber);
+                    utt.setDeCompressor(mainDec);
+                    FileOutputStream mainFos = new FileOutputStream(tempName);
+                    try {
+                        mainDec.uncompress(mainFos);
+                        mainFos.close();
+                    } catch (Exception e) {
+                        mainDec.deleteCache();
+                        throw e;
+                    } finally {
+                        Util.deleteFile(cmpTempName);
+                        bis.close();
+                    }
                 }
             }
+        } finally {
+            timer.cancel();
+        }
+    }
 
-            if (windowSize == 0) {
-                tempName = cmpTempName;
-            } else {
-                if (isTest) step.setValue(bundle.getString("testing"));
-                else step.setValue(bundle.getString("uncIng"));
+    private class DeCompTimerTask extends UnpTimerTask {
+        @Override
+        public void run() {
+            update();
+        }
 
-                DeCompressor mainDec;
-                mainDec = getDeCompressor(cmpTempName, windowSize);
-                mainDec.setUnPacker(this);
-                mainDec.setThreads(threadNumber);
-                FileOutputStream mainFos = new FileOutputStream(tempName);
-                try {
-                    mainDec.uncompress(mainFos);
-                    mainFos.close();
-                } catch (Exception e) {
-                    mainDec.deleteCache();
-                    throw e;
-                } finally {
-                    Util.deleteFile(cmpTempName);
-                    bis.close();
-                }
+        private synchronized void update() {
+            accumulator++;
+            if (deCompressor == null) return;
+            long position = deCompressor.getUncompressedLength();
+            progress.set(position);
+            if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {
+                updateTimer(position);
+
+
             }
         }
     }

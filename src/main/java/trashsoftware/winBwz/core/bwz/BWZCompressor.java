@@ -25,8 +25,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -76,16 +74,14 @@ public class BWZCompressor implements Compressor {
      * Whether the compression is in progress.
      */
     boolean isRunning = true;
-    long ratio;
     long pos;
+
+
+    /* Streams */
     private OutputStream out;
     private FileChannel fis;
     private InputStream sis;
-    /**
-     * Total size after compression.
-     */
-    private long cmpSize;
-    private long lastUpdateProgress;
+
     private int threadNumber = 1;
 
     /**
@@ -172,30 +168,16 @@ public class BWZCompressor implements Compressor {
     }
 
     private void compress() throws Exception {
-        long lastCheckTime = System.currentTimeMillis();
-        long currentTime;
 
         int read;
         byte[] block = new byte[windowSize * threadNumber];
         while ((read = sis.read(block)) > 0) {
 
             compressOneLoop(read, block);
-
-            if (packer != null) {
-                if (packer.isInterrupted) {
-                    break;
-                } else {
-                    currentTime = System.currentTimeMillis();
-                    updateInfo(currentTime, lastCheckTime);
-                    lastCheckTime = currentTime;
-                }
-            }
         }
     }
 
     private void compress2() throws Exception {
-        long lastCheckTime = System.currentTimeMillis();
-        long currentTime;
 
         int read;
         ByteBuffer block = ByteBuffer.allocate(windowSize * threadNumber);
@@ -205,16 +187,6 @@ public class BWZCompressor implements Compressor {
 
             compressOneLoop(read, buffer);
             block.clear();
-
-            if (packer != null) {
-                if (packer.isInterrupted) {
-                    break;
-                } else {
-                    currentTime = System.currentTimeMillis();
-                    updateInfo(currentTime, lastCheckTime);
-                    lastCheckTime = currentTime;
-                }
-            }
         }
     }
 
@@ -267,38 +239,16 @@ public class BWZCompressor implements Compressor {
         this.out = out;
         this.out.write(Util.windowSizeToByte(maxHuffmanSize));
 
-        Timer timer = null;
-        if (packer != null) {
-            timer = new Timer();
-            timer.scheduleAtFixedRate(new CompTimerTask(), 0, 1000);
-        }
         try {
             if (sis == null) compress2();
             else compress();
         } catch (InterruptedException e) {
             // The process is interrupted by user.
-        } finally {
-            if (timer != null) timer.cancel();
         }
         if (sis == null) fis.close();
         else sis.close();
 
-        if (packer != null && packer.isInterrupted) {
-            isRunning = false;
-            return;
-        }
-
-        cmpSize = mainLen + 1;
         isRunning = false;
-    }
-
-    private void updateInfo(long currentTime, long lastUpdateTime) {
-        if (packer != null) {
-            packer.progress.set(pos);
-            int newUpdated = (int) (pos - lastUpdateProgress);
-            lastUpdateProgress = packer.progress.get();
-            ratio = (long) ((double) newUpdated / (currentTime - lastUpdateTime) * 1.024);
-        }
     }
 
     /**
@@ -329,7 +279,12 @@ public class BWZCompressor implements Compressor {
      */
     @Override
     public long getCompressedSize() {
-        return cmpSize;
+        return mainLen + 1;
+    }
+
+    @Override
+    public long getProcessedSize() {
+        return pos;
     }
 
     /**
@@ -394,7 +349,6 @@ public class BWZCompressor implements Compressor {
             bwtTime += t2 - t1;
 
             pos += partSize * 0.8;
-            if (packer != null) packer.progress.set(pos);  // Update progress
 
             MTFTransform mtf = new MTFTransform(bwtResult);
             int[] array = mtf.Transform(257);  // Also contains RLC Result.
@@ -521,43 +475,6 @@ public class BWZCompressor implements Compressor {
             } catch (OutOfMemoryError e) {
                 packer.setError("Out of memory", 1);
             }
-        }
-    }
-
-    /**
-     * An implementation of {@code Runnable}, used to update status of a {@code BWZCompressor} instance to a
-     * {@code Packer} instance every 1 second.
-     *
-     * @author zbh
-     * @see Runnable
-     * @since 0.5
-     */
-    class CompTimerTask extends TimerTask {
-
-        private int timeUsed;
-
-        /**
-         * Runs this {@code Timer}.
-         */
-        @Override
-        public void run() {
-            packer.timeUsed.setValue(Util.secondToString(timeUsed));
-            if (pos != 0) {
-                TimerHelper.updateBwzProgress(pos,
-                        packer.getTotalOrigSize(),
-                        packer.percentage,
-                        packer.ratio,
-                        ratio,
-                        packer.timeExpected,
-                        packer.passedLength);
-                packer.cmpLength.set(Util.sizeToReadable(mainLen));
-
-                double cmpRatio = (double) mainLen / pos;
-                double roundedRatio = (double) Math.round(cmpRatio * 1000) / 10;
-                packer.currentCmpRatio.set(roundedRatio + "%");
-            }
-
-            timeUsed += 1;
         }
     }
 }

@@ -82,7 +82,7 @@ public class FastLzzDecompressor implements DeCompressor {
     }
 
     @Override
-    public long getUncompressedLength() {
+    public long getOutputSize() {
         return totalOutLength;
     }
 

@@ -31,7 +31,7 @@ public class BWZTest {
         bos.close();
 
         long mid = System.currentTimeMillis();
-        System.out.println("Size after compression: " + bwz.getCompressedSize());
+        System.out.println("Size after compression: " + bwz.getOutputSize());
         System.out.println("Compression time: " + (mid - start) + " ms");
 
         String cpyName = Util.getOriginalCopyName(cmpName);

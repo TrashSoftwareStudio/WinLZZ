@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.encrypters;
 
+import trashsoftware.winBwz.core.ProgressedStream;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
 import trashsoftware.winBwz.packer.pz.PzPacker;
@@ -16,7 +17,7 @@ import java.io.OutputStream;
  * @see BZSEStreamEncoder
  * @since 0.7.4
  */
-public interface Encipher {
+public interface Encipher extends ProgressedStream {
 
     /**
      * Encrypts the stream.
@@ -25,13 +26,6 @@ public interface Encipher {
      * @throws IOException if any IO error occurs
      */
     void encrypt(OutputStream out) throws IOException;
-
-    /**
-     * Returns the stream length after encryption.
-     *
-     * @return the stream length after encryption
-     */
-    long encryptedLength();
 
     /**
      * Sets up the parent {@code Packer} instance.

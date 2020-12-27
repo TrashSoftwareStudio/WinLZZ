@@ -63,16 +63,6 @@ public class ZSEFileEncoder implements Encipher {
     }
 
     /**
-     * Returns the length of the data after encoding.
-     *
-     * @return the length of the data after encoding
-     */
-    @Override
-    public long encryptedLength() {
-        return encodeLength;
-    }
-
-    /**
      * Sets up the parent {@code Packer} instance.
      *
      * @param parent                 the parent {@code Packer} instance
@@ -80,5 +70,15 @@ public class ZSEFileEncoder implements Encipher {
      */
     @Override
     public void setParent(PzPacker parent, long lengthBeforeEncryption) {
+    }
+
+    @Override
+    public long getInputSize() {
+        return encodeLength;
+    }
+
+    @Override
+    public long getOutputSize() {
+        return encodeLength;
     }
 }

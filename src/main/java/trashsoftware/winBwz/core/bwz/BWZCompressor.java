@@ -278,12 +278,12 @@ public class BWZCompressor implements Compressor {
      * @return the file length after bwz compression.
      */
     @Override
-    public long getCompressedSize() {
+    public long getOutputSize() {
         return mainLen + 1;
     }
 
     @Override
-    public long getProcessedSize() {
+    public long getInputSize() {
         return pos;
     }
 

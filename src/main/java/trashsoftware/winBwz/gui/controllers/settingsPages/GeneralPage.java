@@ -18,14 +18,14 @@ public class GeneralPage extends SettingsPage {
     @FXML
     ComboBox<NamedLocale> languageBox;
 
-    private SettingsMain parent;
-    private ResourceBundle bundle;
+    private final SettingsMain parent;
+    private final ResourceBundle bundle;
 
     public GeneralPage(SettingsMain parent) throws IOException {
         bundle = GUIClient.getBundle();
         this.parent = parent;
         FXMLLoader loader = new FXMLLoader(getClass()
-                .getResource("/trashsoftware/win_bwz/fxml/settingsPages/general.fxml"),
+                .getResource("/trashsoftware/winBwz/fxml/settingsPages/general.fxml"),
                 bundle);
         loader.setRoot(this);
         loader.setController(this);

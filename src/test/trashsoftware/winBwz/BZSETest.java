@@ -19,7 +19,7 @@ public class BZSETest {
         BZSEStreamEncoder be = new BZSEStreamEncoder(bis1, password);
         BufferedOutputStream bos1 = new BufferedOutputStream(new FileOutputStream(encName));
         be.encrypt(bos1);
-        long len = be.encryptedLength();
+        long len = be.getOutputSize();
         bis1.close();
         bos1.close();
 

@@ -619,8 +619,8 @@ public class CompressUI implements Initializable {
     }
 
     enum FmtBoxItem {
-        PZ(GUIClient.getBundle().getString("solid") + "pz", "pz"),
-        PZN("pz", "pz"),
+        PZ("pz", "pz"),
+        PZN(GUIClient.getBundle().getString("nonSolid") + "pz", "pz"),
         ZIP("zip", "zip");
 
         final String shown;

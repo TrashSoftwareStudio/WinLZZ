@@ -16,7 +16,7 @@ import java.io.OutputStream;
  * @see FastLzzDecompressor
  * @since 0.5
  */
-public interface DeCompressor {
+public interface DeCompressor extends ProgressedStream {
 
     /**
      * Uncompress the data into <code>out</code>.
@@ -52,5 +52,15 @@ public interface DeCompressor {
      *
      * @return the real-time uncompressed length
      */
-    long getUncompressedLength();
+    long getOutputSize();
+
+    /**
+     * In this case, the input size is not important
+     *
+     * @return {@code 0}
+     */
+    @Override
+    default long getInputSize() {
+        return 0;
+    }
 }

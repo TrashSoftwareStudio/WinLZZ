@@ -27,7 +27,7 @@ public class DeflateCompressor extends RegularCompressor {
     }
 
     @Override
-    public long getProcessedSize() {
+    public long getInputSize() {
         return position;
     }
 
@@ -66,7 +66,7 @@ public class DeflateCompressor extends RegularCompressor {
     }
 
     @Override
-    public long getCompressedSize() {
+    public long getOutputSize() {
         return compressedSize;
     }
 }

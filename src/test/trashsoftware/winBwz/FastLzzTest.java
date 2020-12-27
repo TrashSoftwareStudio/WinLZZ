@@ -36,7 +36,7 @@ public class FastLzzTest {
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {
             c.compress(fos);
-            System.out.println(c.getCompressedSize());
+            System.out.println(c.getOutputSize());
         } catch (Exception e) {
             e.printStackTrace();
         }

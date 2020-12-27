@@ -10,8 +10,8 @@ import java.util.List;
 
 public abstract class SettingsPage extends Page {
 
-    private List<ComboBox> comboBoxes = new ArrayList<>();
-    private List<CheckBox> checkBoxes = new ArrayList<>();
+    private final List<ComboBox> comboBoxes = new ArrayList<>();
+    private final List<CheckBox> checkBoxes = new ArrayList<>();
 
     StatusSaver statusSaver = new StatusSaver();
 

@@ -53,7 +53,6 @@ public abstract class PzPacker extends Packer {
      * The value will be applied only if the user sets the {@code windowSize} to 0.
      */
     static final int defaultWindowSize = 32768;
-    public final long startTime = System.currentTimeMillis();
     /**
      * List of extra field blocks.
      * <p>
@@ -71,7 +70,6 @@ public abstract class PzPacker extends Packer {
      * None: partition info
      */
     protected final ArrayList<byte[]> extraFields = new ArrayList<>();
-    protected long fileStructurePos;
 
     /**
      * List of {@code IndexNode}'s.
@@ -319,7 +317,7 @@ public abstract class PzPacker extends Packer {
         long cmpHeadLen;
         if (encryptLevel != 2) {
             headCompressor.compress(bos);
-            cmpHeadLen = headCompressor.getCompressedSize();
+            cmpHeadLen = headCompressor.getOutputSize();
         } else {
             String encHeadName = outFile + ".head.enc";
             FileOutputStream encFos = new FileOutputStream(encHeadName);
@@ -341,7 +339,7 @@ public abstract class PzPacker extends Packer {
                     throw new NoSuchAlgorithmException("No Such Encoding Algorithm");
             }
             encipher.encrypt(bos);
-            cmpHeadLen = encipher.encryptedLength();
+            cmpHeadLen = encipher.getOutputSize();
             encHeadIs.close();
             Util.deleteFile(encHeadName);
         }

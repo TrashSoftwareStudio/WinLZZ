@@ -8,8 +8,8 @@ import java.util.Map;
 
 class StatusSaver {
 
-    private Map<String, Integer> comboBoxesIndexStatus = new HashMap<>();
-    private Map<String, Boolean> checkBoxesStatus = new HashMap<>();
+    private final Map<String, Integer> comboBoxesIndexStatus = new HashMap<>();
+    private final Map<String, Boolean> checkBoxesStatus = new HashMap<>();
 
     void store(ComboBox comboBox) {
         comboBoxesIndexStatus.put(comboBox.getId(), comboBox.getSelectionModel().getSelectedIndex());

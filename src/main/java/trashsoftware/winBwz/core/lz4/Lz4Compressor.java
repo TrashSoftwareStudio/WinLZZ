@@ -46,7 +46,7 @@ public class Lz4Compressor implements Compressor {
     }
 
     @Override
-    public long getProcessedSize() {
+    public long getInputSize() {
         return 0;
     }
 
@@ -71,7 +71,7 @@ public class Lz4Compressor implements Compressor {
     }
 
     @Override
-    public long getCompressedSize() {
+    public long getOutputSize() {
         return 0;
     }
 }

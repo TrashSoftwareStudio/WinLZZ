@@ -23,6 +23,8 @@ public class ZSEFileDecoder implements Decipher {
 
     private long length;
 
+    private final long origLength;
+
     /**
      * Creates a new {ZSEFileDecoder} instance.
      *
@@ -33,6 +35,12 @@ public class ZSEFileDecoder implements Decipher {
         this.password = password;
         this.fis = fis;
         this.length = readLength;
+        this.origLength = readLength;
+    }
+
+    @Override
+    public long getOutputSize() {
+        return origLength - length;
     }
 
     /**

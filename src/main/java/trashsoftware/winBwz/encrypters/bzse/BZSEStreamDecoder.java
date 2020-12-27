@@ -17,17 +17,13 @@ import java.io.OutputStream;
  */
 public class BZSEStreamDecoder implements Decipher {
 
-    private InputStream is;
+    private final InputStream is;
 
-    private String password;
+    private final String password;
 
     private long length;
 
-    private long totalLength;
-
-    private PzUnPacker parent;
-
-    private int updateCount;
+    private final long totalLength;
 
     /**
      * Creates a new {@code BZSEStreamDecoder} instance.
@@ -43,6 +39,11 @@ public class BZSEStreamDecoder implements Decipher {
         this.totalLength = encryptedLength;
     }
 
+    @Override
+    public long getOutputSize() {
+        return totalLength - length - 1;
+    }
+
     /**
      * Writes the decrypted content to the output stream <code>out</code>.
      *
@@ -54,10 +55,10 @@ public class BZSEStreamDecoder implements Decipher {
         byte[] buffer = new byte[16];
         byte[] decoded = null;
         int read;
-        double ratio = 1;
-        if (parent != null) ratio = parent.getMainRatio();
+//        double ratio = 1;
+//        if (parent != null) ratio = parent.getMainRatio();
         while (length > 1) {
-            if (parent != null && (length & 0xffff) == 1) updateInfo(ratio);
+//            if (parent != null && (length & 0xffff) == 1) updateInfo(ratio);
             read = is.read(buffer);
             if (read != 16) throw new IOException("Stream error");
             length -= 16;
@@ -73,17 +74,17 @@ public class BZSEStreamDecoder implements Decipher {
         out.write(valid);
     }
 
-    private void updateInfo(double ratio) {
-        parent.progress.set((long) (parent.progress.get() + 65536 / ratio));
-        if (updateCount == 79) {
-            double finished = 1 - (double) length / totalLength;
-            double rounded = (double) Math.round(finished * 1000) / 10;
-            parent.percentage.set(String.valueOf(rounded));
-            updateCount = 0;
-        } else {
-            updateCount += 1;
-        }
-    }
+//    private void updateInfo(double ratio) {
+//        parent.progress.set((long) (parent.progress.get() + 65536 / ratio));
+//        if (updateCount == 79) {
+//            double finished = 1 - (double) length / totalLength;
+//            double rounded = (double) Math.round(finished * 1000) / 10;
+//            parent.percentage.set(String.valueOf(rounded));
+//            updateCount = 0;
+//        } else {
+//            updateCount += 1;
+//        }
+//    }
 
     /**
      * Sets up the parent {@code UnPacker} which launched this {@code Decipher} instance.
@@ -92,6 +93,5 @@ public class BZSEStreamDecoder implements Decipher {
      */
     @Override
     public void setParent(PzUnPacker parent) {
-        this.parent = parent;
     }
 }

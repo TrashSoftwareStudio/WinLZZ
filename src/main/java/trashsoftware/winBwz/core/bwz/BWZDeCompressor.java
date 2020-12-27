@@ -214,7 +214,7 @@ public class BWZDeCompressor implements DeCompressor {
     }
 
     @Override
-    public long getUncompressedLength() {
+    public long getOutputSize() {
         return pos;
     }
 

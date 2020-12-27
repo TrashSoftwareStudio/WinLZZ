@@ -33,7 +33,7 @@ public class LZZ2Test {
         try {
             c.compress(fos);
             System.out.printf("Size after compression: %d, compress rate: %.2f%%%n",
-                    c.getCompressedSize(), (double) c.getCompressedSize() / c.getSizeBeforeCompression() * 100);
+                    c.getOutputSize(), (double) c.getOutputSize() / c.getSizeBeforeCompression() * 100);
         } catch (Exception e) {
             //
         }

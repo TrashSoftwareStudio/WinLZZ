@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.encrypters;
 
+import trashsoftware.winBwz.core.ProgressedStream;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamDecoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileDecoder;
 import trashsoftware.winBwz.packer.pz.PzUnPacker;
@@ -15,7 +16,7 @@ import java.io.OutputStream;
  * @see BZSEStreamDecoder
  * @since 0.7.4
  */
-public interface Decipher {
+public interface Decipher extends ProgressedStream {
 
     /**
      * Decrypts the content into <code>out</code>.
@@ -31,4 +32,14 @@ public interface Decipher {
      * @param parent parent {@code UnPacker} which launched this {@code Decipher} instance
      */
     void setParent(PzUnPacker parent);
+
+    /**
+     * In this case, the input size is not important
+     *
+     * @return {@code 0}
+     */
+    @Override
+    default long getInputSize() {
+        return 0;
+    }
 }

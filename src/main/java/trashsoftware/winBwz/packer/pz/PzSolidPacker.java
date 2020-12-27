@@ -45,6 +45,9 @@ import java.util.Timer;
  */
 public class PzSolidPacker extends PzPacker {
 
+    private PackTimerTask ptt;
+    private Timer timer;
+
     /**
      * Creates a new {@code Packer} instance.
      * <p>
@@ -118,6 +121,17 @@ public class PzSolidPacker extends PzPacker {
         }
     }
 
+    private void startTimer() {
+        if (timer != null) timer.cancel();
+        timer = new Timer();
+        ptt = new CompTimerTask();
+        timer.scheduleAtFixedRate(ptt, 0, 1000 / Constants.GUI_UPDATES_PER_S);
+    }
+
+    private void stopTimer() {
+        if (timer != null) timer.cancel();
+    }
+
     protected long writeBody(String outFile,
                              OutputStream bos,
                              Deque<File> inputStreams,
@@ -125,9 +139,7 @@ public class PzSolidPacker extends PzPacker {
                              int bufferSize) throws Exception {
         String encMainName = outFile + ".enc";
 
-        Timer timer = new Timer();
-        CompTimerTask ctt = new CompTimerTask();
-        timer.scheduleAtFixedRate(ctt, 0, 1000 / Constants.GUI_UPDATES_PER_S);
+        startTimer();
 
         try {
             MultipleInputStream mis;
@@ -152,11 +164,12 @@ public class PzSolidPacker extends PzPacker {
                     }
                     if (bundle != null) step.setValue(bundle.getString("encrypting"));
 //                step.setValue(lanLoader.get(271));
-                    progress.set(1);
+                    progress.set(0);
                     percentage.setValue("0.0");
                     encipher.setParent(this, totalLength);
+                    ptt.setProcessor(encipher);
                     encipher.encrypt(bos);
-                    compressedLength += encipher.encryptedLength();
+                    compressedLength += encipher.getOutputSize();
                 }
             } else if (totalLength != 0) {
                 mis = new MultipleInputStream(inputStreams, this, false);
@@ -180,7 +193,7 @@ public class PzSolidPacker extends PzPacker {
                 mainCompressor.setPacker(this);
                 mainCompressor.setCompressionLevel(cmpLevel);
                 mainCompressor.setThreads(threads);
-                ctt.setCompressor(mainCompressor);
+                ptt.setProcessor(mainCompressor);
                 if (encryptLevel == 0) {
                     mainCompressor.compress(bos);
                 } else {
@@ -188,6 +201,9 @@ public class PzSolidPacker extends PzPacker {
                     mainCompressor.compress(encFos);
                     encFos.flush();
                     encFos.close();
+
+                    stopTimer();
+                    startTimer();
 
                     InputStream encMainIs;
                     Encipher encipher;
@@ -205,13 +221,15 @@ public class PzSolidPacker extends PzPacker {
                     }
                     if (bundle != null) step.setValue(bundle.getString("encrypting"));
                     file.setValue(outFile);
-                    progress.set(1);
+                    totalOrigLengthWrapper.set(mainCompressor.getOutputSize());
+                    progress.set(0);
                     percentage.setValue("0.0");
-                    encipher.setParent(this, mainCompressor.getCompressedSize());
+                    encipher.setParent(this, mainCompressor.getOutputSize());
+                    ptt.setProcessor(encipher);
                     encipher.encrypt(bos);
                     encMainIs.close();
                 }
-                compressedLength += mainCompressor.getCompressedSize();
+                compressedLength += mainCompressor.getOutputSize();
             } else {
                 mis = new MultipleInputStream();
             }
@@ -231,7 +249,7 @@ public class PzSolidPacker extends PzPacker {
             }
             return mis.getCrc32Checksum();
         } finally {
-            timer.cancel();
+            stopTimer();
         }
     }
 
@@ -327,13 +345,13 @@ public class PzSolidPacker extends PzPacker {
 
         private synchronized void update() {
             accumulator++;
-            if (compressor == null) return;
-            long position = compressor.getProcessedSize();
+            if (processor == null) return;
+            long position = processor.getInputSize();
             progress.set(position);
             if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {
                 updateTimer(position);
 
-                long cmpSize = compressor.getCompressedSize() + compressedLength;
+                long cmpSize = processor.getOutputSize() + compressedLength;
                 cmpLength.set(Util.sizeToReadable(cmpSize));
                 double cmpRatio = (double) cmpSize / position;
                 double roundedRatio = (double) Math.round(cmpRatio * 1000) / 10;

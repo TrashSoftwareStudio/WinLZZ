@@ -125,7 +125,7 @@ public class LZZ2Compressor extends RegularCompressor {
     }
 
     @Override
-    public long getProcessedSize() {
+    public long getInputSize() {
         return position;
     }
 
@@ -361,7 +361,7 @@ public class LZZ2Compressor extends RegularCompressor {
      * @return size after compressed.
      */
     @Override
-    public long getCompressedSize() {
+    public long getOutputSize() {
         return cmpSize;
     }
 

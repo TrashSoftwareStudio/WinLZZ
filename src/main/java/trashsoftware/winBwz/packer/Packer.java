@@ -3,6 +3,7 @@ package trashsoftware.winBwz.packer;
 import javafx.beans.property.*;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
+import trashsoftware.winBwz.core.ProgressedStream;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.utility.Util;
 
@@ -13,7 +14,7 @@ import java.util.TimerTask;
 
 public abstract class Packer {
 
-    public final ReadOnlyLongWrapper progress = new ReadOnlyLongWrapper();
+    protected final ReadOnlyLongWrapper progress = new ReadOnlyLongWrapper();
     public final ReadOnlyStringWrapper percentage = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper ratio = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper file = new ReadOnlyStringWrapper();
@@ -154,12 +155,12 @@ public abstract class Packer {
     }
 
     public abstract class PackTimerTask extends TimerTask {
-        protected Compressor compressor;
+        protected ProgressedStream processor;
         protected long lastUpdateProgress;
         protected int accumulator;
 
-        public synchronized void setCompressor(Compressor compressor) {
-            this.compressor = compressor;
+        public synchronized void setProcessor(ProgressedStream processor) {
+            this.processor = processor;
         }
 
         protected synchronized void updateTimer(long position) {

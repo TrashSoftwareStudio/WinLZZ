@@ -92,7 +92,7 @@ public class PzNsPacker extends PzPacker {
                         percentage.setValue("0.0");
                         encipher.setParent(this, fileLen);
                         encipher.encrypt(bos);
-                        long encLen = encipher.encryptedLength();
+                        long encLen = encipher.getOutputSize();
                         compressedPosLenCrc.add(new long[]{startPos, encLen, crc});
                         compressedLength += encLen;
                     }
@@ -117,10 +117,10 @@ public class PzNsPacker extends PzPacker {
                     mainCompressor.setPacker(this);
                     mainCompressor.setCompressionLevel(cmpLevel);
                     mainCompressor.setThreads(threads);
-                    ctt.setCompressor(mainCompressor);
+                    ctt.setProcessor(mainCompressor);
                     if (encryptLevel == 0) {
                         mainCompressor.compress(bos);
-                        long cmpLen = mainCompressor.getCompressedSize();
+                        long cmpLen = mainCompressor.getOutputSize();
                         compressedPosLenCrc.add(new long[]{startPos, cmpLen, crc});
                         compressedLength += cmpLen;
                     } else {
@@ -146,12 +146,12 @@ public class PzNsPacker extends PzPacker {
                         if (bundle != null) step.setValue(bundle.getString("encrypting"));
                         progress.set(0);
                         percentage.setValue("0.0");
-                        encipher.setParent(this, mainCompressor.getCompressedSize());
+                        encipher.setParent(this, mainCompressor.getOutputSize());
                         encipher.encrypt(bos);
                         encMainIs.close();
                         Util.deleteFile(encName);
 
-                        long encLen = encipher.encryptedLength();
+                        long encLen = encipher.getOutputSize();
                         compressedPosLenCrc.add(new long[]{startPos, encLen, crc});
                         compressedLength += encLen;
                     }
@@ -413,15 +413,15 @@ public class PzNsPacker extends PzPacker {
 
         private synchronized void update() {
             accumulator++;
-            if (compressor == null) return;
-            long secPos = compressor.getProcessedSize();
+            if (processor == null) return;
+            long secPos = processor.getInputSize();
             long position = secPos + totalLenOfProcessedFiles;
             progress.set(position);
             secondaryProgress.set(secPos);
             if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {
                 updateTimer(position);
 
-                long cmpSize = compressor.getCompressedSize() + compressedLength;
+                long cmpSize = processor.getOutputSize() + compressedLength;
                 cmpLength.set(Util.sizeToReadable(cmpSize));
                 double cmpRatio = (double) cmpSize / position;
                 double roundedRatio = (double) Math.round(cmpRatio * 1000) / 10;

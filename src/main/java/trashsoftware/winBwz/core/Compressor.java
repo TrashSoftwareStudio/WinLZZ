@@ -17,7 +17,7 @@ import java.io.OutputStream;
  * @see FastLzzCompressor
  * @since 0.5
  */
-public interface Compressor {
+public interface Compressor extends ProgressedStream {
 
     /**
      * Compresses the data into <code>out</code>.
@@ -49,22 +49,4 @@ public interface Compressor {
      * @param level the compression level.
      */
     void setCompressionLevel(int level);
-
-    /**
-     * Returns the file length after compression.
-     *
-     * This method should represent the real-time length.
-     *
-     * @return the file length after compression.
-     */
-    long getCompressedSize();
-
-    /**
-     * Returns the number of bytes has been processed.
-     *
-     * When the compression finished, this should be equal to the total original size.
-     *
-     * @return the number of bytes has been processed
-     */
-    long getProcessedSize();
 }

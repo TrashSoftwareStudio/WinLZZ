@@ -204,7 +204,7 @@ public class FastLzzCompressor implements Compressor {
     }
 
     @Override
-    public long getProcessedSize() {
+    public long getInputSize() {
         return processedLength;
     }
 
@@ -214,7 +214,7 @@ public class FastLzzCompressor implements Compressor {
      * @return size after compressed.
      */
     @Override
-    public long getCompressedSize() {
+    public long getOutputSize() {
         return cmpSize;
     }
 

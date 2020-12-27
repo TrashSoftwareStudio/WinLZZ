@@ -179,7 +179,7 @@ public class PzNsUnPacker extends PzUnPacker {
                 default:
                     throw new NoSuchAlgorithmException("No such algorithm");
             }
-            utt.setDeCompressor(deCompressor);
+            utt.setProcessor(deCompressor);
             OutputStream out = new FileOutputStream(outName);
             deCompressor.uncompress(out);
             out.flush();
@@ -404,8 +404,8 @@ public class PzNsUnPacker extends PzUnPacker {
 
         private synchronized void update() {
             accumulator++;
-            if (deCompressor == null) return;
-            long secPos = deCompressor.getUncompressedLength();
+            if (processor == null) return;
+            long secPos = processor.getOutputSize();
             long position = secPos + totalLenOfProcessedFiles;
             progress.set(position);
             secondaryProgress.set(secPos);

@@ -34,6 +34,9 @@ public class PzSolidUnPacker extends PzUnPacker {
      */
     protected PzSolidCatalogNode rootNode;
 
+    private Timer timer;
+    private UnpTimerTask utt;
+
     /**
      * Creates a new UnPacker instance, with <code>packName</code> as the input archive name.
      *
@@ -211,7 +214,7 @@ public class PzSolidUnPacker extends PzUnPacker {
         }
     }
 
-    private void unCompressMainPureBWZ(UnpTimerTask utt) throws Exception {
+    private void unCompressMainPureBWZ() throws Exception {
         String name;
         long startPos;
         if (isSeparated) {
@@ -236,7 +239,7 @@ public class PzSolidUnPacker extends PzUnPacker {
         BWZDeCompressor mainDec = new BWZDeCompressor(name, windowSize, startPos);
         mainDec.setUnPacker(this);
         mainDec.setThreads(threadNumber);
-        utt.setDeCompressor(mainDec);
+        utt.setProcessor(mainDec);
         FileOutputStream mainFos = new FileOutputStream(tempName);
         try {
             mainDec.uncompress(mainFos);
@@ -265,10 +268,19 @@ public class PzSolidUnPacker extends PzUnPacker {
         Util.fileTruncate(bis, combineName, 8192, cmpMainLength);
     }
 
-    private void unCompressMain() throws Exception {
-        UnpTimerTask utt = new DeCompTimerTask();
-        Timer timer = new Timer();
+    private void startTimer() {
+        if (timer != null) timer.cancel();
+        utt = new DeCompTimerTask();
+        timer = new Timer();
         timer.scheduleAtFixedRate(utt, 0, 1000 / Constants.GUI_UPDATES_PER_S);
+    }
+
+    private void stopTimer() {
+        if (timer != null) timer.cancel();
+    }
+
+    private void unCompressMain() throws Exception {
+        startTimer();
 
         try {
             if (origSize == 0) {
@@ -276,7 +288,6 @@ public class PzSolidUnPacker extends PzUnPacker {
                 if (!f.createNewFile()) System.out.println("Creation failed");
             } else if (!isUnCompressed()) {
                 if (encryptLevel != 0) {
-                    step.setValue(bundle.getString("decrypting"));
                     Decipher decipher;
                     FileOutputStream fos = new FileOutputStream(cmpTempName);
                     switch (encryption) {
@@ -290,11 +301,16 @@ public class PzSolidUnPacker extends PzUnPacker {
                             throw new NoSuchAlgorithmException("No such algorithm");
                     }
                     decipher.setParent(this);
+                    step.setValue(bundle.getString("decrypting"));
+                    totalProgress.set(cmpMainLength);
+                    utt.setProcessor(decipher);
                     decipher.decrypt(fos);
+                    stopTimer();
+                    startTimer();
                     fos.flush();
                     fos.close();
                 } else if (windowSize != 0 && alg.equals("bwz")) {
-                    unCompressMainPureBWZ(utt);
+                    unCompressMainPureBWZ();
                     return;
                 } else {
                     try {
@@ -310,12 +326,13 @@ public class PzSolidUnPacker extends PzUnPacker {
                 } else {
                     if (isTest) step.setValue(bundle.getString("testing"));
                     else step.setValue(bundle.getString("uncIng"));
+                    totalProgress.set(origSize);
 
                     DeCompressor mainDec;
                     mainDec = getDeCompressor(cmpTempName, windowSize);
                     mainDec.setUnPacker(this);
                     mainDec.setThreads(threadNumber);
-                    utt.setDeCompressor(mainDec);
+                    utt.setProcessor(mainDec);
                     FileOutputStream mainFos = new FileOutputStream(tempName);
                     try {
                         mainDec.uncompress(mainFos);
@@ -330,7 +347,7 @@ public class PzSolidUnPacker extends PzUnPacker {
                 }
             }
         } finally {
-            timer.cancel();
+            stopTimer();
         }
     }
 
@@ -342,13 +359,11 @@ public class PzSolidUnPacker extends PzUnPacker {
 
         private synchronized void update() {
             accumulator++;
-            if (deCompressor == null) return;
-            long position = deCompressor.getUncompressedLength();
+            if (processor == null) return;
+            long position = processor.getOutputSize();
             progress.set(position);
             if (accumulator % Constants.GUI_UPDATES_PER_S == 0) {
                 updateTimer(position);
-
-
             }
         }
     }

@@ -6,6 +6,7 @@ import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.DeCompressor;
+import trashsoftware.winBwz.core.ProgressedStream;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.IOException;
@@ -138,12 +139,12 @@ public abstract class UnPacker {
     }
 
     public abstract class UnpTimerTask extends TimerTask {
-        protected DeCompressor deCompressor;
+        protected ProgressedStream processor;
         protected long lastUpdateProgress;
         protected int accumulator;
 
-        public synchronized void setDeCompressor(DeCompressor deCompressor) {
-            this.deCompressor = deCompressor;
+        public synchronized void setProcessor(ProgressedStream processor) {
+            this.processor = processor;
         }
 
         protected synchronized void updateTimer(long position) {

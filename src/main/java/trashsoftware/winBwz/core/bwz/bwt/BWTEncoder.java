@@ -18,7 +18,7 @@ public class BWTEncoder {
     /**
      * Original text for encoding.
      */
-    private int[] text;
+    private final int[] text;
 
     /**
      * The index of the row0 in the text after transformation, where row0 is the first row of the original text.
@@ -30,9 +30,9 @@ public class BWTEncoder {
      * <p>
      * {@code true} for dc3 algorithm, {@code false} for doubling algorithm.
      */
-    private boolean isDc3;
+    private final boolean isDc3;
 
-    private int threadId;
+    private final int threadId;
 
     /**
      * Creates a new {@code BWTEncoder} instance.

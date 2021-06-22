@@ -168,8 +168,7 @@ public class TableFileView extends FileView {
                                                          Boolean isNowHovered) -> {
                                 if (isNowHovered && !isEmpty()) {
                                     String sizeInByte = getItem().getSizeInByte(bundle);
-                                    Tooltip tp = new Tooltip();
-                                    tp.setText(sizeInByte);
+                                    Tooltip tp = new Tooltip(sizeInByte);
                                     table.setTooltip(tp);
                                 } else {
                                     table.setTooltip(null);

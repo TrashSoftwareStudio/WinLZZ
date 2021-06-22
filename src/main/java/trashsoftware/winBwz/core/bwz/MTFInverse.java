@@ -12,7 +12,7 @@ import trashsoftware.winBwz.core.bwz.util.SplitLinkedList;
  */
 public class MTFInverse {
 
-    private int[] text;
+    private final int[] text;
 
     /**
      * Creates a new instance of {@code MTFInverse}.

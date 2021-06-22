@@ -9,11 +9,12 @@ package trashsoftware.winBwz.core.bwz;
  */
 public class SuffixArrayDoubling {
 
-    private int[] text;
-    private int n;
-    private int[] sa, t, t2, c;
-
-//    private static int[][] saArray, tArray, t2Array, cArray;
+    private final int[] text;
+    private final int n;
+    private final int[] sa;
+    private final int[] t;
+    private final int[] t2;
+    private final int[] c;
 
     /**
      * Creates a new instance of {@code SuffixArrayDoubling}.
@@ -31,48 +32,6 @@ public class SuffixArrayDoubling {
         t2 = new int[max_n];
         c = new int[max_n];
     }
-
-//    public static void allocateArrays(int maxTextLen, int maxThreads) {
-//        saArray = new int[maxThreads][];
-//        tArray = new int[maxThreads][];
-//        t2Array = new int[maxThreads][];
-//        cArray = new int[maxThreads][];
-//
-////        System.out.println("allocated!");
-//
-//        int n = getN(maxTextLen);
-//        int maxN = n + 65536;
-//
-//        for (int i = 0; i < maxThreads; ++i) {
-//            saArray[i] = new int[n];
-//            tArray[i] = new int[maxN];
-//            t2Array[i] = new int[maxN];
-//            cArray[i] = new int[maxN];
-//        }
-//    }
-//
-//    public static void allocateArraysIfNot(int maxTextLen, int maxThreads) {
-//        if (saArray == null     // not allocated
-//                || saArray.length != maxThreads      // previous threads usage not equal to this
-//                || saArray[0].length != getN(maxTextLen))     // previous max block length not equal to this
-//            allocateArrays(maxTextLen, maxThreads);
-//    }
-//
-//    private static int getN(int maxTextLen) {
-//        return maxTextLen + 1;
-//    }
-//
-//    private void initArrays(int threadId) {
-//        sa = saArray[threadId];
-//        t = tArray[threadId];
-//        t2 = t2Array[threadId];
-//        c = cArray[threadId];
-//
-//        Arrays.fill(sa, 0);
-//        Arrays.fill(t, 0);
-//        Arrays.fill(t2, 0);
-//        Arrays.fill(c, 0);
-//    }
 
     /**
      * Build suffix array using doubling algorithm.

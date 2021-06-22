@@ -12,7 +12,7 @@ import trashsoftware.winBwz.core.bwz.util.BWZUtil;
  */
 public class MTFTransform {
 
-    private int[] origText;
+    private final int[] origText;
 
     /**
      * Creates a new {@code MTFTransform} instance.
@@ -60,7 +60,7 @@ public class MTFTransform {
 
 class ArrayDictionary {
 
-    private int[] array;
+    private final int[] array;
 
     ArrayDictionary(int alphabetSize) {
         array = new int[alphabetSize];

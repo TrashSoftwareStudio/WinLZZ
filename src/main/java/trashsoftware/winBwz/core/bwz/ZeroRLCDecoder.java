@@ -12,8 +12,8 @@ import trashsoftware.winBwz.core.bwz.util.BWZUtil;
  */
 public class ZeroRLCDecoder {
 
-    private int[] text;
-    private int maxBlockLength;
+    private final int[] text;
+    private final int maxBlockLength;
 
     /**
      * Creates a new {@code ZeroRLCDecoder} instance.

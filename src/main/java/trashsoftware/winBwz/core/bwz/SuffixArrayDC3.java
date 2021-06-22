@@ -7,12 +7,12 @@ package trashsoftware.winBwz.core.bwz;
  */
 public class SuffixArrayDC3 {
 
-    private int[] wa;
-    private int[] wb;
-    private int[] ws;
-    private int[] wv;
-    private int[] sa;
-    private int n;
+    private final int[] wa;
+    private final int[] wb;
+    private final int[] ws;
+    private final int[] wv;
+    private final int[] sa;
+    private final int n;
 
     /**
      * Creates a new instance of {@code SuffixArrayDC3}.
@@ -116,12 +116,12 @@ class ArrayWrapper {
     /**
      * The common integer array.
      */
-    private int[] array;
+    private final int[] array;
 
     /**
      * The position where the indexing starts in this {@code ArrayWrapper}.
      */
-    private int offset;
+    private final int offset;
 
     /**
      * Creates a new {@code ArrayWrapper} instance.

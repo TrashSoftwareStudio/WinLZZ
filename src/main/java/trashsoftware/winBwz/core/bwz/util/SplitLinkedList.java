@@ -10,7 +10,7 @@ import java.util.LinkedList;
  */
 public class SplitLinkedList {
 
-    private ShortLinkedList[] lists = new ShortLinkedList[16];
+    private final ShortLinkedList[] lists = new ShortLinkedList[16];
 
     private short front;
 

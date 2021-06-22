@@ -9,6 +9,7 @@ import javafx.scene.paint.Color;
 import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 import trashsoftware.winBwz.packer.pz.PzUnPacker;
+import trashsoftware.winBwz.packer.pzNonSolid.PzNsUnPacker;
 import trashsoftware.winBwz.packer.zip.ZipUnPacker;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
@@ -86,6 +87,7 @@ public class FileInfoUI implements Initializable {
         PzUnPacker pzUnPacker = (PzUnPacker) unPacker;
 
         String prefix = unPacker.isSeparated() ? bundle.getString("multiSection") + " " : "";
+        prefix += (unPacker instanceof PzNsUnPacker) ? bundle.getString("nonSolid") + " ": "";
         typeLabel.setText(prefix + "WinLZZ " + bundle.getString("archive"));
 
         String alg;

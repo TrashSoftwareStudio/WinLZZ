@@ -15,8 +15,8 @@ import java.util.ArrayDeque;
  */
 public class BWTDecoder {
 
-    private int[] cmpText;
-    private int origIndex;
+    private final int[] cmpText;
+    private final int origIndex;
 
     private static long timeAcc = 0;
 

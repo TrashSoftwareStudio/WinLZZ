@@ -1,7 +1,5 @@
 package trashsoftware.winBwz.core.bwz;
 
-import trashsoftware.winBwz.core.bwz.util.SplitLinkedList;
-
 /**
  * The inverse transformer of Move-To-Front transformation.
  * <p>
@@ -46,22 +44,5 @@ public class MTFInverse {
         }
         return result;
     }
-
-    /**
-     * Returns the text after the inverse transform.
-     * <p>
-     * This method uses {@code SplitLinkedList} as the dictionary, which takes O(sqrt(n)) to access and
-     * O(sqrt(n)) to move.
-     *
-     * @return the text after the inverse transform.
-     */
-    @Deprecated
-    int[] decode2() {
-        SplitLinkedList sll = new SplitLinkedList();
-        int[] result = new int[text.length];
-        int index = 0;
-        for (int i : text) result[index++] = sll.getAndMove(i);
-        return result;
-    }
-
+    
 }

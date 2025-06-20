@@ -1,91 +1,95 @@
 package trashsoftware.winBwz.rangeCodec;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Arrays;
 
 public class RangeEncoder {
+    private OutputStream out;
 
-    private byte[] input;
-    private int alphabetSize;
-    private int[] freqTable;
-    private final static long totalWidth = 100000;
-    private final static long minimumRange = 1000;
-    private long range = totalWidth;
+    // 32-bit range: low and high define the current coding interval [low, high)
     private long low = 0;
-    private long[] rangeStarts;
-    private long[] rangeWidths;
+    private long high = RangeCodingConstants.MASK_RANGE;
 
-    public RangeEncoder(byte[] input, int alphabetSize) {
-        this.input = input;
-        this.alphabetSize = alphabetSize;
-        freqTable = new int[alphabetSize + 1];  // endSig
-        rangeStarts = new long[alphabetSize + 1];
-        rangeWidths = new long[alphabetSize + 1];
+    // Number of pending underflow bytes (used when low and high converge slowly)
+    private int pending = 0;
+
+    public RangeEncoder(OutputStream out) {
+        this.out = out;
     }
 
-    private void calculateFreq() {
-        for (byte b : input) {
-            freqTable[b & 0xff] += 1;
-        }
-        freqTable[alphabetSize] = 1;  // endSig
-    }
+    public void encodeSymbol(int symbol, FrequencyTable freq) throws IOException {
+        long range = high - low + 1;
+        int total = freq.getTotal();
+        int symLow = freq.getSymbolLow(symbol);
+        int symHigh = freq.getSymbolHigh(symbol);
 
-    private void calculateRange() {
-        int inputLen = input.length + 1;
-        long current = 0;
-        for (int i = 0; i < alphabetSize + 1; ++i) {
-            double ratio = (double) freqTable[i] / inputLen;
-            long width = (long) (ratio * totalWidth);
-            rangeStarts[i] = current;
-            rangeWidths[i] = width;
-            current += width;
-        }
-    }
+        // Safe: MAX_FREQ and MAX_RANGE ensure this product won’t overflow
+        long offsetLow = range * symLow / total;
+        long offsetHigh = range * symHigh / total;
 
-    private void emit() {
-        System.out.println(low / 10000);
-        low = (low % 10000) * 10;
-        range *= 10;
-    }
+        long newLow = low + offsetLow;
+        long newHigh = low + offsetHigh - 1;
 
-    private void encode() {
-        byte[] out = new byte[input.length + 1];
-        int outIndex = 0;
-        for (int i = 0; i < input.length; ++i) {
-            int in = input[i] & 0xff;
-            long symbolBegin = rangeStarts[in];
-            long symbolWidth = rangeWidths[in];
-            long newRange = range * symbolWidth / totalWidth;
-            long lowInRange = symbolBegin * range / totalWidth;
-            low += lowInRange;
-            range = newRange;
+        if (newHigh < newLow) newHigh = newLow;
 
-            System.out.println(low + " " + (range + low));
-            while (low / 10000 != (range + low) / 10000) {  // 第一位不一样了
-                System.out.println(low / 10000);
-                low = (low % 10000) * 10;
-                range *= 10;
+        low = newLow & RangeCodingConstants.MASK_RANGE;
+        high = newHigh & RangeCodingConstants.MASK_RANGE;
+
+        // Flush stable top byte (39-bit range → top 8 bits in bits 31–38)
+        while ((low >>> (RangeCodingConstants.RANGE_BITS - 8)) ==
+                (high >>> (RangeCodingConstants.RANGE_BITS - 8))) {
+            int topByte = (int)(high >>> (RangeCodingConstants.RANGE_BITS - 8));
+            out.write(topByte);
+
+            while (pending-- > 0) {
+                out.write(topByte ^ 0xFF);
             }
 
-//            if (range < minimumRange) {
-//                range = totalWidth - low;
-//            }
+            low = (low << 8) & RangeCodingConstants.MASK_RANGE;
+            high = ((high << 8) | 0xFF) & RangeCodingConstants.MASK_RANGE;
         }
-
-
     }
 
-    public void compress() {
-        calculateFreq();
-        calculateRange();
-        System.out.println(Arrays.toString(freqTable));
-        System.out.println(Arrays.toString(rangeStarts));
-        System.out.println(Arrays.toString(rangeWidths));
-        encode();
+    public void finish() throws IOException {
+        for (int i = 0; i < (RangeCodingConstants.RANGE_BITS + 7) / 8; i++) {
+            out.write((int)(low >>> (RangeCodingConstants.RANGE_BITS - 8)));
+            low = (low << 8) & RangeCodingConstants.MASK_RANGE;
+        }
     }
 
-    public static void main(String[] args) {
-        byte[] text = {0, 0, 1, 0};
-        RangeEncoder re = new RangeEncoder(text, 2);
-        re.compress();
+    public static void main(String[] args) throws IOException {
+        ByteArrayOutputStream cmpOut = new ByteArrayOutputStream();
+
+        byte[] data = "Missouri river flows into Mississippi river.".getBytes();
+
+        FrequencyTable freq = new FrequencyTable(257, data);
+        RangeEncoder encoder = new RangeEncoder(cmpOut);
+        for (byte b : data) {
+            encoder.encodeSymbol(b & 0xFF, freq);
+        }
+        encoder.encodeSymbol(256, freq);  // EOF
+        encoder.finish();
+
+        byte[] compressed = cmpOut.toByteArray();
+
+        System.out.println(freq);
+        System.out.println(Arrays.toString(compressed));
+
+        System.out.println(data.length + " " + compressed.length);
+
+        ByteArrayInputStream bis = new ByteArrayInputStream(compressed);
+        ByteArrayOutputStream decOut = new ByteArrayOutputStream();
+        RangeDecoder decoder = new RangeDecoder(bis);
+        decoder.initialize();
+        while (true) {
+            int sym = decoder.decodeSymbol(freq);
+            if (sym == 256) break;  // EOF marker
+            decOut.write(sym);
+        }
+        String dec = decOut.toString();
+        System.out.println(dec);
     }
 }

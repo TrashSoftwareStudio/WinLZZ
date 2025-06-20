@@ -49,7 +49,7 @@ public class BWTDecoder {
      * Inverses the BWT.
      * <p>
      * Algorithm found in:
-     * https://www.geeksforgeeks.org/inverting-burrows-wheeler-transform/
+     * <a href="https://www.geeksforgeeks.org/inverting-burrows-wheeler-transform/">...</a>
      *
      * @return The original text.
      */
@@ -160,18 +160,17 @@ public class BWTDecoder {
         }
         return lf;
     }
-}
-
-
-/**
- * An {@code ArrayDeque} that holds {@code Integer} as elements.
- */
-class IntegerLinkedList extends ArrayDeque<Integer> {
 
     /**
-     * Creates a new {@code IntegerLinkedList} instance.
+     * An {@code ArrayDeque} that holds {@code Integer} as elements.
      */
-    IntegerLinkedList() {
-        super();
+    static class IntegerLinkedList extends ArrayDeque<Integer> {
+
+        /**
+         * Creates a new {@code IntegerLinkedList} instance.
+         */
+        IntegerLinkedList() {
+            super();
+        }
     }
 }

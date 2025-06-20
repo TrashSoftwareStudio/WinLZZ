@@ -348,7 +348,7 @@ public class BWZCompressor implements Compressor {
             long t2 = System.currentTimeMillis();
             bwtTime += t2 - t1;
 
-            pos += partSize * 0.8;
+            pos += (long) (partSize * 0.8);
 
             MTFTransform mtf = new MTFTransform(bwtResult);
             int[] array = mtf.Transform(257);  // Also contains RLC Result.
@@ -383,7 +383,7 @@ public class BWZCompressor implements Compressor {
                 hufBlocksCount++;
             }
 
-            pos += partSize * 0.2;  // Update progress again
+            pos += (long) (partSize * 0.2);  // Update progress again
 
             hufTime += System.currentTimeMillis() - t3;
         }
@@ -476,29 +476,5 @@ public class BWZCompressor implements Compressor {
                 packer.setError("Out of memory", 1);
             }
         }
-    }
-}
-
-class TimerHelper {
-    static void updateBwzProgress(long pos,
-                                  long totalOrigSize,
-                                  ReadOnlyStringWrapper percentage,
-                                  ReadOnlyStringWrapper ratio,
-                                  long ratio2,
-                                  ReadOnlyStringWrapper timeExpected,
-                                  ReadOnlyStringWrapper passedLength) {
-
-        double finished = (double) pos / totalOrigSize;
-        double rounded = (double) Math.round(finished * 1000) / 10;
-        percentage.set(String.valueOf(rounded));
-
-        ratio.set(String.valueOf(ratio2));
-
-        if (ratio2 != 0) {
-            long expectTime = (totalOrigSize - pos) / ratio2 / 1024;
-            timeExpected.set(Util.secondToString(expectTime));
-        }
-
-        passedLength.set(Util.sizeToReadable(pos));
     }
 }

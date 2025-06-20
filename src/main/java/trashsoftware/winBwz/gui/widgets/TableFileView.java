@@ -98,9 +98,12 @@ public class TableFileView extends FileView {
         } else {
             ArrayList<RegularFileNode> nonDirectories = new ArrayList<>();
             File directory = new File(parentPage.getCurrentDir());  // TODO: check existence
-            for (File f : Objects.requireNonNull(directory.listFiles())) {
-                if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, bundle));
-                else nonDirectories.add(new RegularFileNode(f, bundle));
+            File[] fList = directory.listFiles();
+            if (fList != null) {
+                for (File f : fList) {
+                    if (f.isDirectory()) table.getItems().add(new RegularFileNode(f, bundle));
+                    else nonDirectories.add(new RegularFileNode(f, bundle));
+                }
             }
             table.getItems().addAll(nonDirectories);
         }

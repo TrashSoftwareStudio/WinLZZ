@@ -56,32 +56,32 @@ public class MTFTransform {
         System.arraycopy(result, 0, rtn, 0, index);
         return rtn;
     }
-}
+    
+    static class ArrayDictionary {
 
-class ArrayDictionary {
+        private final int[] array;
 
-    private final int[] array;
-
-    ArrayDictionary(int alphabetSize) {
-        array = new int[alphabetSize];
-        for (int i = 0; i < alphabetSize; ++i) {
-            array[i] = i;
-        }
-    }
-
-    int findAndMove(int value) {
-        if (array[0] == value) return 0;
-        int loopSize = array.length;
-        int last = array[0];
-        for (int i = 1; i < loopSize; ++i) {
-            int v = array[i];
-            array[i] = last;
-            last = v;
-            if (v == value) {
-                array[0] = v;
-                return i;
+        ArrayDictionary(int alphabetSize) {
+            array = new int[alphabetSize];
+            for (int i = 0; i < alphabetSize; ++i) {
+                array[i] = i;
             }
         }
-        throw new RuntimeException("Cannot find symbol");
+
+        int findAndMove(int value) {
+            if (array[0] == value) return 0;
+            int loopSize = array.length;
+            int last = array[0];
+            for (int i = 1; i < loopSize; ++i) {
+                int v = array[i];
+                array[i] = last;
+                last = v;
+                if (v == value) {
+                    array[0] = v;
+                    return i;
+                }
+            }
+            throw new RuntimeException("Cannot find symbol");
+        }
     }
 }

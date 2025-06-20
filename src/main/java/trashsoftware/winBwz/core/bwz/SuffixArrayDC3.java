@@ -102,67 +102,66 @@ public class SuffixArrayDC3 {
         for (; i < ta; p++) sa.set(p, wa[i++]);
         for (; j < tbc; p++) sa.set(p, wb[j++]);
     }
-}
-
-
-/**
- * Wrapper for an integer array, used to simulate the array pointer operations in C/C++.
- *
- * @author zbh
- * @since 0.7.3
- */
-class ArrayWrapper {
 
     /**
-     * The common integer array.
-     */
-    private final int[] array;
-
-    /**
-     * The position where the indexing starts in this {@code ArrayWrapper}.
-     */
-    private final int offset;
-
-    /**
-     * Creates a new {@code ArrayWrapper} instance.
+     * Wrapper for an integer array, used to simulate the array pointer operations in C/C++.
      *
-     * @param array  the array
-     * @param offset the index where to count as {@code 0}
+     * @author zbh
+     * @since 0.7.3
      */
-    ArrayWrapper(int[] array, int offset) {
-        this.array = array;
-        this.offset = offset;
-    }
+    static class ArrayWrapper {
 
-    /**
-     * Returns the value stored in <code>index</code> of this {@code ArrayWrapper}.
-     *
-     * @param index the index
-     * @return the value at <code>index</code> of this {@code ArrayWrapper}
-     */
-    int get(int index) {
-        return array[offset + index];
-    }
+        /**
+         * The common integer array.
+         */
+        private final int[] array;
 
-    /**
-     * Sets the value at position <code>index</code> to <code>value</code>.
-     *
-     * @param index the position in this {@code ArrayWrapper}
-     * @param value the value to be set
-     */
-    void set(int index, int value) {
-        array[offset + index] = value;
-    }
+        /**
+         * The position where the indexing starts in this {@code ArrayWrapper}.
+         */
+        private final int offset;
 
-    /**
-     * Creates a new instance of {@code ArrayWrapper}, which shares a same integer array with
-     * this {@code ArrayWrapper}, but indices starts at <code>offset</code> plus the offset of
-     * this {@code ArrayWrapper}.
-     *
-     * @param offset the further offset of the new instance
-     * @return a new new instance of {@code ArrayWrapper}
-     */
-    ArrayWrapper createNew(int offset) {
-        return new ArrayWrapper(array, offset + this.offset);
+        /**
+         * Creates a new {@code ArrayWrapper} instance.
+         *
+         * @param array  the array
+         * @param offset the index where to count as {@code 0}
+         */
+        ArrayWrapper(int[] array, int offset) {
+            this.array = array;
+            this.offset = offset;
+        }
+
+        /**
+         * Returns the value stored in <code>index</code> of this {@code ArrayWrapper}.
+         *
+         * @param index the index
+         * @return the value at <code>index</code> of this {@code ArrayWrapper}
+         */
+        int get(int index) {
+            return array[offset + index];
+        }
+
+        /**
+         * Sets the value at position <code>index</code> to <code>value</code>.
+         *
+         * @param index the position in this {@code ArrayWrapper}
+         * @param value the value to be set
+         */
+        void set(int index, int value) {
+            array[offset + index] = value;
+        }
+
+        /**
+         * Creates a new instance of {@code ArrayWrapper}, which shares a same integer array with
+         * this {@code ArrayWrapper}, but indices starts at <code>offset</code> plus the offset of
+         * this {@code ArrayWrapper}.
+         *
+         * @param offset the further offset of the new instance
+         * @return a new instance of {@code ArrayWrapper}
+         */
+        ArrayWrapper createNew(int offset) {
+            return new ArrayWrapper(array, offset + this.offset);
+        }
     }
 }

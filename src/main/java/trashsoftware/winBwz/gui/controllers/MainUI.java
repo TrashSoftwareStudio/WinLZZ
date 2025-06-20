@@ -128,16 +128,19 @@ public class MainUI implements Initializable {
         rootTree.getRoot().setExpanded(true);
 
         List<String> lastOpenedDirs = LoaderManager.getCacheSaver().getOpeningDirs();
+        int lastTabIndex = LoaderManager.getCacheSaver().readInt("tabPaneIndex", 0);
+        if (lastOpenedDirs.isEmpty()) {
+            String defaultPath = System.getProperty("user.dir");
+            lastOpenedDirs.add(defaultPath);
+        }
         for (String dir : lastOpenedDirs) {
             createTabByPath(dir, false);
         }
-        int lastTabIndex = LoaderManager.getCacheSaver().readInt("tabPaneIndex", 0);
-        if (!lastOpenedDirs.isEmpty()) {
-            try {
-                expandTill(lastOpenedDirs.get(lastTabIndex));
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
+        
+        try {
+            expandTill(lastOpenedDirs.get(lastTabIndex));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
 
         setTabPaneListener();

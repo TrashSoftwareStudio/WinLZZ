@@ -3,6 +3,7 @@ package trashsoftware.winBwz.utility;
 import trashsoftware.winBwz.gui.GUIClient;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -40,7 +41,8 @@ public abstract class Util {
     public static void deleteFile(File file) {
         if (file != null)
             if (file.exists())
-                if (!file.delete()) System.out.println("Deletion Failed: " + file.getAbsolutePath());
+                if (!file.delete())
+                    System.out.println("Deletion Failed: " + file.getAbsolutePath());
     }
 
     /**
@@ -70,7 +72,8 @@ public abstract class Util {
         if (file.exists()) {
             if (file.isDirectory()) {
                 File[] children = file.listFiles();
-                for (File f : Objects.requireNonNull(children)) if (!recursiveDelete(f)) suc = false;
+                for (File f : Objects.requireNonNull(children))
+                    if (!recursiveDelete(f)) suc = false;
             }
             if (!file.delete()) suc = false;
         } else {
@@ -436,9 +439,11 @@ public abstract class Util {
      * @return the readable {@code String}
      */
     public static String sizeToReadable(long size, ResourceBundle bundle) {
-        if (size < Math.pow(2, 10)) return numToReadable2Decimal((int) size) + " " + bundle.getString("byte");
+        if (size < Math.pow(2, 10))
+            return numToReadable2Decimal((int) size) + " " + bundle.getString("byte");
         else if (size < Math.pow(2, 20)) return numToReadable2Decimal((double) size / 1024) + " KB";
-        else if (size < Math.pow(2, 30)) return numToReadable2Decimal((double) size / 1048576) + " MB";
+        else if (size < Math.pow(2, 30))
+            return numToReadable2Decimal((double) size / 1048576) + " MB";
         else return numToReadable2Decimal((double) size / 1073741824) + "GB";
     }
 
@@ -555,7 +560,7 @@ public abstract class Util {
                 break;
         }
 
-        InputStream fis = new FileInputStream(file);
+        InputStream fis = Files.newInputStream(file.toPath());
         BufferedReader br = new BufferedReader(new InputStreamReader(fis, code));
         StringBuilder builder = new StringBuilder();
         String line;
@@ -563,6 +568,24 @@ public abstract class Util {
         br.close();
 
         return builder.toString();
+    }
+
+    /**
+     * Reads a file into a byte array, max size 2GB.
+     *
+     * @param file the file to be read
+     * @return the file content
+     */
+    public static byte[] readFileToArray(File file) throws IOException {
+        try (BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(file.toPath()))) {
+            byte[] buf = new byte[DEFAULT_BUFFER];
+            int read;
+            ByteArrayOutputStream bao1 = new ByteArrayOutputStream();
+            while ((read = bis.read(buf)) > 0) {
+                bao1.write(buf, 0, read);
+            }
+            return bao1.toByteArray();
+        }
     }
 
     /**

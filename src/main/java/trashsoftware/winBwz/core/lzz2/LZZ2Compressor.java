@@ -13,6 +13,8 @@ import trashsoftware.winBwz.utility.FileInputBufferArray;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * LZZ2 (Lempel-Ziv-ZBH 2) compressor, implements {@code Compressor} interface.
@@ -64,7 +66,7 @@ public class LZZ2Compressor extends RegularCompressor {
         this.bufferMaxSize = bufferSize + MINIMUM_MATCH_LEN + 1;
         this.dictSize = windowSize - bufferMaxSize - 1;
 
-        this.sis = new FileInputStream(inFile);
+        this.sis = Files.newInputStream(Paths.get(inFile));
         setTempNames(inFile);
     }
 
@@ -184,10 +186,10 @@ public class LZZ2Compressor extends RegularCompressor {
         int lastDisIndex = 0;
         int lastLength = -1;
 
-        BufferedOutputStream mainFos = new BufferedOutputStream(new FileOutputStream(mainTempName));
-        BufferedOutputStream disFos = new BufferedOutputStream(new FileOutputStream(disHeadTempName));
+        BufferedOutputStream mainFos = new BufferedOutputStream(Files.newOutputStream(Paths.get(mainTempName)));
+        BufferedOutputStream disFos = new BufferedOutputStream(Files.newOutputStream(Paths.get(disHeadTempName)));
         FileBitOutputStream dlbFos = new FileBitOutputStream(
-                new BufferedOutputStream(new FileOutputStream(dlBodyTempName)));
+                new BufferedOutputStream(Files.newOutputStream(Paths.get(dlBodyTempName))));
 
         while (true) {
 

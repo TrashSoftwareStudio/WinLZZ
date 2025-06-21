@@ -1,6 +1,7 @@
 package trashsoftware.winBwz.packer.zip;
 
 import trashsoftware.winBwz.core.Constants;
+import trashsoftware.winBwz.core.options.AlgOptions;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.packer.Packer;
 import trashsoftware.winBwz.utility.LengthOutputStream;
@@ -83,7 +84,7 @@ public class ZipPacker extends Packer {
     }
 
     @Override
-    public void pack(String outFileName, int windowSize, int bufferSize) throws Exception {
+    public void pack(String outFileName, AlgOptions algOptions) throws Exception {
         if (interrupted) return;
         timeOffset = System.currentTimeMillis() - startTime;
         Timer timer = new Timer();

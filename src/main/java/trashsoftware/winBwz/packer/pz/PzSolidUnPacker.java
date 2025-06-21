@@ -3,6 +3,7 @@ package trashsoftware.winBwz.packer.pz;
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.core.bwz.BWZDeCompressor;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.encrypters.Decipher;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamDecoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileDecoder;
@@ -236,7 +237,7 @@ public class PzSolidUnPacker extends PzUnPacker {
         if (isTest) step.setValue(bundle.getString("testing"));
         else step.setValue(bundle.getString("uncIng"));
 
-        BWZDeCompressor mainDec = new BWZDeCompressor(name, windowSize, startPos);
+        BWZDeCompressor mainDec = new BWZDeCompressor(name, startPos, (BWZOptions) algOptions);
         mainDec.setUnPacker(this);
         mainDec.setThreads(threadNumber);
         utt.setProcessor(mainDec);
@@ -329,7 +330,7 @@ public class PzSolidUnPacker extends PzUnPacker {
                     totalProgress.set(origSize);
 
                     DeCompressor mainDec;
-                    mainDec = getDeCompressor(cmpTempName, windowSize);
+                    mainDec = getDeCompressor(cmpTempName, algOptions);
                     mainDec.setUnPacker(this);
                     mainDec.setThreads(threadNumber);
                     utt.setProcessor(mainDec);

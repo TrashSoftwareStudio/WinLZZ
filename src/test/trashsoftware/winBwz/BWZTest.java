@@ -2,6 +2,7 @@ package trashsoftware.winBwz;
 
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.core.bwz.BWZDeCompressor;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.utility.Security;
 import trashsoftware.winBwz.utility.Util;
 
@@ -25,7 +26,7 @@ public class BWZTest {
         long start = System.currentTimeMillis();
 
         BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(cmpName));
-        BWZCompressor bwz = new BWZCompressor(name, ws);
+        BWZCompressor bwz = new BWZCompressor(name, BWZOptions.newDefault(ws));
         bwz.compress(bos);
         bos.flush();
         bos.close();
@@ -35,7 +36,7 @@ public class BWZTest {
         System.out.println("Compression time: " + (mid - start) + " ms");
 
         String cpyName = Util.getOriginalCopyName(cmpName);
-        BWZDeCompressor d = new BWZDeCompressor(cmpName, ws, 0);
+        BWZDeCompressor d = new BWZDeCompressor(cmpName, 0, BWZOptions.newDefault(ws));
         FileOutputStream bos2 = new FileOutputStream(cpyName);
         d.uncompress(bos2);
         bos.close();

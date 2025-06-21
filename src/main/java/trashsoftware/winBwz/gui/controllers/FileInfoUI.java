@@ -6,7 +6,10 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
+import trashsoftware.winBwz.core.options.AlgOptions;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.packer.UnPacker;
+import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 import trashsoftware.winBwz.packer.pz.PzUnPacker;
 import trashsoftware.winBwz.packer.pzNonSolid.PzNsUnPacker;
@@ -48,7 +51,7 @@ public class FileInfoUI implements Initializable {
     }
 
     private void drawCompressRate(long lengthBeforeCmp, long otherInfoLen, long contextLen, long mainLen) {
-        double headRatio = (double) PzSolidPacker.FIXED_HEAD_LENGTH / lengthBeforeCmp;
+        double headRatio = (double) PzUnPacker.fixedHeadLength(PzPacker.primaryVersion) / lengthBeforeCmp;
         double otherInfoRatio = (double) otherInfoLen / lengthBeforeCmp;
         double contextRatio = (double) contextLen / lengthBeforeCmp;
         double mainRatio = (double) mainLen / lengthBeforeCmp;
@@ -107,6 +110,19 @@ public class FileInfoUI implements Initializable {
             default:
                 alg = bundle.getString("unknown");
                 break;
+        }
+        
+        if (unPacker instanceof PzUnPacker) {
+            PzUnPacker pzu = (PzUnPacker) unPacker;
+            AlgOptions algOptions = pzu.getAlgOptions();
+            if (algOptions instanceof BWZOptions) {
+                BWZOptions bo = (BWZOptions) algOptions;
+                if (bo.getEntropyMethod() == BWZOptions.EntropyMethod.BLOCK_HUFFMAN) {
+                    alg += " - " + bundle.getString("entropyHuffman");
+                } else if (bo.getEntropyMethod() == BWZOptions.EntropyMethod.ADAPTIVE_RANGE) {
+                    alg += " - " + bundle.getString("entropyAdaptiveRange");
+                }
+            }
         }
 
 //        compressRateBar.setProgress(rate);
@@ -183,8 +199,8 @@ public class FileInfoUI implements Initializable {
         timeLabel.setText(": " + sdf.format(date));
     }
 
-    private String translateVersion(byte versionInt) {
-        switch (versionInt & 0xff) {
+    private String translateVersion(int versionInt) {
+        switch (versionInt) {
             case 1:
                 return "0.1.2";
             case 2:
@@ -237,6 +253,8 @@ public class FileInfoUI implements Initializable {
                 return "1.0 Alpha 15+";
             case 28:
                 return "1.0 Alpha 16+";
+            case 29:
+                return "1.0 Alpha 18+";
             default:
                 return bundle.getString("unknown");
         }

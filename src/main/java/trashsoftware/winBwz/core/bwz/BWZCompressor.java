@@ -9,13 +9,16 @@
 
 package trashsoftware.winBwz.core.bwz;
 
-import javafx.beans.property.ReadOnlyStringWrapper;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.bwz.bwt.BWTEncoder;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.huffman.MapCompressor.BwzMapCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanCompressorRam;
 import trashsoftware.winBwz.longHuffman.LongHuffmanUtil;
 import trashsoftware.winBwz.packer.pz.PzPacker;
+import trashsoftware.winBwz.rangeCodec.AdaptiveFrequencyTable;
+import trashsoftware.winBwz.rangeCodec.FrequencyTable;
+import trashsoftware.winBwz.rangeCodec.LongRangeCompressorRam;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 
@@ -38,7 +41,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class BWZCompressor implements Compressor {
 
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
     /**
      * The signal that marks the end of a huffman stream.
      */
@@ -74,8 +77,8 @@ public class BWZCompressor implements Compressor {
      * Whether the compression is in progress.
      */
     boolean isRunning = true;
+    BWZOptions options;
     long pos;
-
 
     /* Streams */
     private OutputStream out;
@@ -90,12 +93,13 @@ public class BWZCompressor implements Compressor {
      * This constructor takes a file as input.
      *
      * @param inFile     name/path of file to compress.
-     * @param windowSize the block size.
+     * @param options    bwz options
      * @throws IOException if the input file is not readable.
      */
-    public BWZCompressor(String inFile, int windowSize) throws IOException {
-        this.windowSize = windowSize;
+    public BWZCompressor(String inFile, BWZOptions options) throws IOException {
+        this.windowSize = options.getWindowSize();
         this.fis = new FileInputStream(inFile).getChannel();
+        this.options = options;
     }
 
     /**
@@ -104,11 +108,18 @@ public class BWZCompressor implements Compressor {
      * This constructor takes a {@code InputStream} as input.
      *
      * @param in         the input stream
-     * @param windowSize the block size
+     * @param options    bwz options
      */
-    public BWZCompressor(InputStream in, int windowSize) {
-        this.windowSize = windowSize;
+    public BWZCompressor(InputStream in, BWZOptions options) {
+        this.windowSize = options.getWindowSize();
         this.sis = in;
+        this.options = options;
+    }
+    
+    public static boolean compatibleWithVersion(int fileVersion) {
+        if (VERSION == 1) return fileVersion == 1;
+        if (VERSION == 2) return fileVersion == 1 || fileVersion == 2;
+        return false;
     }
 
     /**
@@ -172,7 +183,6 @@ public class BWZCompressor implements Compressor {
         int read;
         byte[] block = new byte[windowSize * threadNumber];
         while ((read = sis.read(block)) > 0) {
-
             compressOneLoop(read, block);
         }
     }
@@ -206,7 +216,7 @@ public class BWZCompressor implements Compressor {
 //            if (!usdDc3) SuffixArrayDoubling.allocateArraysIfNot(windowSize, threadNumber);
 
             EncodeThread et = new EncodeThread(
-                    buffer, begin, partSize, i, usdDc3
+                    buffer, begin, partSize, i, usdDc3, options.getEntropyMethod()
             );
             threads[i] = et;
 
@@ -222,8 +232,7 @@ public class BWZCompressor implements Compressor {
             throw new RuntimeException("Compress thread not terminated.");  // Wait for all threads complete.
 
         for (EncodeThread et : threads) {
-            et.generateCompressedMap();
-            et.writeCompressedMap(out);
+            et.writeBlockHead(out);
             et.writeTo(out);
         }
     }
@@ -314,25 +323,32 @@ public class BWZCompressor implements Compressor {
         long bwtTime, mtfTime, mapTime, hufTime;
         int hufBlocksCount;
         private byte[][] results;
+        
+        // huffman uses
         private byte[][] maps;
         private byte[] cmpMap;
         private byte[] headNumbers;
 
+        final BWZOptions.EntropyMethod entropyMethod;
+
         /**
          * Creates a new {@code EncodeThread} instance.
          *
-         * @param data       the whole data to read
-         * @param beginIndex the index in <code>data</code> to be compressed
-         * @param partSize   the number of byte to be compressed
-         * @param threadId   the id of this thread
-         * @param useDc3     whether to use dc3 algorithm to construct suffix array
+         * @param data          the whole data to read
+         * @param beginIndex    the index in <code>data</code> to be compressed
+         * @param partSize      the number of byte to be compressed
+         * @param threadId      the id of this thread
+         * @param useDc3        whether to use dc3 algorithm to construct suffix array
+         * @param entropyMethod method of entropy coding
          */
         EncodeThread(byte[] data,
                      int beginIndex,
                      int partSize,
                      int threadId,
-                     boolean useDc3) {
+                     boolean useDc3,
+                     BWZOptions.EntropyMethod entropyMethod) {
 
+            this.entropyMethod = entropyMethod;
             this.buffer = data;
             this.beginIndex = beginIndex;
             this.partSize = partSize;
@@ -357,6 +373,25 @@ public class BWZCompressor implements Compressor {
 
             int lenAfterMtf = array.length;
 
+            switch (entropyMethod) {
+                case BLOCK_HUFFMAN:
+                    entropyHuffman(array, lenAfterMtf);
+                    hufTime += System.currentTimeMillis() - t3;
+                    break;
+                case ADAPTIVE_RANGE:
+//                    System.out.print("Len after mtf: " + lenAfterMtf);
+                    entropyRange(array, lenAfterMtf);
+//                    System.out.println(", after rc: " + results[0].length);
+                    hufTime += System.currentTimeMillis() - t3;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported entropy method " + entropyMethod.name());
+            }
+
+            pos += (long) (partSize * 0.2);  // Update progress again
+        }
+
+        void entropyHuffman(int[] array, int lenAfterMtf) {
             LongHuffmanCompressorRam compressor = new LongHuffmanCompressorRam(
                     array,
                     BWZCompressor.HUFFMAN_TABLE_SIZE,
@@ -382,10 +417,16 @@ public class BWZCompressor implements Compressor {
                 index1 += optimalLength;
                 hufBlocksCount++;
             }
+        }
 
-            pos += (long) (partSize * 0.2);  // Update progress again
-
-            hufTime += System.currentTimeMillis() - t3;
+        void entropyRange(int[] array, int lenAfterMtf) {
+            FrequencyTable ft = new AdaptiveFrequencyTable(BWZCompressor.HUFFMAN_TABLE_SIZE);
+            LongRangeCompressorRam compressor = new LongRangeCompressorRam(array,
+                    ft,
+                    BWZCompressor.HUFFMAN_END_SIG);
+            hufBlocksCount = 1;
+            results = new byte[1][];
+            results[0] = compressor.compress();
         }
 
         @SuppressWarnings("unused")
@@ -416,7 +457,7 @@ public class BWZCompressor implements Compressor {
             }
         }
 
-        void generateCompressedMap() {
+        private void generateCompressedMapHuf() {
             long t0 = System.currentTimeMillis();
             int mapLength = 0;
             for (int i = 0; i < hufBlocksCount; ++i) {
@@ -438,13 +479,14 @@ public class BWZCompressor implements Compressor {
 
             /*
              * Block structure:
-             * 0 - 1: length of compressed flags
+             * 0 - 2: reserved flags
              * 2 - 5 : length of compressed map
              * 5 - 8 : index of original row of bwt
              */
-            headNumbers = new byte[6];
-            Bytes.intToBytes24(cmpMap.length, headNumbers, 0);
-            Bytes.intToBytes24(beb.getOrigRowIndex(), headNumbers, 3);
+            headNumbers = new byte[8];
+            headNumbers[0] = (byte) entropyMethod.ordinal();
+            Bytes.intToBytes24(cmpMap.length, headNumbers, 2);
+            Bytes.intToBytes24(beb.getOrigRowIndex(), headNumbers, 5);
 
 //        System.out.println("avg map len " + ((double) cmpMap.length / hufBlocksCount));
 
@@ -457,12 +499,35 @@ public class BWZCompressor implements Compressor {
          * @param out the target output stream
          * @throws IOException if the <code>out</code> is not writable.
          */
-        void writeCompressedMap(OutputStream out) throws IOException {
-
+        private void writeCompressedMapHuf(OutputStream out) throws IOException {
             out.write(headNumbers);
             out.write(cmpMap);
 
-            mainLen += (cmpMap.length + 6);
+            mainLen += (cmpMap.length + 8);
+        }
+        
+        private void writeHeadAdaptiveRange(OutputStream out) throws IOException {
+            headNumbers = new byte[6];
+            headNumbers[0] = (byte) entropyMethod.ordinal();
+            
+            // Records the exact length after range coding
+            // The range decoder will need this to determine how to cut the stream
+            Bytes.intToBytes32(results[0].length, headNumbers, 2);
+            
+            out.write(headNumbers);
+            
+            mainLen += 6;
+        }
+        
+        void writeBlockHead(OutputStream out) throws IOException {
+            if (entropyMethod == BWZOptions.EntropyMethod.BLOCK_HUFFMAN) {
+                generateCompressedMapHuf();
+                writeCompressedMapHuf(out);
+            } else if (entropyMethod == BWZOptions.EntropyMethod.ADAPTIVE_RANGE) {
+                writeHeadAdaptiveRange(out);
+            } else {
+                throw new IllegalArgumentException("Unsupported entropy method " + entropyMethod.name());
+            }
         }
 
         /**

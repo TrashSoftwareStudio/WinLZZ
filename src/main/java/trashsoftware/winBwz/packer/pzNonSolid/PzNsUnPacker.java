@@ -5,6 +5,7 @@ import javafx.beans.property.ReadOnlyLongWrapper;
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.core.bwz.BWZDeCompressor;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.core.deflate.DeflateDeCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzDecompressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2DeCompressor;
@@ -165,7 +166,7 @@ public class PzNsUnPacker extends PzUnPacker {
             DeCompressor deCompressor;
             switch (alg) {
                 case "bwz":
-                    deCompressor = new BWZDeCompressor(tempOut, windowSize, 0);
+                    deCompressor = new BWZDeCompressor(tempOut, 0, (BWZOptions) algOptions);
                     break;
                 case "lzz2":
                     deCompressor = new LZZ2DeCompressor(tempOut, windowSize);
@@ -179,6 +180,7 @@ public class PzNsUnPacker extends PzUnPacker {
                 default:
                     throw new NoSuchAlgorithmException("No such algorithm");
             }
+            deCompressor.setUnPacker(this);
             utt.setProcessor(deCompressor);
             OutputStream out = new FileOutputStream(outName);
             deCompressor.uncompress(out);

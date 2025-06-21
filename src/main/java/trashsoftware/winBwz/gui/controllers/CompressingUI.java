@@ -11,9 +11,11 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.stage.Stage;
+import trashsoftware.winBwz.core.options.AlgOptions;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.packer.Packer;
 import trashsoftware.winBwz.packer.SeparateException;
+import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 import trashsoftware.winBwz.packer.pzNonSolid.PzNsPacker;
 import trashsoftware.winBwz.packer.zip.ZipPacker;
@@ -52,6 +54,7 @@ public class CompressingUI implements Initializable {
     private AnnotationNode annotation;
     private long startTime;
     private long partSize;
+    private AlgOptions algOptions;
 
     private MainUI grandParent;
     private Stage stage;
@@ -89,13 +92,16 @@ public class CompressingUI implements Initializable {
         this.path = path;
     }
 
-    void setPref(CompressUI.FmtBoxItem format, int windowSize, int bufferSize, int compressionLevel, String algorithm, int threads,
+    void setPref(CompressUI.FmtBoxItem format, int windowSize, int bufferSize, 
+                 int compressionLevel, String algorithm, AlgOptions algOptions, 
+                 int threads,
                  AnnotationNode annotation, long partSize) {
         this.fmt = format;
         this.windowSize = windowSize;
         this.bufferSize = bufferSize;
         this.cmpLevel = compressionLevel;
         this.alg = algorithm;
+        this.algOptions = algOptions;
         this.threads = threads;
         this.annotation = annotation;
         this.partSize = partSize;
@@ -268,6 +274,10 @@ public class CompressingUI implements Initializable {
                     packer.setCmpLevel(cmpLevel);
                     packer.setEncrypt(password, encryptLevel, encAlg, passAlg);
                     packer.setAlgorithm(alg);
+//                    if (packer instanceof PzPacker) {
+//                        ((PzPacker) packer).setAlgOptions(algOptions);
+//                    }
+                    
                     packer.setThreads(threads);
                     packer.setPartSize(partSize);
                     packer.setResourceBundle(bundle);
@@ -342,7 +352,8 @@ public class CompressingUI implements Initializable {
                             updateProgress(newValue.longValue(), packer.totalOrigLengthProperty().longValue());
                     packer.progressProperty().addListener(progressListener);
 
-                    packer.pack(path[0].getParent() + File.separator + name, windowSize, bufferSize);
+                    packer.pack(path[0].getParent() + File.separator + name, 
+                            algOptions);
                     updateProgress(totalLength, totalLength);
 
                     return null;

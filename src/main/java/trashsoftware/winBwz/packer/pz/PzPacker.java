@@ -1,10 +1,14 @@
 package trashsoftware.winBwz.packer.pz;
 
+import com.sun.istack.internal.Nullable;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
+import trashsoftware.winBwz.core.options.AlgOptions;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.core.deflate.DeflateCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
+import trashsoftware.winBwz.core.options.LZOptions;
 import trashsoftware.winBwz.encrypters.Encipher;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
@@ -28,9 +32,9 @@ public abstract class PzPacker extends Packer {
      * <p>
      * Any change of this value will result the incompatibility between the program and older archive file.
      */
-    public final static byte primaryVersion = 28;
+    public final static byte primaryVersion = 29;
 
-    public static final int FIXED_HEAD_LENGTH = 27;
+//    public static final int FIXED_HEAD_LENGTH = 32;
 
     /**
      * The signature for a solid WinLZZ archive (*.pz) file.
@@ -89,6 +93,7 @@ public abstract class PzPacker extends Packer {
     protected String encryption;
     protected String passwordAlg;
     protected String alg;
+//    protected AlgOptions algOptions;
     /**
      * Maximum length of each archive file. 0 if do not separate.
      */
@@ -119,19 +124,16 @@ public abstract class PzPacker extends Packer {
      * @param outFile      name of archive file
      * @param bos          output stream of archive
      * @param inputStreams input files
-     * @param windowSize   window size
-     * @param bufferSize   buffer size
+     * @param algOptions   algorithm internal options
      * @return the CRC32 checksum
      * @throws Exception if any exception occurs
      */
     protected abstract long writeBody(String outFile,
                                       OutputStream bos,
                                       Deque<File> inputStreams,
-                                      int windowSize,
-                                      int bufferSize) throws Exception;
+                                      AlgOptions algOptions) throws Exception;
 
-    protected void writeInfoHead(OutputStream bos,
-                                 int windowSize)
+    protected void writeInfoHead(OutputStream bos, AlgOptions algOptions)
             throws IOException {
         bos.write(Bytes.intToBytes32(getSignature()));  // Write signature : 4 bytes
         bos.write(primaryVersion);  // Write version : 1 byte
@@ -213,11 +215,11 @@ public abstract class PzPacker extends Packer {
                     break;
             }
         }
-        compressedLength = 27;
+        compressedLength = 32;  // Was 27 before version-28
 
         bos.write(inf);  // Write info: 1 byte
         bos.write(encInf);  // Write encryption info: 1 byte
-        bos.write(Util.windowSizeToByte(windowSize));  // Write window size: 1 byte
+        bos.write(Util.windowSizeToByte(algOptions == null ? 0 : algOptions.getWindowSize()));  // Write window size: 1 byte
 
         /*
          * Reserved bytes
@@ -227,6 +229,16 @@ public abstract class PzPacker extends Packer {
          * 4 for file structure size
          */
         bos.write(new byte[16]);
+        
+        /*
+         * 5 bytes reserved for algorithm options @since version-29
+         */
+        byte[] reservedBytes = new byte[5];
+        if (algOptions instanceof BWZOptions) {
+            BWZOptions bwzOptions = (BWZOptions) algOptions;
+            reservedBytes[0] = bwzOptions.oneByteRep();
+        }
+        bos.write(reservedBytes);
 
         byte[] extraField = new byte[Util.collectionOfArrayLength(extraFields)];  // Extra field
         int i = 0;
@@ -261,8 +273,7 @@ public abstract class PzPacker extends Packer {
     protected long writeCmpHead(String outFile,
                                 String tempHeadName,
                                 OutputStream bos,
-                                int windowSize,
-                                int bufferSize) throws Exception {
+                                AlgOptions algOptions) throws Exception {
         // Stores the hashing value of password, with salt
         if (encryptLevel != 0) {
             byte[] hashPassword = Security.secureHashing(password, passwordAlg);
@@ -277,7 +288,7 @@ public abstract class PzPacker extends Packer {
         }
 
         Compressor headCompressor;
-        if (windowSize == 0) {
+        if (algOptions == null || algOptions.getWindowSize() == 0) {
             switch (alg) {
                 case "lzz2":
                     headCompressor = new LZZ2Compressor(tempHeadName, defaultWindowSize, 64);
@@ -286,7 +297,8 @@ public abstract class PzPacker extends Packer {
                     headCompressor = new FastLzzCompressor(tempHeadName, defaultWindowSize, 64);
                     break;
                 case "bwz":
-                    headCompressor = new BWZCompressor(tempHeadName, defaultWindowSize);
+                    headCompressor = new BWZCompressor(tempHeadName, 
+                            BWZOptions.newDefault(defaultWindowSize));
                     break;
                 case "deflate":
                     headCompressor = new DeflateCompressor(tempHeadName, 6);
@@ -297,15 +309,21 @@ public abstract class PzPacker extends Packer {
         } else {
             switch (alg) {
                 case "lzz2":
-                    headCompressor = new LZZ2Compressor(tempHeadName, windowSize, bufferSize);
+                    LZOptions lzOptions = (LZOptions) algOptions;
+                    headCompressor = new LZZ2Compressor(tempHeadName, 
+                            lzOptions.getWindowSize(), 
+                            lzOptions.getLabSize());
                     headCompressor.setCompressionLevel(cmpLevel);
                     break;
                 case "fastLzz":
-                    headCompressor = new FastLzzCompressor(tempHeadName, windowSize, bufferSize);
+                    lzOptions = (LZOptions) algOptions;
+                    headCompressor = new FastLzzCompressor(tempHeadName, lzOptions.getWindowSize(),
+                            lzOptions.getLabSize());
                     headCompressor.setCompressionLevel(cmpLevel);
                     break;
                 case "bwz":
-                    headCompressor = new BWZCompressor(tempHeadName, windowSize);
+                    BWZOptions bwzOptions = (BWZOptions) algOptions;
+                    headCompressor = new BWZCompressor(tempHeadName, bwzOptions);
                     break;
                 case "deflate":
                     headCompressor = new DeflateCompressor(tempHeadName, cmpLevel);
@@ -350,6 +368,37 @@ public abstract class PzPacker extends Packer {
         return cmpHeadLen;
     }
 
+    protected Compressor getMainCompressor(AlgOptions algOptions, InputStream fis) throws NoSuchAlgorithmException {
+        Compressor mainCompressor;
+        switch (alg) {
+            case "lzz2":
+                LZOptions lzOptions = (LZOptions) algOptions;
+                mainCompressor = new LZZ2Compressor(fis,
+                        lzOptions.getWindowSize(),
+                        lzOptions.getLabSize(),
+                        totalLength);
+                break;
+            case "fastLzz":
+                lzOptions = (LZOptions) algOptions;
+                mainCompressor = new FastLzzCompressor(fis, lzOptions.getWindowSize(),
+                        lzOptions.getLabSize(), totalLength);
+                break;
+            case "bwz":
+                BWZOptions bwzOptions = (BWZOptions) algOptions;
+                mainCompressor = new BWZCompressor(fis, bwzOptions);
+                break;
+            case "deflate":
+                mainCompressor = new DeflateCompressor(fis, cmpLevel, totalLength);
+                break;
+            default:
+                throw new NoSuchAlgorithmException("No such algorithm");
+        }
+        mainCompressor.setPacker(this);
+        mainCompressor.setCompressionLevel(cmpLevel);
+        mainCompressor.setThreads(threads);
+        return mainCompressor;
+    }
+
     protected void writeInfoToFirstFile(RandomAccessFile rafOfFirst) throws IOException {
     }
 
@@ -357,12 +406,11 @@ public abstract class PzPacker extends Packer {
      * Pack the directory into a *.pz file.
      *
      * @param outFile    the output package file.
-     * @param windowSize size of sliding window.
-     * @param bufferSize size of look ahead buffer (if algorithm supported).
+     * @param algOptions algorithm internal options, null if store
      * @throws Exception if any IO error occurs.
      */
     @Override
-    public void pack(String outFile, int windowSize, int bufferSize) throws Exception {
+    public void pack(String outFile, @Nullable AlgOptions algOptions) throws Exception {
         if (bundle != null) step.setValue(bundle.getString("createDatabase"));
         percentage.set("0.0");
         OutputStream bos;
@@ -374,12 +422,12 @@ public abstract class PzPacker extends Packer {
 
         String tempHeadName = outFile + ".head";
         Deque<File> inputStreams = new LinkedList<>();
-        writeInfoHead(bos, windowSize);
+        writeInfoHead(bos, algOptions);
         writeCmpMapToTemp(tempHeadName, inputStreams);
 
 //        fileStructurePos = compressedLength;
 
-        long cmpHeadLen = writeCmpHead(outFile, tempHeadName, bos, windowSize, bufferSize);
+        long cmpHeadLen = writeCmpHead(outFile, tempHeadName, bos, algOptions);
 
         if (bos instanceof SeparateOutputStream && ((SeparateOutputStream) bos).getCount() != 1) {
             bos.flush();
@@ -391,7 +439,7 @@ public abstract class PzPacker extends Packer {
 
         if (bundle != null) step.setValue(bundle.getString("compressing"));
 
-        long bodyCrc32 = writeBody(outFile, bos, inputStreams, windowSize, bufferSize);
+        long bodyCrc32 = writeBody(outFile, bos, inputStreams, algOptions);
 
         bos.flush();
         bos.close();

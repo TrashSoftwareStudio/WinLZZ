@@ -13,6 +13,9 @@ import javafx.stage.Stage;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
+import trashsoftware.winBwz.core.options.AlgOptions;
+import trashsoftware.winBwz.core.options.BWZOptions;
+import trashsoftware.winBwz.core.options.LZOptions;
 import trashsoftware.winBwz.gui.GUIClient;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
@@ -464,30 +467,36 @@ public class CompressUI implements Initializable {
         String alg = getAlgCode();
 
         int window, buffer, cmpLevel;
+        AlgOptions algOptions;
         if (presetLevelBox.getSelectionModel().getSelectedIndex() == 0) {
             window = 0;
             buffer = 0;
             cmpLevel = 0;
+            algOptions = null;
         } else {
             switch (alg) {
                 case "bwz":
                     window = windowSizesBwz[currentWindowIndex];
                     buffer = 0;
                     cmpLevel = currentModeIndex;
+                    algOptions = new BWZOptions(window, BWZOptions.EntropyMethod.ADAPTIVE_RANGE);
                     break;
                 case "fastLzz":
                     window = windowSizesFastLzz[currentWindowIndex];
                     buffer = bufferBox.getSelectionModel().getSelectedItem();
                     cmpLevel = currentModeIndex;
+                    algOptions = new LZOptions(window, buffer);
                     break;
                 case "lzz2":
                     window = windowSizesLzz2[currentWindowIndex];
                     buffer = bufferBox.getSelectionModel().getSelectedItem();
                     cmpLevel = currentModeIndex;
+                    algOptions = new LZOptions(window, buffer);
                     break;
                 case "deflate":
                     window = 32768;
                     buffer = bufferBox.getSelectionModel().getSelectedItem();
+                    algOptions = new LZOptions(window, buffer);
                     // special for deflate
                     cmpLevel = presetLevelBox.getSelectionModel().getSelectedIndex();
                     break;
@@ -501,7 +510,7 @@ public class CompressUI implements Initializable {
         String partText = partialBox.getEditor().getText();
         if (partialBox.getSelectionModel().getSelectedIndex() == 0)
             partSize = 1457664;  // Special case for 3.5" floppy disk
-        else if (partText.length() != 0) {
+        else if (!partText.isEmpty()) {
             long unit = (long) Math.pow(1024, unitBox.getSelectionModel().getSelectedIndex());
             String partSizeText;
             if (partText.contains(" ")) partSizeText = partText.split(" ")[0];
@@ -524,7 +533,7 @@ public class CompressUI implements Initializable {
         CompressingUI cui = loader.getController();
         cui.setName(name, rootDir);
         cui.setGrandParent(parent);
-        cui.setPref(fmt, window, buffer, cmpLevel, alg, threadNum, annotation, partSize);
+        cui.setPref(fmt, window, buffer, cmpLevel, alg, algOptions, threadNum, annotation, partSize);
         cui.setStage(stage);
         cui.setEncrypt(password, encryptLevel, encAlg, passAlg);
         stage.show();

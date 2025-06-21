@@ -72,6 +72,10 @@ public class FastLzzCompressor implements Compressor {
         this.totalLength = totalLength;
         this.sis = mis;
     }
+    
+    public static boolean compatibleWithVersion(int fileVersion) {
+        return VERSION == fileVersion;
+    }
 
     private static int hash(byte b0, byte b1) {
         return (b0 & 0xff) << 8 | (b1 & 0xff);

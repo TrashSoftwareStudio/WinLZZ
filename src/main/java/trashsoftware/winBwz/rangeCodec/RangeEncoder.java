@@ -65,18 +65,22 @@ public class RangeEncoder {
 
         byte[] data = "Missouri river flows into Mississippi river.".getBytes();
 
-        FrequencyTable freq = new FrequencyTable(257, data);
+//        FrequencyTable freqEnc = new StaticFrequencyTable(257, data);
+        FrequencyTable freqEnc = new AdaptiveFrequencyTable(257);
         RangeEncoder encoder = new RangeEncoder(cmpOut);
         for (byte b : data) {
-            encoder.encodeSymbol(b & 0xFF, freq);
+            encoder.encodeSymbol(b & 0xFF, freqEnc);
+            freqEnc.increment(b & 0xff);
         }
-        encoder.encodeSymbol(256, freq);  // EOF
+        encoder.encodeSymbol(256, freqEnc);  // EOF
         encoder.finish();
 
         byte[] compressed = cmpOut.toByteArray();
 
-        System.out.println(freq);
+        System.out.println(freqEnc);
         System.out.println(Arrays.toString(compressed));
+        
+        FrequencyTable freqDec = new AdaptiveFrequencyTable(257);
 
         System.out.println(data.length + " " + compressed.length);
 
@@ -85,7 +89,9 @@ public class RangeEncoder {
         RangeDecoder decoder = new RangeDecoder(bis);
         decoder.initialize();
         while (true) {
-            int sym = decoder.decodeSymbol(freq);
+            int sym = decoder.decodeSymbol(freqDec);
+            freqDec.increment(sym);
+            
             if (sym == 256) break;  // EOF marker
             decOut.write(sym);
         }

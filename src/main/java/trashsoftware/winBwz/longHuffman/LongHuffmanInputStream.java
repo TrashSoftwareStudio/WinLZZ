@@ -26,12 +26,12 @@ public class LongHuffmanInputStream {
      */
     private static final int CODE_LEN_LIMIT = 16;
 
-    private FileChannel fc;
+    private final FileChannel fc;
 
     /**
      * The size of alphabet of original text.
      */
-    private int alphabetSize;
+    private final int alphabetSize;
 
     /**
      * The signal that makes the end of a part of the stream.
@@ -60,7 +60,7 @@ public class LongHuffmanInputStream {
      * <p>
      * Use tree map data structure because the extra map usually contains few elements, but with big value keys.
      */
-    private Map<Integer, Integer> extraMap = new TreeMap<>();
+    private final Map<Integer, Integer> extraMap = new TreeMap<>();
 
     /**
      * This map is a combination of two maps.
@@ -84,11 +84,11 @@ public class LongHuffmanInputStream {
 
     private long compressedBitLength;
 
-    private int[] result;
+    private final int[] result;
 
     private int currentIndex;
 
-    private ByteBuffer readBuffer = ByteBuffer.allocate(bufferSize);
+    private final ByteBuffer readBuffer = ByteBuffer.allocate(bufferSize);
 
     private int bufferIndex;
 
@@ -163,7 +163,6 @@ public class LongHuffmanInputStream {
     }
 
     private void unCompress() throws IOException {
-
         readBuffer.clear();
         if (fc.read(readBuffer) <= 0) {
             throw new RuntimeException();
@@ -248,8 +247,8 @@ public class LongHuffmanInputStream {
      * @return the byte content, null if stream ends
      * @throws IOException if the input stream is not readable
      */
-    public byte[] read(int length) throws IOException {
-        compressedBitLength += length * 8;
+    public byte[] readPlain(int length) throws IOException {
+        compressedBitLength += length * 8L;
         ByteBuffer buffer = ByteBuffer.allocate(length);
         if (fc.read(buffer) != length) return null;
         return buffer.array();
@@ -265,7 +264,7 @@ public class LongHuffmanInputStream {
      * @return The uncompressed text.
      * @throws IOException If the file is not readable.
      */
-    public int[] read(byte[] map, int endSig) throws IOException {
+    public int[] readNextCompressedBlock(byte[] map, int endSig) throws IOException {
         this.endSig = endSig;
 
         currentIndex = 0;

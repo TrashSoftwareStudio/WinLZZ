@@ -1,6 +1,7 @@
 package trashsoftware.trashGraphics.core;
 
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 
@@ -46,7 +47,7 @@ public class TgiCoder {
 
         writeImageToTemp(bitDepth, colored);
 
-        BWZCompressor contentCompressor = new BWZCompressor(tempDataName, COMPRESS_WINDOW_SIZE);
+        BWZCompressor contentCompressor = new BWZCompressor(tempDataName, new BWZOptions(COMPRESS_WINDOW_SIZE, BWZOptions.EntropyMethod.ADAPTIVE_RANGE));
         contentCompressor.compress(bufferedOutputStream);
 
         bufferedOutputStream.flush();

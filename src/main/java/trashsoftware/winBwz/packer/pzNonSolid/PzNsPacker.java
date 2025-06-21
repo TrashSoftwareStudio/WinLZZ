@@ -4,9 +4,12 @@ import javafx.beans.property.ReadOnlyLongWrapper;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
+import trashsoftware.winBwz.core.options.AlgOptions;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.core.deflate.DeflateCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
+import trashsoftware.winBwz.core.options.LZOptions;
 import trashsoftware.winBwz.encrypters.Encipher;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
@@ -51,8 +54,7 @@ public class PzNsPacker extends PzPacker {
     protected long writeBody(String outFile,
                              OutputStream bos,
                              Deque<File> inputStreams,
-                             int windowSize,
-                             int bufferSize) throws Exception {
+                             AlgOptions algOptions) throws Exception {
         Timer timer = new Timer();
         CompTimerTask ctt = new CompTimerTask();
         timer.scheduleAtFixedRate(ctt, 0, 1000 / Constants.GUI_UPDATES_PER_S);
@@ -70,7 +72,7 @@ public class PzNsPacker extends PzPacker {
                 secondaryProgress.set(0);
 
                 InputStream fis = new FileInputStream(file);
-                if (windowSize == 0) {
+                if (algOptions == null || algOptions.getWindowSize() == 0) {
                     if (encryptLevel == 0) {
                         Util.fileTruncate(fis, bos, fileLen);
                         compressedPosLenCrc.add(new long[]{startPos, fileLen, crc});
@@ -97,26 +99,7 @@ public class PzNsPacker extends PzPacker {
                         compressedLength += encLen;
                     }
                 } else if (fileLen != 0) {
-                    Compressor mainCompressor;
-                    switch (alg) {
-                        case "lzz2":
-                            mainCompressor = new LZZ2Compressor(fis, windowSize, bufferSize, fileLen);
-                            break;
-                        case "fastLzz":
-                            mainCompressor = new FastLzzCompressor(fis, windowSize, bufferSize, fileLen);
-                            break;
-                        case "bwz":
-                            mainCompressor = new BWZCompressor(fis, windowSize);
-                            break;
-                        case "deflate":
-                            mainCompressor = new DeflateCompressor(fis, cmpLevel, fileLen);
-                            break;
-                        default:
-                            throw new NoSuchAlgorithmException("No such algorithm");
-                    }
-                    mainCompressor.setPacker(this);
-                    mainCompressor.setCompressionLevel(cmpLevel);
-                    mainCompressor.setThreads(threads);
+                    Compressor mainCompressor = getMainCompressor(algOptions, fis);
                     ctt.setProcessor(mainCompressor);
                     if (encryptLevel == 0) {
                         mainCompressor.compress(bos);
@@ -212,7 +195,7 @@ public class PzNsPacker extends PzPacker {
     }
 
     @Override
-    public void pack(String outFile, int windowSize, int bufferSize) throws Exception {
+    public void pack(String outFile, AlgOptions algOptions) throws Exception {
         long startTime = System.currentTimeMillis();
         if (bundle != null) step.setValue(bundle.getString("createDatabase"));
         percentage.set("0.0");
@@ -225,7 +208,7 @@ public class PzNsPacker extends PzPacker {
 
         String tempHeadName = outFile + ".head";
         Deque<File> inputStreams = new LinkedList<>();
-        writeInfoHead(bos, windowSize);
+        writeInfoHead(bos, algOptions);
         generateFileList(inputStreams);
 
         String mainOutName = outFile + ".main";
@@ -234,7 +217,7 @@ public class PzNsPacker extends PzPacker {
         if (bundle != null) step.setValue(bundle.getString("compressing"));
 
         timeOffset = System.currentTimeMillis() - startTime;
-        writeBody(outFile, mainOut, inputStreams, windowSize, bufferSize);
+        writeBody(outFile, mainOut, inputStreams, algOptions);
 
         mainOut.flush();
         mainOut.close();
@@ -243,7 +226,7 @@ public class PzNsPacker extends PzPacker {
 
         updateFileStructure();
         writeCmpMapToTemp(tempHeadName, inputStreams);
-        long cmpHeadLen = writeCmpHead(outFile, tempHeadName, bos, windowSize, bufferSize);
+        long cmpHeadLen = writeCmpHead(outFile, tempHeadName, bos, algOptions);
 
         if (bos instanceof SeparateOutputStream && ((SeparateOutputStream) bos).getCount() != 1) {
             bos.flush();

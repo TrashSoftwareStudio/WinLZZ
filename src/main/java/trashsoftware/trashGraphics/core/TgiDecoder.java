@@ -1,6 +1,7 @@
 package trashsoftware.trashGraphics.core;
 
 import trashsoftware.winBwz.core.bwz.BWZDeCompressor;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 
@@ -43,7 +44,8 @@ public class TgiDecoder {
         ByteArrayOutputStream tgiDataStream = new ByteArrayOutputStream();
 
         if (compressionIndicator == 1) {
-            BWZDeCompressor contentDecompressor = new BWZDeCompressor(cmpTempName, compressWindowSize, 0);
+            BWZDeCompressor contentDecompressor = new BWZDeCompressor(cmpTempName, 0, 
+                    new BWZOptions(compressWindowSize, BWZOptions.EntropyMethod.ADAPTIVE_RANGE));
             contentDecompressor.uncompress(tgiDataStream);
         }
 

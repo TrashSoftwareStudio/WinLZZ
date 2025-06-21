@@ -20,9 +20,12 @@ package trashsoftware.winBwz.packer.pz;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
+import trashsoftware.winBwz.core.options.AlgOptions;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.core.deflate.DeflateCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
+import trashsoftware.winBwz.core.options.LZOptions;
 import trashsoftware.winBwz.encrypters.Encipher;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
@@ -132,18 +135,18 @@ public class PzSolidPacker extends PzPacker {
         if (timer != null) timer.cancel();
     }
 
+    @Override
     protected long writeBody(String outFile,
                              OutputStream bos,
                              Deque<File> inputStreams,
-                             int windowSize,
-                             int bufferSize) throws Exception {
+                             AlgOptions algOptions) throws Exception {
         String encMainName = outFile + ".enc";
 
         startTimer();
 
         try {
             MultipleInputStream mis;
-            if (windowSize == 0) {  // no compress
+            if (algOptions == null || algOptions.getWindowSize() == 0) {  // no compress
                 if (encryptLevel == 0) {
                     mis = new MultipleInputStream(inputStreams, this, false);
                     Util.fileTruncate(mis, bos, totalLength);
@@ -173,26 +176,7 @@ public class PzSolidPacker extends PzPacker {
                 }
             } else if (totalLength != 0) {
                 mis = new MultipleInputStream(inputStreams, this, false);
-                Compressor mainCompressor;
-                switch (alg) {
-                    case "lzz2":
-                        mainCompressor = new LZZ2Compressor(mis, windowSize, bufferSize, totalLength);
-                        break;
-                    case "fastLzz":
-                        mainCompressor = new FastLzzCompressor(mis, windowSize, bufferSize, totalLength);
-                        break;
-                    case "bwz":
-                        mainCompressor = new BWZCompressor(mis, windowSize);
-                        break;
-                    case "deflate":
-                        mainCompressor = new DeflateCompressor(mis, cmpLevel, totalLength);
-                        break;
-                    default:
-                        throw new NoSuchAlgorithmException("No such algorithm");
-                }
-                mainCompressor.setPacker(this);
-                mainCompressor.setCompressionLevel(cmpLevel);
-                mainCompressor.setThreads(threads);
+                Compressor mainCompressor = getMainCompressor(algOptions, mis);
                 ptt.setProcessor(mainCompressor);
                 if (encryptLevel == 0) {
                     mainCompressor.compress(bos);

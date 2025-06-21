@@ -1,9 +1,11 @@
 package trashsoftware.winBwz.packer;
 
+import com.sun.istack.internal.Nullable;
 import javafx.beans.property.*;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.ProgressedStream;
+import trashsoftware.winBwz.core.options.AlgOptions;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.utility.Util;
 
@@ -72,7 +74,14 @@ public abstract class Packer {
      */
     public abstract void build();
 
-    public abstract void pack(String outFileName, int windowSize, int bufferSize) throws Exception;
+    /**
+     * Start packing/compressing.
+     * 
+     * @param outFileName the name of compressed file
+     * @param algOptions  algorithm internal options, null if store
+     * @throws Exception  if any error happens
+     */
+    public abstract void pack(String outFileName, @Nullable AlgOptions algOptions) throws Exception;
 
     public boolean hasSecondaryProgress() {
         return false;

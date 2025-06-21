@@ -1,6 +1,7 @@
 package trashsoftware.winBwz;
 
 import trashsoftware.winBwz.huffman.HuffmanCompressor;
+import trashsoftware.winBwz.rangeCodec.AdaptiveFrequencyTable;
 import trashsoftware.winBwz.rangeCodec.FrequencyTable;
 import trashsoftware.winBwz.rangeCodec.RangeDecoder;
 import trashsoftware.winBwz.rangeCodec.RangeEncoder;
@@ -14,7 +15,7 @@ public class RangeCoderTest {
 
     public static void main(String[] args) throws IOException {
         String baseFileName = "cmpFiles.tar";
-//        baseFileName = "dsCtrl.txt";
+        baseFileName = "dsCtrl.txt";
         
         String origExt = baseFileName.substring(baseFileName.lastIndexOf("."));
         
@@ -33,19 +34,22 @@ public class RangeCoderTest {
         BufferedOutputStream rangeOs = new BufferedOutputStream(Files.newOutputStream(Paths.get(baseFileName + ".rng")));
         byte[] inputBytes = Util.readFileToArray(new File(baseFileName));
         
-        FrequencyTable ft = new FrequencyTable(257, inputBytes);
-        System.out.println(ft);
+        FrequencyTable ftEnc = new AdaptiveFrequencyTable(257);
+        System.out.println(ftEnc);
         RangeEncoder re = new RangeEncoder(rangeOs);
         for (byte b : inputBytes) {
-            re.encodeSymbol(b & 0xff, ft);
+            re.encodeSymbol(b & 0xff, ftEnc);
+            ftEnc.increment(b & 0xff);
         }
-        re.encodeSymbol(256, ft);
+        re.encodeSymbol(256, ftEnc);
         re.finish();
         rangeOs.flush();
         rangeOs.close();
         
         long t2 = System.currentTimeMillis();
         System.out.println(t2 - t1);
+        
+        FrequencyTable ftDec = new AdaptiveFrequencyTable(257);
 
         byte[] rngCmpBytes = Util.readFileToArray(new File(baseFileName + ".rng"));
         System.out.println("Compressed size: " + rngCmpBytes.length);
@@ -56,11 +60,12 @@ public class RangeCoderTest {
         int count = 0;
         while (true) {
             try {
-                int sym = rd.decodeSymbol(ft);
+                int sym = rd.decodeSymbol(ftDec);
                 if (sym == 256) {
                     System.out.println("EOF");
                     break;  // EOF marker
                 }
+                ftDec.increment(sym);
                 rngRec.write(sym);
                 count++;
             } catch (EOFException eof) {

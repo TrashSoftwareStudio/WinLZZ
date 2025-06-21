@@ -87,6 +87,10 @@ public class LZZ2Compressor extends RegularCompressor {
         this.sis = mis;
         setTempNames("lzz2");
     }
+    
+    public static boolean compatibleWithVersion(int fileVersion) {
+        return VERSION == fileVersion;
+    }
 
     private static int sliderArraySize(int dictSize, int compressionLevel) {
         int base;

@@ -1,8 +1,8 @@
 package trashsoftware.winBwz.gui.controllers;
 
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
+import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
-import trashsoftware.winBwz.resourcesPack.configLoader.GeneralLoaders;
 import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
 import trashsoftware.winBwz.utility.Util;
 import javafx.fxml.FXML;
@@ -75,7 +75,7 @@ public class AnnotationUI implements Initializable {
         if (compressAnnBox.isSelected()) {
             ByteArrayInputStream ais = new ByteArrayInputStream(byteAnnotation);
 
-            BWZCompressor compressor = new BWZCompressor(ais, 32768);
+            BWZCompressor compressor = new BWZCompressor(ais, BWZOptions.oldDefault(32768));
             compressor.setCompressionLevel(1);
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();

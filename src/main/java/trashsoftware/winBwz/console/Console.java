@@ -1,6 +1,9 @@
 package trashsoftware.winBwz.console;
 
 import trashsoftware.winBwz.Main;
+import trashsoftware.winBwz.core.options.AlgOptions;
+import trashsoftware.winBwz.core.options.BWZOptions;
+import trashsoftware.winBwz.core.options.LZOptions;
 import trashsoftware.winBwz.packer.*;
 import trashsoftware.winBwz.encrypters.WrongPasswordException;
 import trashsoftware.winBwz.packer.pz.PzSolidPacker;
@@ -65,10 +68,25 @@ public class Console {
                     p.setCmpLevel(pref[2]);
                     p.setEncrypt(password, enc, "bzse", "sha-256");
 
+                    AlgOptions algOptions;
+                    switch (alg) {
+                        case "bwz":
+                            algOptions = new BWZOptions(pref[0], BWZOptions.EntropyMethod.ADAPTIVE_RANGE);
+                            break;
+                        case "lzz2":
+                        case "fastLzz":
+                        case "deflate":
+                            algOptions = new LZOptions(pref[0], pref[1]);
+                            break;
+                        default:
+                            System.out.println("Unsupported algorithm '" + alg + "'");
+                            return;
+                    }
+
                     long start = System.currentTimeMillis();
                     System.out.println("Compressing...");
                     if (!outFile.endsWith(".pz")) outFile += ".pz";
-                    p.pack(outFile, pref[0], pref[1]);
+                    p.pack(outFile, algOptions);
 
                     long timeUsed = System.currentTimeMillis() - start;
                     double seconds = (double) timeUsed / 1000;

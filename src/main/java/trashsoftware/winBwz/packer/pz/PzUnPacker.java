@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.packer.pz;
 
+import com.sun.istack.internal.Nullable;
 import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.core.bwz.BWZDeCompressor;
@@ -8,6 +9,9 @@ import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzDecompressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2DeCompressor;
+import trashsoftware.winBwz.core.options.AlgOptions;
+import trashsoftware.winBwz.core.options.BWZOptions;
+import trashsoftware.winBwz.core.options.LZOptions;
 import trashsoftware.winBwz.encrypters.Decipher;
 import trashsoftware.winBwz.encrypters.WrongPasswordException;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamDecoder;
@@ -16,12 +20,16 @@ import trashsoftware.winBwz.packer.CatalogNode;
 import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.packer.UnsupportedVersionException;
 import trashsoftware.winBwz.packer.pzNonSolid.PzNsPacker;
-import trashsoftware.winBwz.utility.*;
+import trashsoftware.winBwz.utility.Bytes;
+import trashsoftware.winBwz.utility.Security;
+import trashsoftware.winBwz.utility.SeparateInputStream;
+import trashsoftware.winBwz.utility.Util;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.ResourceBundle;
 
 /**
  * The .pz archive unpacking program.
@@ -53,11 +61,11 @@ public abstract class PzUnPacker extends UnPacker {
      * The archive is available if and only if the primary version of this archive matches the primary version of the
      * decompression program.
      */
-    private byte primaryVersion;
+    private int primaryVersion;
     /**
      * Secondary version of the current opening archive.
      */
-    private byte algVersion;
+    private int algVersion;
 
     protected boolean isSeparated;
     protected int partCount;
@@ -105,6 +113,7 @@ public abstract class PzUnPacker extends UnPacker {
      * String abbreviation of compression algorithm of this archive.
      */
     protected String alg;
+    protected AlgOptions algOptions;
     /**
      * String annotation of this archive.
      */
@@ -158,6 +167,19 @@ public abstract class PzUnPacker extends UnPacker {
         }
     }
 
+    public static int fixedHeadLength(int primaryVersion) {
+        return 27 + reservedBufferLen(primaryVersion);
+    }
+
+    private static int reservedBufferLen(int primaryVersion) {
+        if (primaryVersion >= 29) return 5;
+        else return 0;
+    }
+
+    private int fixedHeadLength() {
+        return fixedHeadLength(primaryVersion);
+    }
+
     /**
      * Reads the archive information from the archive file to this {@code UnPacker} instance.
      *
@@ -175,8 +197,8 @@ public abstract class PzUnPacker extends UnPacker {
         if (bis.skip(4) != 4) throw new IOException("Error occurs while reading");
 
         if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
-        primaryVersion = buffer2[0];
-        algVersion = buffer2[1];
+        primaryVersion = buffer2[0] & 0xff;
+        algVersion = buffer2[1] & 0xff;
         if (primaryVersion >= 25)
             readInfo25higher();
         else
@@ -194,7 +216,7 @@ public abstract class PzUnPacker extends UnPacker {
         String encInfo = Bytes.byteToBitString(infoBytes[1]);
         if (primaryVersion == 25) readInfoByte25(infoBytes[0]);
         else if (primaryVersion == 26) readInfoByte26(infoBytes[0]);
-        else if (primaryVersion == 27 || primaryVersion == 28) readInfoByte27or28(infoBytes[0]);
+        else if (primaryVersion >= 27) readInfoByte27higher(infoBytes[0]);
         else throw new UnsupportedVersionException("Unsupported file version");
 
         String encAlgName = encInfo.substring(0, 2);
@@ -254,6 +276,15 @@ public abstract class PzUnPacker extends UnPacker {
         if (bis.read(buffer4) != 4) throw new IOException("Error occurs while reading");
         cmpMapLen = Bytes.bytesToInt32(buffer4);
 
+        // Since version-29
+        byte[] reservedBuffer = new byte[reservedBufferLen(primaryVersion)];
+        if (reservedBuffer.length > 0) {
+            if (bis.read(reservedBuffer) != reservedBuffer.length)
+                throw new IOException("Error occurs while reading");
+
+        }
+        algOptions = readAlgOption(reservedBuffer);
+
         if (bis.read(buffer2) != 2) throw new IOException("Error occurs while reading");
         byte[] extraFieldLength = new byte[4];
         System.arraycopy(buffer2, 0, extraFieldLength, 2, 2);
@@ -288,9 +319,10 @@ public abstract class PzUnPacker extends UnPacker {
             extraLen = 0;
         }
 
-        if (bis.read(extraField) != extraFieldLen) throw new IOException("Error occurs while reading");
+        if (bis.read(extraField) != extraFieldLen)
+            throw new IOException("Error occurs while reading");
 
-        mainStartPos = cmpMapLen + extraFieldLen + extraLen + PzPacker.FIXED_HEAD_LENGTH;
+        mainStartPos = cmpMapLen + extraFieldLen + extraLen + fixedHeadLength();
         cmpMainLength = archiveLength - mainStartPos;
 
         if (encryptLevel != 0) {
@@ -385,7 +417,7 @@ public abstract class PzUnPacker extends UnPacker {
         isSeparated = sepRep == '1';
     }
 
-    private void readInfoByte27or28(byte infoByte) {
+    private void readInfoByte27higher(byte infoByte) {
         String info = Bytes.byteToBitString(infoByte);
         String enc = info.substring(0, 2);  // The encrypt level of this archive.
         switch (enc) {
@@ -402,32 +434,52 @@ public abstract class PzUnPacker extends UnPacker {
         }
 
         String algCode = info.substring(2, 6);
-        int programAlgVersion;
+        boolean algCompatible;
         switch (algCode) {
             case "0000":
                 alg = "lzz2";
-                programAlgVersion = LZZ2Compressor.VERSION;
+                algCompatible = LZZ2Compressor.compatibleWithVersion(algVersion);
                 break;
             case "1000":
                 alg = "bwz";
-                programAlgVersion = BWZCompressor.VERSION;
+                algCompatible = BWZCompressor.compatibleWithVersion(algVersion);
                 break;
             case "1100":
                 alg = "fastLzz";
-                programAlgVersion = FastLzzCompressor.VERSION;
+                algCompatible = FastLzzCompressor.compatibleWithVersion(algVersion);
                 break;
             case "0100":
                 alg = "deflate";
-                programAlgVersion = 0;
+                algCompatible = true;
                 break;
             default:
                 throw new RuntimeException("Unknown algorithm");
         }
-        if (programAlgVersion != algVersion)
+        if (!algCompatible)
             throw new UnsupportedVersionException("Unsupported algorithm version");
 
         char sepRep = info.charAt(7);
         isSeparated = sepRep == '1';
+    }
+
+    /**
+     * Before calling this, make sure alg, windowSize are properly set
+     */
+    private AlgOptions readAlgOption(byte[] reservedBuffer) {
+        switch (alg) {
+            case "lzz2":
+            case "fastLzz":
+            case "deflate":
+                return new LZOptions(windowSize, 64);  // lab size does not matter when decompression
+            case "bwz":
+                if (reservedBuffer.length == 0) 
+                    return BWZOptions.oldDefault(windowSize);
+                else {
+                    return BWZOptions.createFromByte(windowSize, reservedBuffer[0]);
+                }
+            default:
+                throw new RuntimeException("Unknown algorithm '" + alg + "'");
+        }
     }
 
     /**
@@ -463,9 +515,9 @@ public abstract class PzUnPacker extends UnPacker {
 
         DeCompressor mapDec;
         if (windowSize == 0) {
-            mapDec = getDeCompressor(cmpMapName, PzPacker.defaultWindowSize);
+            mapDec = getDeCompressor(cmpMapName, null);
         } else {
-            mapDec = getDeCompressor(cmpMapName, windowSize);
+            mapDec = getDeCompressor(cmpMapName, algOptions);
         }
         FileOutputStream fos = new FileOutputStream(mapName);
         try {
@@ -527,7 +579,9 @@ public abstract class PzUnPacker extends UnPacker {
 
                 try {
                     ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    BWZDeCompressor deCompressor = new BWZDeCompressor(temp, 32768, 0);
+                    // @see: AnnotationUI
+                    BWZDeCompressor deCompressor = new BWZDeCompressor(temp, 0, BWZOptions.oldDefault(32768));
+                    deCompressor.setUnPacker(this);
                     deCompressor.uncompress(out);
                     uncompressedText = out.toByteArray();
                     out.close();
@@ -580,8 +634,12 @@ public abstract class PzUnPacker extends UnPacker {
      *
      * @return {@code primaryVersion} the primary version.
      */
-    public byte versionNeeded() {
+    public int versionNeeded() {
         return primaryVersion;
+    }
+
+    public int getAlgVersion() {
+        return algVersion;
     }
 
     /**
@@ -597,7 +655,8 @@ public abstract class PzUnPacker extends UnPacker {
         for (CatalogNode cn : getRootNode().getChildren()) unCompressFrom(targetDir, cn);
     }
 
-    protected DeCompressor getDeCompressor(String cmpTempName, int windowSize) throws IOException, NoSuchAlgorithmException {
+    protected DeCompressor getDeCompressor(String cmpTempName, @Nullable AlgOptions algOptions) throws IOException, NoSuchAlgorithmException {
+        int windowSize = algOptions == null ? 0 : algOptions.getWindowSize();
         DeCompressor mainDec;
         switch (alg) {
             case "lzz2":
@@ -607,7 +666,7 @@ public abstract class PzUnPacker extends UnPacker {
                 mainDec = new FastLzzDecompressor(cmpTempName, windowSize);
                 break;
             case "bwz":
-                mainDec = new BWZDeCompressor(cmpTempName, windowSize, 0);
+                mainDec = new BWZDeCompressor(cmpTempName, 0, algOptions == null ? BWZOptions.newDefault(windowSize) : (BWZOptions) algOptions);
                 break;
             case "deflate":
                 mainDec = new DeflateDeCompressor(cmpTempName);
@@ -615,6 +674,7 @@ public abstract class PzUnPacker extends UnPacker {
             default:
                 throw new NoSuchAlgorithmException("No such algorithm");
         }
+        mainDec.setUnPacker(this);
         return mainDec;
     }
 
@@ -659,6 +719,13 @@ public abstract class PzUnPacker extends UnPacker {
      */
     public String getAlg() {
         return alg;
+    }
+
+    /**
+     * @return the algorithm-specific options of this archive
+     */
+    public AlgOptions getAlgOptions() {
+        return algOptions;
     }
 
     /**
@@ -820,84 +887,81 @@ public abstract class PzUnPacker extends UnPacker {
     public String getFailInfo() {
         return failInfo;
     }
-}
-
-
-/**
- * A class used for recording information of a file in an archive in the time of extraction.
- *
- * @author zbh
- * @since 0.4
- */
-class IndexNodeUnp {
-
-    private final String name;
-
-    /**
-     * The start position of this file in the uncompressed main part of archive.
-     */
-    private long start;
-
-    /**
-     * The end position of this file in the uncompressed main part of archive.
-     */
-    private long end;
-
-    /**
-     * Whether this IndexNodeUnp represents a directory.
-     */
-    private boolean isDir;
-
-    /**
-     * The start and end position of children of this IndexNodeUnp in the uncompressed context map.
-     */
-    private int[] childrenRange;
-
-    /**
-     * Creates a new {@code IndexNodeUnp} instance.
+    
+    static /**
+     * A class used for recording information of a file in an archive in the time of extraction.
      *
-     * @param name name of file which is represented by this IndexNodeUnp.
+     * @author zbh
+     * @since 0.4
      */
-    IndexNodeUnp(String name) {
-        this.name = name;
-        isDir = true;
-    }
+    class IndexNodeUnp {
 
-    void setScale(long start, long end) {
-        this.start = start;
-        this.end = end;
-        isDir = false;
-    }
+        private final String name;
 
-    void setChildrenRange(int begin, int stop) {
-        childrenRange = new int[]{begin, stop};
-    }
+        /**
+         * The start position of this file in the uncompressed main part of archive.
+         */
+        private long start;
 
-    boolean isDir() {
-        return isDir;
-    }
+        /**
+         * The end position of this file in the uncompressed main part of archive.
+         */
+        private long end;
 
-    int[] getChildrenRange() {
-        return childrenRange;
-    }
+        /**
+         * Whether this IndexNodeUnp represents a directory.
+         */
+        private boolean isDir;
 
-    public long getStart() {
-        return start;
-    }
+        /**
+         * The start and end position of children of this IndexNodeUnp in the uncompressed context map.
+         */
+        private int[] childrenRange;
 
-    long getEnd() {
-        return end;
-    }
+        /**
+         * Creates a new {@code IndexNodeUnp} instance.
+         *
+         * @param name name of file which is represented by this IndexNodeUnp.
+         */
+        IndexNodeUnp(String name) {
+            this.name = name;
+            isDir = true;
+        }
 
-    public String getName() {
-        return name;
-    }
+        void setScale(long start, long end) {
+            this.start = start;
+            this.end = end;
+            isDir = false;
+        }
 
-    @Override
-    public String toString() {
-        if (isDir) return "Dir(" + name + ", " + Arrays.toString(childrenRange) + ")";
-        else return "File(" + name + ": " + start + ", " + end + ")";
+        void setChildrenRange(int begin, int stop) {
+            childrenRange = new int[]{begin, stop};
+        }
+
+        boolean isDir() {
+            return isDir;
+        }
+
+        int[] getChildrenRange() {
+            return childrenRange;
+        }
+
+        public long getStart() {
+            return start;
+        }
+
+        long getEnd() {
+            return end;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            if (isDir) return "Dir(" + name + ", " + Arrays.toString(childrenRange) + ")";
+            else return "File(" + name + ": " + start + ", " + end + ")";
+        }
     }
 }
-
-

@@ -33,6 +33,8 @@ public class BWTEncoder {
     private final boolean isDc3;
 
     private final int threadId;
+    
+    public static final int EOF = 0;
 
     /**
      * Creates a new {@code BWTEncoder} instance.
@@ -46,7 +48,7 @@ public class BWTEncoder {
         this.text = new int[size + 1];
         for (int i = 0; i < size; i++) this.text[i] = (fullText[begin + i] & 0xff) + 1;  // Transform every byte
         // to unsigned and plus one to make sure nothing is smaller than or equal to the EOF character.
-        this.text[this.text.length - 1] = 0;  // Add the EOF character (0) at the end of the original text.
+        this.text[this.text.length - 1] = EOF;  // Add the EOF character (0) at the end of the original text.
         // This is necessary for transforming suffix array into Burrows-Wheeler matrix.
     }
 
@@ -62,7 +64,7 @@ public class BWTEncoder {
         this.text = new int[size + 1];
         for (int i = 0; i < size; i++) this.text[i] = (fullText[i] & 0xff) + 1;  // Transform every byte
         // to unsigned and plus one to make sure nothing is smaller than or equal to the EOF character.
-        this.text[this.text.length - 1] = 0;  // Add the EOF character (0) at the end of the original text.
+        this.text[this.text.length - 1] = EOF;  // Add the EOF character (0) at the end of the original text.
         // This is necessary for transforming suffix array into Burrows-Wheeler matrix.
     }
 

@@ -761,6 +761,14 @@ public abstract class Util {
         }
         return result;
     }
+    
+    public static int countElement(int[] arr, int target) {
+        int count = 0;
+        for (int ele : arr) {
+            if (ele == target) count++;
+        }
+        return count;
+    }
 
     public static boolean checkFileIdentical(String fileName1, String fileName2) {
         try {

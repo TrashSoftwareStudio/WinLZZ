@@ -8,6 +8,7 @@ import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
 import trashsoftware.winBwz.core.options.AlgOptions;
 import trashsoftware.winBwz.core.options.BWZOptions;
+import trashsoftware.winBwz.core.options.EntropyMethod;
 import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.packer.pz.PzSolidPacker;
@@ -117,9 +118,9 @@ public class FileInfoUI implements Initializable {
             AlgOptions algOptions = pzu.getAlgOptions();
             if (algOptions instanceof BWZOptions) {
                 BWZOptions bo = (BWZOptions) algOptions;
-                if (bo.getEntropyMethod() == BWZOptions.EntropyMethod.BLOCK_HUFFMAN) {
+                if (bo.getEntropyMethod() == EntropyMethod.BLOCK_HUFFMAN) {
                     alg += " - " + bundle.getString("entropyHuffman");
-                } else if (bo.getEntropyMethod() == BWZOptions.EntropyMethod.ADAPTIVE_RANGE) {
+                } else if (bo.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE) {
                     alg += " - " + bundle.getString("entropyAdaptiveRange");
                 }
             }

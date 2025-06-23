@@ -15,17 +15,21 @@ public class LongRangeCompressorRam {
     private final int eofSig;
     ByteArrayOutputStream out;
     private final int[] fullText;
+    private final int textLength;
+    private boolean collapse = false;
 
-    public LongRangeCompressorRam(int[] fullText, FrequencyTable freq, int eofSig) {
+    public LongRangeCompressorRam(int[] fullText, FrequencyTable freq, int eofSig, int textLength) {
         this.freq = freq;
         this.eofSig = eofSig;
         this.fullText = fullText;
+        this.textLength = textLength;
     }
 
     public byte[] compress() {
         out = new ByteArrayOutputStream();
 
-        for (int b : fullText) {
+        for (int i = 0; i < textLength; i++) {
+            int b = fullText[i];
             encodeSymbol(b);
             freq.increment(b);
         }
@@ -37,6 +41,7 @@ public class LongRangeCompressorRam {
 
     private void encodeSymbol(int symbol) {
         long range = high - low + 1;
+//        System.out.print(range + " ");
         int total = freq.getTotal();
         int symLow = freq.getSymbolLow(symbol);
         int symHigh = freq.getSymbolHigh(symbol);
@@ -48,12 +53,20 @@ public class LongRangeCompressorRam {
         long newLow = low + offsetLow;
         long newHigh = low + offsetHigh - 1;
 
-        if (newHigh < newLow) newHigh = newLow;
+        if (newHigh < newLow) {
+            collapse = true;
+            System.out.printf("\nSymbol collision in compressor! symbol: %d, newLow: %d, newHigh: %d, range: %d, " +
+                    "symLow: %d, symHigh: %d, total: %d\n", symbol, newLow, newHigh, range, symLow, symHigh, total);
+            System.out.printf("Adjacent symbols: {%d: (%d, %d), %d: (%d, %d), %d: (%d, %d)} \n", 
+                    symbol - 1, freq.getSymbolLow(symbol - 1), freq.getSymbolHigh(symbol - 1),
+                    symbol, freq.getSymbolLow(symbol), freq.getSymbolHigh(symbol),
+                    symbol + 1, freq.getSymbolLow(symbol + 1), freq.getSymbolHigh(symbol + 1));
+            newHigh = newLow;
+        }
 
         low = newLow & RangeCodingConstants.MASK_RANGE;
         high = newHigh & RangeCodingConstants.MASK_RANGE;
-
-        // Flush stable top byte (39-bit range → top 8 bits in bits 31–38)
+        
         while ((low >>> (RangeCodingConstants.RANGE_BITS - 8)) ==
                 (high >>> (RangeCodingConstants.RANGE_BITS - 8))) {
             int topByte = (int) (high >>> (RangeCodingConstants.RANGE_BITS - 8));
@@ -66,6 +79,16 @@ public class LongRangeCompressorRam {
             low = (low << 8) & RangeCodingConstants.MASK_RANGE;
             high = ((high << 8) | 0xFF) & RangeCodingConstants.MASK_RANGE;
         }
+
+//        // Emergency flush if range is too small
+//        if ((high - low + 1) < RangeCodingConstants.EMERGENCY_FLUSH_THRESHOLD) {
+//            int topByte = (int) (high >>> (RangeCodingConstants.RANGE_BITS - 8));
+//            out.write(topByte);
+//            while (pending-- > 0)
+//                out.write(topByte ^ 0xFF);
+//            low = (low << 8) & RangeCodingConstants.MASK_RANGE;
+//            high = ((high << 8) | 0xFF) & RangeCodingConstants.MASK_RANGE;
+//        }
     }
 
     public void finish() {
@@ -73,5 +96,9 @@ public class LongRangeCompressorRam {
             out.write((int) (low >>> (RangeCodingConstants.RANGE_BITS - 8)));
             low = (low << 8) & RangeCodingConstants.MASK_RANGE;
         }
+    }
+
+    public boolean isCollapsed() {
+        return collapse;
     }
 }

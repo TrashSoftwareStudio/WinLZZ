@@ -1,5 +1,7 @@
 package trashsoftware.winBwz.rangeCodec;
 
+import java.util.Arrays;
+
 public class AdaptiveFrequencyTable extends FrequencyTable {
 
     private final int[] frequencies;
@@ -54,7 +56,12 @@ public class AdaptiveFrequencyTable extends FrequencyTable {
             tree.update(i, frequencies[i]);
         }
     }
-    
+
+    @Override
+    public String toString() {
+        return Arrays.toString(frequencies) + " ||| " + Arrays.toString(tree.tree);
+    }
+
     static class FenwickTree {
         private final int[] tree;
 

@@ -29,6 +29,8 @@ public class RangeDecoder {
 
         long offset = code - low;
         int value = (int)(((offset + 1) * total - 1) / range);
+//        long offset = code - low;
+//        int value = (int)((offset * total) / range);
 
         int symbol = freq.getSymbolFromValue(value);
         int symLow = freq.getSymbolLow(symbol);
@@ -39,7 +41,11 @@ public class RangeDecoder {
 
         long newLow = low + offsetLow;
         long newHigh = low + offsetHigh - 1;
-        if (newHigh < newLow) newHigh = newLow;
+        if (newHigh < newLow) {
+            System.out.printf("Symbol collision in decoder! newLow: %d, newHigh: %d, range: %d, " +
+                    "symLow: %d, symHigh: %d, total: %d\n", newLow, newHigh, range, symLow, symHigh, total);
+            newHigh = newLow;
+        }
 
         low = newLow & RangeCodingConstants.MASK_RANGE;
         high = newHigh & RangeCodingConstants.MASK_RANGE;

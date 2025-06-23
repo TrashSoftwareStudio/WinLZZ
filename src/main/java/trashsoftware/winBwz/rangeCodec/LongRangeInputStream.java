@@ -4,6 +4,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
 
 public class LongRangeInputStream {
 
@@ -78,7 +79,25 @@ public class LongRangeInputStream {
 
 //        long t1 = System.currentTimeMillis();
 
-        unCompress(encodedNBytes);
+        try {
+            unCompress(encodedNBytes);
+//            int begin = Math.max(0, bufferIndex - 8);
+//            int end = Math.min(bufferIndex + 8, readBuffer.limit());
+//            byte[] sub = Arrays.copyOfRange(readBuffer.array(), begin, end);
+//            System.out.println(Arrays.toString(sub) + ", " + 
+//                    Arrays.toString(Arrays.copyOfRange(result, currentIndex - 8, currentIndex)));
+        } catch (EOFException eof) {
+            System.err.printf("Expected nBytes: %d, actual read: %d, at buffer index %d, surrounding bytes: \n", 
+                    encodedNBytes,
+                    blockBytesRead,
+                    bufferIndex);
+            int begin = Math.max(0, bufferIndex - 8);
+            int end = Math.min(bufferIndex + 8, readBuffer.limit());
+            byte[] sub = Arrays.copyOfRange(readBuffer.array(), begin, end);
+            System.err.println(Arrays.toString(sub) + ", " +
+                    Arrays.toString(Arrays.copyOfRange(result, currentIndex - 8, currentIndex)));
+            throw eof;
+        }
 
 //        System.out.println("Bytes read: " + blockBytesRead);
 
@@ -92,24 +111,24 @@ public class LongRangeInputStream {
     private void unCompress(int encodedNBytes) throws IOException {
         initialize();
         
-        while (true) {
+        while (blockBytesRead < encodedNBytes) {
             int sym = decodeSymbol(ft);
             ft.increment(sym);
-            if (sym == eofSig) break;  // EOF marker
+            if (sym == eofSig) continue;  // EOF marker
 
             result[currentIndex++] = sym;
-            if (blockBytesRead > encodedNBytes) {
-                throw new RuntimeException("The range coded stream is drained before encountering EOF");
-            }
+//            if (blockBytesRead > encodedNBytes) {
+//                throw new EOFException("Range coded stream is drained before encountering EOF");
+//            }
         }
         
-        cutTail(encodedNBytes);
+//        cutTail(encodedNBytes);
     }
     
     private void cutTail(int encodedNBytes) throws IOException {
         while (blockBytesRead < encodedNBytes) {
             int loaded = loadNextByte();
-            if (loaded == -1) throw new RuntimeException("Stream does not contain enough bytes.");
+            if (loaded == -1) throw new EOFException("Stream does not contain enough bytes.");
         }
     }
 
@@ -162,8 +181,8 @@ public class LongRangeInputStream {
             if (read <= 0) {
                 return -1;
             }
-            if (read != readBuffer.limit()) readBuffer.limit(read);
             readBuffer.flip();
+            if (read != readBuffer.limit()) readBuffer.limit(read);
             bufferIndex = 0;
         }
         blockBytesRead++;

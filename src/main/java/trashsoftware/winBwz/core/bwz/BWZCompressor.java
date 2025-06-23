@@ -12,6 +12,7 @@ package trashsoftware.winBwz.core.bwz;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.bwz.bwt.BWTEncoder;
 import trashsoftware.winBwz.core.options.BWZOptions;
+import trashsoftware.winBwz.core.options.EntropyMethod;
 import trashsoftware.winBwz.huffman.MapCompressor.BwzMapCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanCompressorRam;
 import trashsoftware.winBwz.longHuffman.LongHuffmanUtil;
@@ -19,15 +20,16 @@ import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.rangeCodec.AdaptiveFrequencyTable;
 import trashsoftware.winBwz.rangeCodec.FrequencyTable;
 import trashsoftware.winBwz.rangeCodec.LongRangeCompressorRam;
+import trashsoftware.winBwz.rangeCodec.RangeDecoder;
 import trashsoftware.winBwz.utility.Bytes;
+import trashsoftware.winBwz.utility.IntArrayOutputStream;
 import trashsoftware.winBwz.utility.Util;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -58,6 +60,7 @@ public class BWZCompressor implements Compressor {
      */
     final static int HUFFMAN_TABLE_SIZE = 259;
     private static final int DEFAULT_HUF_SIZE = 16384;
+    private static final int DEFAULT_RANGE_SIZE = 65536;
     private final int windowSize;
     /**
      * Default maximum size of a huffman-coding block.
@@ -115,7 +118,7 @@ public class BWZCompressor implements Compressor {
         this.sis = in;
         this.options = options;
     }
-    
+
     public static boolean compatibleWithVersion(int fileVersion) {
         if (VERSION == 1) return fileVersion == 1;
         if (VERSION == 2) return fileVersion == 1 || fileVersion == 2;
@@ -232,8 +235,18 @@ public class BWZCompressor implements Compressor {
             throw new RuntimeException("Compress thread not terminated.");  // Wait for all threads complete.
 
         for (EncodeThread et : threads) {
-            et.writeBlockHead(out);
-            et.writeTo(out);
+            et.computeHeaders();
+            if (et.entropyMethod == EntropyMethod.ADAPTIVE_RANGE && 
+                    (et.forceDiscard || et.sizeAfterCompression() > et.sizeBeforeCompression() + 5)) {
+                // do not deal with huffman: our huffman hardly ever compresses bigger, and this adds complexity
+                if (et.forceDiscard) {
+                    System.out.println("Force discarded, size: " + et.sizeBeforeCompression() + ", " + et.sizeAfterCompression());
+                }
+                et.writeNoCompression(out);
+            } else {
+                et.writeBlockHead(out);
+                et.writeTo(out);
+            }
         }
     }
 
@@ -268,7 +281,13 @@ public class BWZCompressor implements Compressor {
     @Override
     public void setCompressionLevel(int level) {
         if (level == 0) maxHuffmanSize = windowSize;
-        else maxHuffmanSize = DEFAULT_HUF_SIZE;
+        else {
+            if (options.getEntropyMethod() == EntropyMethod.BLOCK_HUFFMAN) {
+                maxHuffmanSize = DEFAULT_HUF_SIZE;
+            } else if (options.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE) {
+                maxHuffmanSize = DEFAULT_RANGE_SIZE;
+            }
+        }
     }
 
     /**
@@ -305,6 +324,8 @@ public class BWZCompressor implements Compressor {
     public void setThreads(int threads) {
         this.threadNumber = threads;
     }
+    
+//    private int indexFromBegin = 0;
 
     /**
      * An implementation of {@code Runnable} that compresses a single block using bwz algorithm.
@@ -321,15 +342,16 @@ public class BWZCompressor implements Compressor {
         private final int threadId;
         private final boolean useDc3;
         long bwtTime, mtfTime, mapTime, hufTime;
-        int hufBlocksCount;
+        int entropyBlocksCount;
         private byte[][] results;
-        
+
         // huffman uses
         private byte[][] maps;
         private byte[] cmpMap;
         private byte[] headNumbers;
 
-        final BWZOptions.EntropyMethod entropyMethod;
+        final EntropyMethod entropyMethod;
+        boolean forceDiscard = false;
 
         /**
          * Creates a new {@code EncodeThread} instance.
@@ -346,7 +368,7 @@ public class BWZCompressor implements Compressor {
                      int partSize,
                      int threadId,
                      boolean useDc3,
-                     BWZOptions.EntropyMethod entropyMethod) {
+                     EntropyMethod entropyMethod) {
 
             this.entropyMethod = entropyMethod;
             this.buffer = data;
@@ -371,16 +393,16 @@ public class BWZCompressor implements Compressor {
             long t3 = System.currentTimeMillis();
             mtfTime += t3 - t2;
 
-            int lenAfterMtf = array.length;
+//            int lenAfterMtf = array.length;
 
             switch (entropyMethod) {
                 case BLOCK_HUFFMAN:
-                    entropyHuffman(array, lenAfterMtf);
+                    entropyHuffman(array);
                     hufTime += System.currentTimeMillis() - t3;
                     break;
                 case ADAPTIVE_RANGE:
 //                    System.out.print("Len after mtf: " + lenAfterMtf);
-                    entropyRange(array, lenAfterMtf);
+                    entropyRange(array);
 //                    System.out.println(", after rc: " + results[0].length);
                     hufTime += System.currentTimeMillis() - t3;
                     break;
@@ -391,7 +413,8 @@ public class BWZCompressor implements Compressor {
             pos += (long) (partSize * 0.2);  // Update progress again
         }
 
-        void entropyHuffman(int[] array, int lenAfterMtf) {
+        void entropyHuffman(int[] array) {
+            int lenAfterMtf = array.length;
             LongHuffmanCompressorRam compressor = new LongHuffmanCompressorRam(
                     array,
                     BWZCompressor.HUFFMAN_TABLE_SIZE,
@@ -404,7 +427,7 @@ public class BWZCompressor implements Compressor {
             results = new byte[maxHufBlockNumber][];
 
             int index1 = 0;
-            hufBlocksCount = 0;
+            entropyBlocksCount = 0;
             while (index1 < array.length) {
                 int optimalLength = compressor.findOptimalLength(
                         index1,
@@ -412,21 +435,100 @@ public class BWZCompressor implements Compressor {
                 );
                 byte[] map = compressor.getMap();
                 byte[] cmpText = compressor.compress();
-                maps[hufBlocksCount] = map;
-                results[hufBlocksCount] = cmpText;
+                maps[entropyBlocksCount] = map;
+                results[entropyBlocksCount] = cmpText;
                 index1 += optimalLength;
-                hufBlocksCount++;
+                entropyBlocksCount++;
             }
         }
 
-        void entropyRange(int[] array, int lenAfterMtf) {
-            FrequencyTable ft = new AdaptiveFrequencyTable(BWZCompressor.HUFFMAN_TABLE_SIZE);
-            LongRangeCompressorRam compressor = new LongRangeCompressorRam(array,
-                    ft,
-                    BWZCompressor.HUFFMAN_END_SIG);
-            hufBlocksCount = 1;
-            results = new byte[1][];
-            results[0] = compressor.compress();
+        void entropyRange(int[] array) {
+            int nRangeBlocks = Math.max(1, array.length / maxHuffmanSize);
+            int eachBlockSize = array.length % nRangeBlocks == 0 ? 
+                    array.length / nRangeBlocks : (array.length / nRangeBlocks + 1);
+            results = new byte[nRangeBlocks][];
+
+            entropyBlocksCount = nRangeBlocks;
+            int index = 0;
+            int[] buffer = new int[eachBlockSize];
+            
+            for (int i = 0; i < nRangeBlocks; i++) {
+                int len = Math.min(buffer.length, array.length - index);
+                System.arraycopy(array, index, buffer, 0, len);
+                FrequencyTable ft = new AdaptiveFrequencyTable(BWZCompressor.HUFFMAN_TABLE_SIZE);
+                LongRangeCompressorRam compressor = new LongRangeCompressorRam(buffer,
+                        ft,
+                        BWZCompressor.HUFFMAN_END_SIG,
+                        len);
+                results[i] = compressor.compress();
+                index += len;
+//                System.out.println(len);
+                
+                if (compressor.isCollapsed()) {
+                    System.out.println("Collapsed");
+                    forceDiscard = true;
+//                    int[] orig = Arrays.copyOfRange(buffer, 0, len);
+//                    System.out.println(Arrays.toString(orig));
+//                    System.out.println(Util.countElement(orig, 0));
+//                    System.out.println(Util.countElement(orig, 256));
+//                    System.out.println(Util.countElement(orig, 257));
+//                    System.out.println(Util.countElement(orig, 258));
+//                    System.out.println(Util.countElement(array, 0));
+//                    System.out.println(Util.countElement(array, 256));
+//                    System.out.println(Util.countElement(array, 257));
+//                    System.out.println(Util.countElement(orig, 258));
+                }
+
+//                // test
+//                int[] orig = Arrays.copyOfRange(buffer, 0, len);
+//                FrequencyTable ft2 = new AdaptiveFrequencyTable(BWZCompressor.HUFFMAN_TABLE_SIZE);
+//                IntArrayOutputStream iaos = new IntArrayOutputStream();
+//                try {
+//
+//                    ByteArrayInputStream bais = new ByteArrayInputStream(results[i]);
+//                    RangeDecoder rd = new RangeDecoder(bais);
+//                    rd.initialize();
+//
+//                    int rr;
+//                    while ((rr = rd.decodeSymbol(ft2)) != HUFFMAN_END_SIG) {
+//                        ft2.increment(rr);
+//                        iaos.write(rr);
+//                    }
+//                    int[] reEncoded = iaos.toIntArray();
+////                    
+////                    System.out.println(len + ", " + reEncoded.length + ", " + Arrays.equals(orig, reEncoded));
+////                    System.out.println(Arrays.toString(Arrays.copyOf(orig, 64)));
+////                    System.out.println(Arrays.toString(Arrays.copyOf(reEncoded, 64)));
+//                } catch (IOException e) {
+//                    int[] reEncoded = iaos.toIntArray();
+//                    System.out.println("Err len: " + len + ", " + reEncoded.length);
+////                    System.out.println(Arrays.toString(Arrays.copyOf(orig, 32)) + " ... " + Arrays.toString(Arrays.copyOfRange(orig, orig.length - 32, orig.length)));
+////                    System.out.println(Arrays.toString(Arrays.copyOf(reEncoded, 32)) + " ... " + Arrays.toString(Arrays.copyOfRange(reEncoded, reEncoded.length - 32, reEncoded.length)));
+//                    int count = 3;
+//                    for (int j = 0; j < orig.length; j++) {
+//                        if (orig[j] != reEncoded[j]) {
+//                            System.out.printf("Error begin at %d: expected %d got %d\n", j, orig[j], reEncoded[j]);
+//                            System.out.println(Arrays.toString(Arrays.copyOfRange(orig, j - 16, j + 16)));
+//                            System.out.println(Arrays.toString(Arrays.copyOfRange(reEncoded, j - 16, j + 16)));
+//                            System.out.println(ft);
+//                            System.out.println(ft2);
+//                            System.out.println(ft2.getSymbolLow(reEncoded[j]) + " " + ft2.getSymbolHigh(reEncoded[j]));
+//                            System.out.println(ft.getSymbolLow(orig[j]) + " " + ft.getSymbolHigh(orig[j]));
+//                            count--;
+//                            if (count == 0) break;
+//                        }
+//                    }
+//                    throw new RuntimeException(e);
+//                }
+//
+//                String st1 = ft.toString();
+//                String st2 = ft2.toString();
+//                if (!st1.equals(st2)) {
+//                    System.out.println("===========");
+//                    System.out.println(st1);
+//                    System.out.println(st2);
+//                }
+            }
         }
 
         @SuppressWarnings("unused")
@@ -436,9 +538,14 @@ public class BWZCompressor implements Compressor {
 
         @SuppressWarnings("unused")
         int sizeAfterCompression() {
-            int totalLen = cmpMap.length + 6;
-            for (int i = 0; i < hufBlocksCount; ++i) {
+            int totalLen = 0;
+            for (int i = 0; i < entropyBlocksCount; ++i) {
                 totalLen += results[i].length;
+            }
+            if (entropyMethod == EntropyMethod.BLOCK_HUFFMAN) {
+                totalLen += cmpMap.length + 8;
+            } else if (entropyMethod == EntropyMethod.ADAPTIVE_RANGE) {
+                totalLen += results.length * 4 + 4;
             }
             return totalLen;
         }
@@ -450,7 +557,7 @@ public class BWZCompressor implements Compressor {
          * @throws IOException if the <code>out</code> is not writable.
          */
         void writeTo(OutputStream out) throws IOException {
-            for (int i = 0; i < hufBlocksCount; ++i) {
+            for (int i = 0; i < entropyBlocksCount; ++i) {
                 byte[] result = results[i];
                 mainLen += result.length;
                 out.write(result);
@@ -460,12 +567,12 @@ public class BWZCompressor implements Compressor {
         private void generateCompressedMapHuf() {
             long t0 = System.currentTimeMillis();
             int mapLength = 0;
-            for (int i = 0; i < hufBlocksCount; ++i) {
+            for (int i = 0; i < entropyBlocksCount; ++i) {
                 mapLength += maps[i].length;
             }
             byte[] totalMap = new byte[mapLength];
             int i = 0, j = 0;
-            while (i < hufBlocksCount) {
+            while (i < entropyBlocksCount) {
                 System.arraycopy(maps[i], 0, totalMap, j, maps[i].length);
                 j += maps[i].length;
                 i += 1;
@@ -505,25 +612,46 @@ public class BWZCompressor implements Compressor {
 
             mainLen += (cmpMap.length + 8);
         }
-        
+
         private void writeHeadAdaptiveRange(OutputStream out) throws IOException {
-            headNumbers = new byte[6];
-            headNumbers[0] = (byte) entropyMethod.ordinal();
-            
-            // Records the exact length after range coding
-            // The range decoder will need this to determine how to cut the stream
-            Bytes.intToBytes32(results[0].length, headNumbers, 2);
-            
             out.write(headNumbers);
             
-            mainLen += 6;
+            for (byte[] res : results) {
+                // Records the exact length after range coding
+                // The range decoder will need this to determine how to cut the stream
+                out.write(Bytes.intToBytes32(res.length));
+            }
+
+            mainLen += 4 + entropyBlocksCount * 4L;
         }
         
-        void writeBlockHead(OutputStream out) throws IOException {
-            if (entropyMethod == BWZOptions.EntropyMethod.BLOCK_HUFFMAN) {
+        void computeHeaders() {
+            if (entropyMethod == EntropyMethod.BLOCK_HUFFMAN) {
                 generateCompressedMapHuf();
+            } else if (entropyMethod == EntropyMethod.ADAPTIVE_RANGE) {
+                headNumbers = new byte[4];
+                headNumbers[0] = (byte) entropyMethod.ordinal();
+
+                Bytes.intToBytes24(entropyBlocksCount, headNumbers, 1);
+            }
+        }
+        
+        void writeNoCompression(OutputStream out) throws IOException {
+            byte[] plainHead = new byte[5];
+            plainHead[0] = (byte) -1;
+//            System.out.println(partSize);
+            Bytes.intToBytes32(partSize, plainHead, 1);
+            out.write(plainHead);
+            out.write(buffer, 0, partSize);
+            
+            mainLen += 5 + partSize;
+        }
+
+        void writeBlockHead(OutputStream out) throws IOException {
+            // -1/255 corresponding to no compression
+            if (entropyMethod == EntropyMethod.BLOCK_HUFFMAN) {
                 writeCompressedMapHuf(out);
-            } else if (entropyMethod == BWZOptions.EntropyMethod.ADAPTIVE_RANGE) {
+            } else if (entropyMethod == EntropyMethod.ADAPTIVE_RANGE) {
                 writeHeadAdaptiveRange(out);
             } else {
                 throw new IllegalArgumentException("Unsupported entropy method " + entropyMethod.name());

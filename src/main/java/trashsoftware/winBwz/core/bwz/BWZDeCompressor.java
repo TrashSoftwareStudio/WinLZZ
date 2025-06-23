@@ -3,6 +3,7 @@ package trashsoftware.winBwz.core.bwz;
 import trashsoftware.winBwz.core.DeCompressor;
 import trashsoftware.winBwz.core.bwz.bwt.BWTDecoder;
 import trashsoftware.winBwz.core.options.BWZOptions;
+import trashsoftware.winBwz.core.options.EntropyMethod;
 import trashsoftware.winBwz.huffman.MapCompressor.BwzMapDeCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanInputStream;
 import trashsoftware.winBwz.packer.pz.PzUnPacker;
@@ -60,8 +61,8 @@ public class BWZDeCompressor implements DeCompressor {
      * @param options bwz options  
      * @throws IOException if the file is not readable
      */
-    public BWZDeCompressor(String inFile, 
-                           long startPos, 
+    public BWZDeCompressor(String inFile,
+                           long startPos,
                            BWZOptions options)
             throws IOException {
         this.windowSize = options.getWindowSize();
@@ -107,23 +108,32 @@ public class BWZDeCompressor implements DeCompressor {
         if (windowSize <= huffmanBlockMaxSize) huffmanBlockForEachWindow = 1;
         else huffmanBlockForEachWindow = windowSize / huffmanBlockMaxSize;
 
-        ArrayList<int[]> blockList = new ArrayList<>();
+        ArrayList<DecTextContainer> blockList = new ArrayList<>();
         ArrayList<int[]> huffmanBlockList = new ArrayList<>();
 
         LongHuffmanInputStream his =
                 new LongHuffmanInputStream(fc, BWZCompressor.HUFFMAN_TABLE_SIZE, windowSize);
         int[] huffmanResult;
-        byte[] flagBytes;
+        byte[] flagFlag;
+//        byte[] flagBytes;
         byte[] headBytes;
         byte[] blockBytes;
+
+//        boolean blockPlain = false;
 
         while (true) {
             if (huffmanMaps.isEmpty()) {
                 if (algVersion >= 2) {
-                    flagBytes = his.readPlain(2);
-                    if (flagBytes == null) break;  // Reach the end of the stream.
+                    flagFlag = his.readPlain(1);
+                    if (flagFlag == null) break;  // Reach the end of the stream.
+                    if (flagFlag[0] == -1) {
+                        // plain text
+                        throw new RuntimeException("Huffman block is not supposed to be plain.");
+                    }
 
-                    int entropyOrdinal = (flagBytes[0] & 0xff) & 0x0f;
+                    his.readPlain(1);  // reserved, no use
+
+                    int entropyOrdinal = (flagFlag[0] & 0xff) & 0x0f;
                     if (entropyOrdinal != options.getEntropyMethod().ordinal()) {
                         throw new RuntimeException("Entropy method mismatch.");
                     }
@@ -142,6 +152,8 @@ public class BWZDeCompressor implements DeCompressor {
 
                 fillMaps(blockBytes, mapLen, origRow);
             }
+
+
             byte[] map = huffmanMaps.removeFirst();
             huffmanResult = his.readNextCompressedBlock(map, BWZCompressor.HUFFMAN_END_SIG);
 
@@ -157,7 +169,7 @@ public class BWZDeCompressor implements DeCompressor {
                     index += s.length;
                 }
 
-                blockList.add(concatenateHuffman);
+                blockList.add(new DecTextContainer(concatenateHuffman, null));
                 huffmanBlockList.clear();
 
                 // Got enough blocks to start multi-threading, or reaches the end of file.
@@ -176,34 +188,72 @@ public class BWZDeCompressor implements DeCompressor {
                 }
             }
         }
-
     }
 
     private void decodeAdaptiveRange(OutputStream out, FileChannel fc) throws Exception {
-        ArrayList<int[]> blockList = new ArrayList<>();
-        
-        byte[] flagBytes;
+        ArrayList<DecTextContainer> blockList = new ArrayList<>();
+
+        byte[] flagFlag;
+        byte[] sizeBytes;
+        byte[] blockLenBytes;
+        ArrayDeque<Integer> rngBlockLengths = new ArrayDeque<>();
 
         LongRangeInputStream ris = new LongRangeInputStream(fc, windowSize);
-        
+
+//        int indexFromBegin = 0;
+
         while (true) {
-            FrequencyTable ft = new AdaptiveFrequencyTable(BWZCompressor.HUFFMAN_TABLE_SIZE);
-            ris.setFrequencyTable(ft);
-//            System.out.println("Read next block");
-            
-            flagBytes = ris.readPlain(6);
-            if (flagBytes == null) {
+//            System.out.println("Reading next block");
+            flagFlag = ris.readPlain(1);
+            if (flagFlag == null) {
                 break;  // Reach the end of the stream.
             }
-            int entropyOrdinal = (flagBytes[0] & 0xff) & 0x0f;
-            if (entropyOrdinal != options.getEntropyMethod().ordinal()) {
-                throw new RuntimeException("Entropy method mismatch. Got byte " + flagBytes[0]);
+            if (flagFlag[0] == -1) {
+                // no compression
+                sizeBytes = ris.readPlain(4);
+                int plainLength = Bytes.bytesToInt32(sizeBytes);
+//                System.out.println(plainLength);
+                byte[] plainText = ris.readPlain(plainLength);
+                blockList.add(new DecTextContainer(null, plainText));
+            } else {
+                int entropyOrdinal = (flagFlag[0] & 0xff) & 0x0f;
+
+                if (entropyOrdinal != options.getEntropyMethod().ordinal()) {
+                    throw new RuntimeException("Entropy method mismatch. Got byte " + flagFlag[0]);
+                }
+                sizeBytes = ris.readPlain(3);
+//                if (sizeBytes == null) {
+//                    break;  // Reach the end of the stream.
+//                }
+
+                int nEntropyBlocks = Bytes.bytesToInt24(sizeBytes, 0);
+                for (int i = 0; i < nEntropyBlocks; i++) {
+                    blockLenBytes = ris.readPlain(4);
+                    int rngEncLen = (int) Bytes.bytesToInt32(blockLenBytes, 0);
+                    rngBlockLengths.addLast(rngEncLen);
+                }
+
+                List<int[]> blockRngDecList = new ArrayList<>();
+                while (!rngBlockLengths.isEmpty()) {
+                    FrequencyTable ft = new AdaptiveFrequencyTable(BWZCompressor.HUFFMAN_TABLE_SIZE);
+                    ris.setFrequencyTable(ft);
+                    int rngEncLen = rngBlockLengths.removeFirst();
+//                System.out.println(indexFromBegin + " " + rngEncLen);
+                    int[] nextDec = ris.readNextCompressedBlock(rngEncLen, BWZCompressor.HUFFMAN_END_SIG);
+                    blockRngDecList.add(nextDec);
+//                indexFromBegin++;
+                }
+
+                int blockDecLen = totalLength(blockRngDecList);
+                int[] blockRngDec = new int[blockDecLen];
+                int index = 0;
+                for (int[] part : blockRngDecList) {
+                    System.arraycopy(part, 0, blockRngDec, index, part.length);
+                    index += part.length;
+                }
+
+                blockList.add(new DecTextContainer(blockRngDec, null));
             }
-            int rngEncLen = (int) Bytes.bytesToInt32(flagBytes, 2);
-            
-            int[] nextDec = ris.readNextCompressedBlock(rngEncLen, BWZCompressor.HUFFMAN_END_SIG);
-//            System.out.println("Dec len: " + nextDec.length);
-            blockList.add(nextDec);
 
             // got enough blocks for multi-threading
             if (blockList.size() == threadNum) {
@@ -220,7 +270,7 @@ public class BWZDeCompressor implements DeCompressor {
                 }
             }
         }
-        
+
         if (!blockList.isEmpty()) {
             // deal with last block
             bwtDecodeBlock(blockList, out);
@@ -233,7 +283,7 @@ public class BWZDeCompressor implements DeCompressor {
         }
     }
 
-    private void bwtDecodeBlock(List<int[]> blockList, OutputStream out)
+    private void bwtDecodeBlock(List<DecTextContainer> blockList, OutputStream out)
             throws InterruptedException, IOException {
         ExecutorService es = Executors.newCachedThreadPool();
         DecodeThread[] threads = new DecodeThread[blockList.size()];
@@ -256,9 +306,9 @@ public class BWZDeCompressor implements DeCompressor {
     private void decode(OutputStream out, FileChannel fc) throws Exception {
         lastCheckTime = System.currentTimeMillis();
 
-        if (options.getEntropyMethod() == BWZOptions.EntropyMethod.BLOCK_HUFFMAN) {
+        if (options.getEntropyMethod() == EntropyMethod.BLOCK_HUFFMAN) {
             decodeHuffman(out, fc);
-        } else if (options.getEntropyMethod() == BWZOptions.EntropyMethod.ADAPTIVE_RANGE) {
+        } else if (options.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE) {
             decodeAdaptiveRange(out, fc);
         } else {
             throw new IllegalArgumentException("Unsupported entropy method " + options.getEntropyMethod().name());
@@ -347,6 +397,16 @@ public class BWZDeCompressor implements DeCompressor {
         this.threadNum = threadNum;
     }
 
+    static class DecTextContainer {
+        int[] text;
+        byte[] result;
+
+        DecTextContainer(int[] encText, byte[] result) {
+            this.text = encText;
+            this.result = result;
+        }
+    }
+
     /**
      * An implementation of {@code Runnable} that uncompress a single block using bwz algorithm.
      *
@@ -356,17 +416,13 @@ public class BWZDeCompressor implements DeCompressor {
      */
     class DecodeThread implements Runnable {
 
-        //        private static long rldTotal, mtfTotal, bwtTotal;
-        private final int[] text;
-        private byte[] result;
+        private final DecTextContainer textContainer;
 
         /**
          * Creates a new {@code DecodeThread} instance.
-         *
-         * @param text       the text to be decode
          */
-        DecodeThread(int[] text) {
-            this.text = text;
+        DecodeThread(DecTextContainer container) {
+            this.textContainer = container;
         }
 
         /**
@@ -374,20 +430,26 @@ public class BWZDeCompressor implements DeCompressor {
          */
         @Override
         public void run() {
+            if (textContainer.result == null) {
+
 //            long t1 = System.currentTimeMillis();
-            int[] rld = new ZeroRLCDecoder(text, windowSize + 4).Decode();
+                int[] rld = new ZeroRLCDecoder(textContainer.text, windowSize + 4).Decode();
 //            long t2 = System.currentTimeMillis();
-            pos += rld.length / 2;
+                pos += rld.length / 2;
 //            if (unPacker != null) unPacker.progress.set(pos);
-            int[] mtf = new MTFInverse(rld).decode(257);
+                int[] mtf = new MTFInverse(rld).decode(257);
 //            long t3 = System.currentTimeMillis();
-            result = new BWTDecoder(mtf).Decode();
+                textContainer.result = new BWTDecoder(mtf).Decode();
 //            long t4 = System.currentTimeMillis();
 //            rldTotal += t2 - t1;
 //            mtfTotal += t3 - t2;
 //            bwtTotal += t4 - t3;
 //        System.out.println(String.format("rld: %d, mtf: %d, bwt: %d", rldTotal, mtfTotal, bwtTotal));
-            pos = pos - rld.length / 2 + result.length;
+                pos = pos - rld.length / 2 + textContainer.result.length;
+            } else {
+                // plain text, do nothing
+                pos += textContainer.result.length;
+            }
         }
 
         /**
@@ -396,7 +458,7 @@ public class BWZDeCompressor implements DeCompressor {
          * @return the text after decompression
          */
         byte[] getResult() {
-            return result;
+            return textContainer.result;
         }
     }
 }

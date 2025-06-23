@@ -27,7 +27,7 @@ public class MTFTransform {
      * Returns the text after mtf transformation and zero run length coding.
      *
      * @param alphabetSize the alphabet size
-     * @return the text after mtf transformation and zero run length coding..
+     * @return the text after mtf transformation and zero run length coding.
      */
     public int[] Transform(int alphabetSize) {
         ArrayDictionary ld = new ArrayDictionary(alphabetSize);

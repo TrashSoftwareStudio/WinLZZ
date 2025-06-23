@@ -43,10 +43,4 @@ public class BWZOptions extends AlgOptions {
     public EntropyMethod getEntropyMethod() {
         return entropyMethod;
     }
-
-    public enum EntropyMethod {
-        BLOCK_HUFFMAN,
-        STATIC_RANGE,
-        ADAPTIVE_RANGE
-    }
 }

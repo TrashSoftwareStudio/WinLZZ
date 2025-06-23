@@ -3,6 +3,7 @@ package trashsoftware.winBwz.console;
 import trashsoftware.winBwz.Main;
 import trashsoftware.winBwz.core.options.AlgOptions;
 import trashsoftware.winBwz.core.options.BWZOptions;
+import trashsoftware.winBwz.core.options.EntropyMethod;
 import trashsoftware.winBwz.core.options.LZOptions;
 import trashsoftware.winBwz.packer.*;
 import trashsoftware.winBwz.encrypters.WrongPasswordException;
@@ -71,7 +72,7 @@ public class Console {
                     AlgOptions algOptions;
                     switch (alg) {
                         case "bwz":
-                            algOptions = new BWZOptions(pref[0], BWZOptions.EntropyMethod.ADAPTIVE_RANGE);
+                            algOptions = new BWZOptions(pref[0], EntropyMethod.ADAPTIVE_RANGE);
                             break;
                         case "lzz2":
                         case "fastLzz":

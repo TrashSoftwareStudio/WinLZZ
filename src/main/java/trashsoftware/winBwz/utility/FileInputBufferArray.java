@@ -10,18 +10,21 @@ import java.io.*;
  */
 public class FileInputBufferArray {
 
-    private InputStream bis;
+    private final InputStream bis;
 
-    private int bufferSize, remainSize;
+    private final int bufferSize;
+    private int remainSize;
 
-    private byte[] array1, array2;
+    private final byte[] array1;
+    private final byte[] array2;
 
     /**
      * Whether the {@code array2} is the front array.
      */
     private boolean activeArray2;
 
-    private long length, index;
+    private final long length;
+    private long index;
 
     /**
      * Creates a new instance of {@code FileInputBufferArray}.
@@ -40,7 +43,6 @@ public class FileInputBufferArray {
 
     /**
      * Reads and returns a byte which at index <code>index</code>.
-     * <p>
      * This method will throw an {@code IndexOutOfBoundsException} if the <code>index</code> is
      * out of the access range.
      *
@@ -50,22 +52,17 @@ public class FileInputBufferArray {
     public byte getByte(long index) throws IOException {
         if (index >= this.index) {
             activeArray2 = !activeArray2;
+            int read;
             if (activeArray2) {
-                int read = bis.read(array2);
-                if (read > 0) {
-                    this.index += read;
-                    remainSize = read;
-                } else if (read < 0) {
-                    throw new IndexOutOfBoundsException("Index out of file's length");
-                }
+                read = bis.read(array2);
             } else {
-                int read = bis.read(array1);
-                if (read > 0) {
-                    this.index += read;
-                    remainSize = read;
-                } else if (read < 0) {
-                    throw new IndexOutOfBoundsException("Index out of file's length");
-                }
+                read = bis.read(array1);
+            }
+            if (read > 0) {
+                this.index += read;
+                remainSize = read;
+            } else if (read < 0) {
+                throw new IndexOutOfBoundsException("Index out of file's length");
             }
             return getByte(index);
         } else if (index >= this.index - remainSize) {

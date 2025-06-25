@@ -515,9 +515,9 @@ public abstract class PzUnPacker extends UnPacker {
 
         DeCompressor mapDec;
         if (windowSize == 0) {
-            mapDec = getDeCompressor(cmpMapName, null);
+            mapDec = getMapDecompressor(cmpMapName, null);
         } else {
-            mapDec = getDeCompressor(cmpMapName, algOptions);
+            mapDec = getMapDecompressor(cmpMapName, algOptions);
         }
         FileOutputStream fos = new FileOutputStream(mapName);
         try {
@@ -654,8 +654,33 @@ public abstract class PzUnPacker extends UnPacker {
     public void unCompressAll(String targetDir) throws Exception {
         for (CatalogNode cn : getRootNode().getChildren()) unCompressFrom(targetDir, cn);
     }
+    
+    protected DeCompressor getMapDecompressor(String cmpTempName, @Nullable AlgOptions algOptions)
+            throws IOException, NoSuchAlgorithmException {
+//        int windowSize = algOptions == null ? 0 : algOptions.getWindowSize();
+        DeCompressor mapDec;
+        switch (alg) {
+            case "lzz2":
+                mapDec = new LZZ2DeCompressor(cmpTempName, algOptions == null ? PzPacker.DEFAULT_WINDOW_SIZE : algOptions.getWindowSize());
+                break;
+            case "fastLzz":
+                mapDec = new FastLzzDecompressor(cmpTempName, algOptions == null ? PzPacker.DEFAULT_WINDOW_SIZE : algOptions.getWindowSize());
+                break;
+            case "bwz":
+                mapDec = new BWZDeCompressor(cmpTempName, 0, algOptions == null ? BWZOptions.newDefault(PzPacker.DEFAULT_WINDOW_SIZE) : (BWZOptions) algOptions);
+                break;
+            case "deflate":
+                mapDec = new DeflateDeCompressor(cmpTempName);
+                break;
+            default:
+                throw new NoSuchAlgorithmException("No such algorithm");
+        }
+        mapDec.setUnPacker(this);
+        return mapDec;
+    }
 
-    protected DeCompressor getDeCompressor(String cmpTempName, @Nullable AlgOptions algOptions) throws IOException, NoSuchAlgorithmException {
+    protected DeCompressor getMainDecompressor(String cmpTempName, @Nullable AlgOptions algOptions) 
+            throws IOException, NoSuchAlgorithmException {
         int windowSize = algOptions == null ? 0 : algOptions.getWindowSize();
         DeCompressor mainDec;
         switch (alg) {

@@ -11,11 +11,11 @@ package trashsoftware.winBwz.longHuffman;
  */
 public class LengthTuple implements Comparable<LengthTuple> {
 
-    private int b;
+    private final int b;
 
     int length;
 
-    private int freq;
+    private final int freq;
 
     /**
      * Creates a new instance of {@code LengthTuple}.

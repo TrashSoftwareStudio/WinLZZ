@@ -8,14 +8,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javafx.util.Callback;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
-import trashsoftware.winBwz.core.options.AlgOptions;
-import trashsoftware.winBwz.core.options.BWZOptions;
-import trashsoftware.winBwz.core.options.EntropyMethod;
-import trashsoftware.winBwz.core.options.LZOptions;
+import trashsoftware.winBwz.core.options.*;
 import trashsoftware.winBwz.gui.GUIClient;
 import trashsoftware.winBwz.gui.graphicUtil.AnnotationNode;
 import trashsoftware.winBwz.resourcesPack.configLoader.LoaderManager;
@@ -64,7 +60,7 @@ public class CompressUI implements Initializable {
     @FXML
     private TextField nameText;
     @FXML
-    private ComboBox<String> presetLevelBox, windowNameBox, modeBox, partialBox, unitBox;
+    private ComboBox<String> presetLevelBox, windowNameBox, strongModeBox, partialBox, unitBox;
     @FXML
     ComboBox<EntropyMethod> entropyBox;
     @FXML
@@ -108,6 +104,7 @@ public class CompressUI implements Initializable {
         setLevelListener();
         setFmtBoxListener();
         setAlgBoxListener();
+        setEntropyBoxListener();
         setSizeUnitListener();
         setThreadBoxListener();
         setWindowNameBoxListener();
@@ -120,8 +117,19 @@ public class CompressUI implements Initializable {
                 LoaderManager.getCacheSaver().readInt("algBoxIndex", 0));
         presetLevelBox.getSelectionModel().select(
                 LoaderManager.getCacheSaver().readInt("levelBoxIndex", 3));
-        modeBox.getSelectionModel().select(1);
+//        strongModeBox.getSelectionModel().select(0);
         unitBox.getSelectionModel().select(0);
+        String cachedEmName = LoaderManager.getCacheSaver().readString("entropyMode");
+        if (cachedEmName != null) {
+            try {
+                EntropyMethod cachedEm = EntropyMethod.valueOf(cachedEmName.toUpperCase());
+                if (entropyBox.getItems().contains(cachedEm)) {
+                    entropyBox.getSelectionModel().select(cachedEm);
+                }
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     void setDir(File[] dir) {
@@ -226,18 +234,18 @@ public class CompressUI implements Initializable {
             if (newValue.intValue() == 0) {
                 windowNameBox.getSelectionModel().clearSelection();
                 bufferBox.getSelectionModel().clearSelection();
-                modeBox.getSelectionModel().clearSelection();
+                strongModeBox.getSelectionModel().clearSelection();
                 windowNameBox.setDisable(true);
                 bufferBox.setDisable(true);
-                modeBox.setDisable(true);
+                strongModeBox.setDisable(true);
             } else {
                 windowNameBox.setDisable(false);
 
                 int[] windowModeBuffer = getPresetLevels(newValue.intValue());
                 windowNameBox.getSelectionModel().select(windowModeBuffer[0]);
                 if (windowModeBuffer[1] >= 0) {
-                    modeBox.setDisable(false);
-                    modeBox.getSelectionModel().select(windowModeBuffer[1]);
+                    strongModeBox.setDisable(false);
+                    strongModeBox.getSelectionModel().select(windowModeBuffer[1]);
                 }
                 if (windowModeBuffer[2] >= 0) {  // has buffer (look ahead buffer) option
                     bufferBox.setDisable(false);
@@ -307,12 +315,12 @@ public class CompressUI implements Initializable {
             case "bwz":
                 entropyBox.setDisable(false);
                 entropyBox.getItems().addAll(EntropyMethod.ADAPTIVE_RANGE, EntropyMethod.BLOCK_HUFFMAN);
-                entropyBox.getSelectionModel().select(0);
+                entropyBox.getSelectionModel().select(1);
                 break;
             case "lzz2":
                 entropyBox.setDisable(false);
                 entropyBox.getItems().addAll(EntropyMethod.ADAPTIVE_RANGE, EntropyMethod.FULL_HUFFMAN);
-                entropyBox.getSelectionModel().select(0);
+                entropyBox.getSelectionModel().select(1);
                 break;
             default:
                 entropyBox.setDisable(true);
@@ -330,20 +338,20 @@ public class CompressUI implements Initializable {
                 case "fastLzz":
                     setFastLzzUi();
                     bufferBox.getSelectionModel().select(3);
-                    modeBox.getSelectionModel().select(0);
+                    strongModeBox.getSelectionModel().select(0);
                     break;
                 case "lzz2":
                     setLzz2Ui();
                     bufferBox.getSelectionModel().select(3);
-                    modeBox.getSelectionModel().select(1);
+                    strongModeBox.getSelectionModel().select(1);
                     break;
                 case "bwz":
                     setBwzUi();
-                    modeBox.getSelectionModel().select(1);
+                    strongModeBox.getSelectionModel().select(2);
                     break;
                 case "deflate":
                     setDeflateUi();
-                    modeBox.getSelectionModel().select(1);
+                    strongModeBox.getSelectionModel().select(1);
                     break;
                 default:
                     throw new RuntimeException();
@@ -355,14 +363,22 @@ public class CompressUI implements Initializable {
             LoaderManager.getCacheSaver().writeCache("algBoxIndex", newValue.intValue());
         });
     }
+    
+    private void setEntropyBoxListener() {
+        entropyBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                LoaderManager.getCacheSaver().writeCache("entropyMethod", newValue.name());
+            }
+        });
+    }
 
     private void setModeBoxListener() {
-        modeBox.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
+        strongModeBox.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue.intValue() >= 0) {
                 currentModeIndex = newValue.intValue();
                 estimateMemoryUsage();
             }
-        }));
+        });
     }
 
     private void estimateMemoryUsage() {
@@ -430,7 +446,7 @@ public class CompressUI implements Initializable {
         bufferBox.getItems().clear();
         bufferBox.getItems().addAll(64);
         bufferBox.getSelectionModel().select(0);
-        modeBox.setDisable(true);
+        strongModeBox.setDisable(true);
         threadBox.getItems().clear();
         threadBox.getItems().add(1);
         threadBox.getSelectionModel().select(0);
@@ -444,9 +460,9 @@ public class CompressUI implements Initializable {
         bufferBox.setDisable(false);
         bufferBox.getItems().clear();
         bufferBox.getItems().addAll(labSizesLzz2);
-        modeBox.setDisable(false);
-        modeBox.getItems().clear();
-        modeBox.getItems().addAll(cmpModeLevels);
+        strongModeBox.setDisable(false);
+        strongModeBox.getItems().clear();
+        strongModeBox.getItems().addAll(cmpModeLevels);
         threadBox.getItems().clear();
         threadBox.getItems().add(1);
         threadBox.getSelectionModel().select(0);
@@ -460,10 +476,10 @@ public class CompressUI implements Initializable {
         bufferBox.getSelectionModel().clearSelection();
         bufferBox.getItems().clear();
         bufferBox.setDisable(true);
-        modeBox.setDisable(false);
-        modeBox.getSelectionModel().clearSelection();
-        modeBox.getItems().clear();
-        modeBox.getItems().addAll(cmpModeLevels[0], cmpModeLevels[1]);
+        strongModeBox.setDisable(false);
+        strongModeBox.getSelectionModel().clearSelection();
+        strongModeBox.getItems().clear();
+        strongModeBox.getItems().addAll(cmpModeLevels[0], cmpModeLevels[1], cmpModeLevels[2]);
         threadBox.getItems().clear();
         threadBox.getItems().addAll(threads);
         threadBox.getSelectionModel().select(LoaderManager.getCacheSaver().readInt("threadBoxIndex", 0));
@@ -478,9 +494,9 @@ public class CompressUI implements Initializable {
         bufferBox.setDisable(false);
         bufferBox.getItems().clear();
         bufferBox.getItems().addAll(labSizesFastLzz);
-        modeBox.setDisable(false);
-        modeBox.getItems().clear();
-        modeBox.getItems().addAll(cmpModeLevels[0], cmpModeLevels[1]);
+        strongModeBox.setDisable(false);
+        strongModeBox.getItems().clear();
+        strongModeBox.getItems().addAll(cmpModeLevels[0], cmpModeLevels[1]);
         threadBox.getItems().clear();
         threadBox.getItems().addAll(threads);
         threadBox.getSelectionModel().select(LoaderManager.getCacheSaver().readInt("threadBoxIndex", 0));
@@ -540,15 +556,15 @@ public class CompressUI implements Initializable {
         EntropyMethod entropy = entropyBox.getValue();
         AlgOptions algOptions;
         if (presetLevelBox.getSelectionModel().getSelectedIndex() == 0) {
-            window = 0;
-            buffer = 0;
+//            window = 0;
+//            buffer = 0;
             cmpLevel = 0;
             algOptions = null;
         } else {
             switch (alg) {
                 case "bwz":
                     window = windowSizesBwz[currentWindowIndex];
-                    buffer = 0;
+//                    buffer = 0;
                     cmpLevel = currentModeIndex;
                     algOptions = new BWZOptions(window, entropy == null ? EntropyMethod.ADAPTIVE_RANGE : entropy);
                     break;
@@ -562,7 +578,7 @@ public class CompressUI implements Initializable {
                     window = windowSizesLzz2[currentWindowIndex];
                     buffer = bufferBox.getSelectionModel().getSelectedItem();
                     cmpLevel = currentModeIndex;
-                    algOptions = new LZOptions(window, buffer);
+                    algOptions = new LZZ2Options(window, buffer, entropy == null ? EntropyMethod.FULL_HUFFMAN : entropy);
                     break;
                 case "deflate":
                     window = 32768;
@@ -604,7 +620,7 @@ public class CompressUI implements Initializable {
         CompressingUI cui = loader.getController();
         cui.setName(name, rootDir);
         cui.setGrandParent(parent);
-        cui.setPref(fmt, window, buffer, cmpLevel, alg, algOptions, threadNum, annotation, partSize);
+        cui.setPref(fmt, cmpLevel, alg, algOptions, threadNum, annotation, partSize);
         cui.setStage(stage);
         cui.setEncrypt(password, encryptLevel, encAlg, passAlg);
         stage.show();
@@ -647,9 +663,9 @@ public class CompressUI implements Initializable {
             default:  // default level is 3
                 return new int[]{2, 1, -1};
             case 4:
-                return new int[]{3, 1, -1};
+                return new int[]{3, 2, -1};
             case 5:
-                return new int[]{5, 1, -1};
+                return new int[]{5, 2, -1};
         }
     }
 

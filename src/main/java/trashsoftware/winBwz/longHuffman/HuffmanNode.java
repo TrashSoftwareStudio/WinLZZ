@@ -1,5 +1,7 @@
 package trashsoftware.winBwz.longHuffman;
 
+import java.util.Objects;
+
 /**
  * A node of a huffman tree, where the node implements the interface {@code Comparable}.
  * <p>
@@ -11,7 +13,7 @@ package trashsoftware.winBwz.longHuffman;
  */
 public class HuffmanNode implements Comparable<HuffmanNode> {
 
-    private int freq;
+    private final int freq;
 
     private int value;
 
@@ -88,15 +90,26 @@ public class HuffmanNode implements Comparable<HuffmanNode> {
     /**
      * Compares this {@code HuffmanNode} with another {@code HuffmanNode}.
      * <p>
-     * This method returns 1 if this {@code HuffmanNode} has smaller {@code freq} than <code>o</code>'s,
-     * -1 if greater, 0 if equals.
+     * Typically, nodes with bigger frequency will appear at the front of a sorted list. If two
+     * symbols have same frequency, nodes with smaller lexicographical order will be at front.
+     * If still same, compare object id.
      *
      * @param o the {@code HuffmanNode} to be compared with this {@code HuffmanNode}
      * @return {@code 1} if this {@code HuffmanNode} has smaller {@code freq} than <code>o</code>'s,
-     * {@code -1} if greater, {@code 0} if equals.
+     * {@code -1} if greater, {@code 0} if <code>this</code> is <code>o</code>.
      */
     @Override
     public int compareTo(HuffmanNode o) {
-        return Integer.compare(o.freq, freq);
+        int cmp1 = Integer.compare(o.freq, freq);
+        if (cmp1 != 0) return cmp1;
+        int cmp2 = Integer.compare(value, o.value);
+        if (cmp2 != 0) return cmp2;
+        return Integer.compare(System.identityHashCode(this), System.identityHashCode(o));
+    }
+
+    @Override
+    public String toString() {
+//        return super.toString();
+        return String.format("HNode[%d](freq=%d, left=%s, right=%s)", value, freq, left, right);
     }
 }

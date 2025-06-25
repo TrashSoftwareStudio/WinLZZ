@@ -2,6 +2,8 @@ package trashsoftware.winBwz;
 
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2DeCompressor;
+import trashsoftware.winBwz.core.options.EntropyMethod;
+import trashsoftware.winBwz.core.options.LZZ2Options;
 import trashsoftware.winBwz.utility.Util;
 
 import java.io.BufferedOutputStream;
@@ -27,7 +29,7 @@ public class LZZ2Test {
 //        v.add(new FileInputStream(name));
 //        SequenceInputStream sis = new SequenceInputStream(v.elements());
         int ws = 32768;
-        LZZ2Compressor c = new LZZ2Compressor(name, ws, 255);
+        LZZ2Compressor c = new LZZ2Compressor(name, new LZZ2Options(ws, 255, EntropyMethod.FULL_HUFFMAN));
         c.setCompressionLevel(4);
         BufferedOutputStream fos = new BufferedOutputStream(new FileOutputStream(cmpName));
         try {

@@ -1,6 +1,6 @@
 package trashsoftware.winBwz.huffman;
 
-import trashsoftware.winBwz.utility.FileBitOutputStream;
+import trashsoftware.winBwz.utility.BitOutputStream;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -53,18 +53,20 @@ public class HuffmanCompressor extends HuffmanCompressorBase {
         }
     }
 
+    @Override
     public void SepCompress(OutputStream out) throws IOException {
 //        compressedLength = 1;
 //        out.write((byte) lengthRemainder);
         compressText(huffmanCode, lengthCode, out);
     }
 
+    @Override
     protected void compressText(int[] huffmanCode, int[] lengthCode, OutputStream fos) throws IOException {
         FileInputStream bis = new FileInputStream(inFile);
 
         byte[] buffer = new byte[bufferSize];
 
-        FileBitOutputStream fbo = new FileBitOutputStream(fos);
+        BitOutputStream fbo = new BitOutputStream(fos);
 
         int read;
         while ((read = bis.read(buffer, 0, bufferSize)) > 0) {

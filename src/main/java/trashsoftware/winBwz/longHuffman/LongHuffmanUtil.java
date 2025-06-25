@@ -1,43 +1,48 @@
 package trashsoftware.winBwz.longHuffman;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 
 public abstract class LongHuffmanUtil {
 
-    static void addArrayToFreqMap(int[] array, int[] freqMap, int textBegin, int textLength) {
+    static void addFrequencies(int[] text, int[] freqMap, int textBegin, int textLength) {
         for (int i = 0; i < textLength; i++) {
-            freqMap[array[textBegin + i]] += 1;
+            freqMap[text[textBegin + i]] += 1;
         }
+    }
+    
+    public static int[] generateCodeLengthMap(int[] freqMap) {
+        HuffmanNode root = generateHuffmanTree(freqMap);
+        int[] lengths = new int[freqMap.length];
+        generateCodeLengthMap(lengths, root, 0);
+        return lengths;
     }
 
     public static HuffmanNode generateHuffmanTree(int[] freqMap) {
-        ArrayList<HuffmanNode> list = new ArrayList<>();
+        NavigableSet<HuffmanNode> pool = new TreeSet<>();
         for (int v = 0; v < freqMap.length; ++v) {
             int freq = freqMap[v];
             if (freq > 0) {
                 HuffmanNode hn = new HuffmanNode(freq);
                 hn.setValue(v);
-                list.add(hn);
+                pool.add(hn);
             }
         }
-        if (list.size() == 1) {
+        if (pool.size() == 1) {
             HuffmanNode root = new HuffmanNode(0);
-            root.setLeft(list.remove(0));
+            root.setLeft(pool.pollFirst());
             return root;
         }
-        while (list.size() > 1) {
-            Collections.sort(list);
-            // Pop out two nodes with smallest frequency.
-            HuffmanNode left = list.remove(list.size() - 1);
-            HuffmanNode right = list.remove(list.size() - 1);
+        while (pool.size() > 1) {
+            // Pop out two nodes with the smallest frequency.
+            HuffmanNode left = pool.pollLast();
+            HuffmanNode right = pool.pollLast();
+            if (left == null || right == null) throw new RuntimeException(pool.toString());
             HuffmanNode parent = new HuffmanNode(left.getFreq() + right.getFreq());
             parent.setLeft(left);
             parent.setRight(right);
-            list.add(parent);
+            pool.add(parent);
         }
-        return list.get(0);
+        return pool.first();
     }
 
     public static void generateCodeLengthMap(int[] lengthMap, HuffmanNode node, int length) {

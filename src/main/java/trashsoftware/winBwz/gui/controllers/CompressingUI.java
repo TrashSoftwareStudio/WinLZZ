@@ -45,7 +45,7 @@ public class CompressingUI implements Initializable {
 
     private String name, alg;
     private File[] path;
-    private int windowSize, bufferSize, cmpLevel, encryptLevel, threads;
+    private int cmpLevel, encryptLevel, threads;
     private CompressUI.FmtBoxItem fmt;
     private String password;
     private String encAlg;
@@ -92,13 +92,11 @@ public class CompressingUI implements Initializable {
         this.path = path;
     }
 
-    void setPref(CompressUI.FmtBoxItem format, int windowSize, int bufferSize, 
+    void setPref(CompressUI.FmtBoxItem format, 
                  int compressionLevel, String algorithm, AlgOptions algOptions, 
                  int threads,
                  AnnotationNode annotation, long partSize) {
         this.fmt = format;
-        this.windowSize = windowSize;
-        this.bufferSize = bufferSize;
         this.cmpLevel = compressionLevel;
         this.alg = algorithm;
         this.algOptions = algOptions;
@@ -240,7 +238,7 @@ public class CompressingUI implements Initializable {
         expectTimeLabel.setText("--:--");
         passedSizeLabel.setText("0 " + bundle.getString("byte"));
         compressedSizeLabel.setText("0 " + bundle.getString("byte"));
-        currentCmpRatioLabel.setText("0.0%");
+        currentCmpRatioLabel.setText("--%");
 
 //        origSizeTextLabel.setText(lanLoader.get(200));
 //        timeUsedTextLabel.setText(lanLoader.get(201));

@@ -1,6 +1,5 @@
 package trashsoftware.winBwz.utility;
 
-import java.io.IOException;
 import java.io.OutputStream;
 
 public class IntArrayOutputStream extends OutputStream {
@@ -17,7 +16,7 @@ public class IntArrayOutputStream extends OutputStream {
     }
     
     @Override
-    public void write(int b) throws IOException {
+    public void write(int b) {
         ensureCapacity();
         buffer[index++] = b;
     }
@@ -39,5 +38,9 @@ public class IntArrayOutputStream extends OutputStream {
         int[] res = new int[index];
         System.arraycopy(buffer, 0, res, 0, index);
         return res;
+    }
+    
+    public void reset() {
+        index = 0;
     }
 }

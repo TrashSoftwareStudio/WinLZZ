@@ -2,7 +2,6 @@ package trashsoftware.winBwz.packer;
 
 import com.sun.istack.internal.Nullable;
 import javafx.beans.property.*;
-import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.ProgressedStream;
 import trashsoftware.winBwz.core.options.AlgOptions;
@@ -16,7 +15,6 @@ import java.util.TimerTask;
 
 public abstract class Packer {
 
-    protected final ReadOnlyLongWrapper progress = new ReadOnlyLongWrapper();
     public final ReadOnlyStringWrapper percentage = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper ratio = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper file = new ReadOnlyStringWrapper();
@@ -25,6 +23,7 @@ public abstract class Packer {
     public final ReadOnlyStringWrapper passedLength = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper cmpLength = new ReadOnlyStringWrapper();
     public final ReadOnlyStringWrapper currentCmpRatio = new ReadOnlyStringWrapper();
+    protected final ReadOnlyLongWrapper progress = new ReadOnlyLongWrapper();
     protected final ReadOnlyStringWrapper step = new ReadOnlyStringWrapper();
     protected final ReadOnlyLongWrapper totalOrigLengthWrapper = new ReadOnlyLongWrapper();
     protected final ReadOnlyIntegerWrapper exitStatus = new ReadOnlyIntegerWrapper();
@@ -38,8 +37,8 @@ public abstract class Packer {
      * Archive length after compression.
      */
     protected long compressedLength;
-    private String errorMsg;
     protected long timeOffset;
+    private String errorMsg;
 
     public Packer(File[] inFiles) {
         this.inFiles = inFiles;
@@ -76,7 +75,7 @@ public abstract class Packer {
 
     /**
      * Start packing/compressing.
-     * 
+     *
      * @param outFileName the name of compressed file
      * @param algOptions  algorithm internal options, null if store
      * @throws Exception  if any error happens

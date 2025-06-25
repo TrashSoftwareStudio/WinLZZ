@@ -1,6 +1,6 @@
 package trashsoftware.winBwz;
 
-import trashsoftware.winBwz.utility.FileBitOutputStream;
+import trashsoftware.winBwz.utility.BitOutputStream;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
@@ -10,7 +10,7 @@ public class FileBitOutputStreamTest {
 
     public static void main(String[] args) throws IOException {
         BufferedOutputStream bos1 = new BufferedOutputStream(new FileOutputStream("bos1"));
-        FileBitOutputStream fbo1 = new FileBitOutputStream(bos1);
+        BitOutputStream fbo1 = new BitOutputStream(bos1);
 //
         long t0 = System.currentTimeMillis();
 //

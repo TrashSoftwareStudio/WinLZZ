@@ -1,7 +1,7 @@
 package trashsoftware.winBwz.core.fastLzz;
 
 import trashsoftware.winBwz.utility.FileBitInputStream;
-import trashsoftware.winBwz.utility.FileBitOutputStream;
+import trashsoftware.winBwz.utility.BitOutputStream;
 
 import java.io.IOException;
 
@@ -10,7 +10,7 @@ public class FastLzzUtil {
     static final int MINIMUM_LENGTH = 3;
     static final int MINIMUM_DISTANCE = 1;
 
-    public static void writeDistanceToStream(int distance, FileBitOutputStream outputStream) throws IOException {
+    public static void writeDistanceToStream(int distance, BitOutputStream outputStream) throws IOException {
         int head;
         int content;
         int contentBitLength;
@@ -53,7 +53,7 @@ public class FastLzzUtil {
         outputStream.write(content, contentBitLength);
     }
 
-    public static void writeLengthToStream(int length, FileBitOutputStream outputStream) throws IOException {
+    public static void writeLengthToStream(int length, BitOutputStream outputStream) throws IOException {
         int head;
         int content = 0;
         int contentBitLength = 0;

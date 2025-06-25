@@ -1,6 +1,8 @@
 package trashsoftware.winBwz.longHuffman;
 
-import java.util.Arrays;
+import trashsoftware.winBwz.utility.Util;
+
+import java.util.*;
 
 /**
  * A huffman compression program that all operations take places in the random access memory.
@@ -15,10 +17,10 @@ public class LongHuffmanCompressorRam {
     private static final int OPTIMAL_BLOCK_SIZE = 16384;
     private static final int ESTIMATE_CMP_MAP_LENGTH = 36;
 
-    private int[] fullText;
+    private final int[] fullText;
     private int textBegin;
     private int textSize;
-    private int alphabetSize;
+    private final int alphabetSize;
     private int[] codeTable;
     private int[] lengthTable;
 
@@ -31,9 +33,9 @@ public class LongHuffmanCompressorRam {
     private static int maxHeight = 29;  // map alphabet size: 30
 
     /**
-     * The signal that marks the
+     * The signal that marks the EOF
      */
-    private int endSig;
+    private final int endSig;
 
     /**
      * Creates a new {@code LongHuffmanCompressorRam} instance.
@@ -55,9 +57,18 @@ public class LongHuffmanCompressorRam {
         codeTable = LongHuffmanUtil.generateCanonicalCode(lengthTable);
         return LongHuffmanUtil.generateCanonicalCodeBlock(lengthTable, lengthTable.length);
     }
+    
+    public byte[] setBlock(HuffmanBlock block) {
+        lengthTable = block.lengthTable;
+        textBegin = block.textBegin;
+        textSize = block.textLength;
+        codeTable = LongHuffmanUtil.generateCanonicalCode(lengthTable);
+//        System.out.printf("Set block: %d, %d\n", textBegin, textBegin + textSize);
+        return LongHuffmanUtil.generateCanonicalCodeBlock(lengthTable, lengthTable.length);
+    }
 
     private byte[] compressText() {
-        byte[] out = new byte[(int) ((double) alphabetSize / 256 * textSize) + 1];  // The max possible result length
+        byte[] out = new byte[(int) ((double) alphabetSize / 256 * textSize * 1.1) + 1];  // The max possible result length
         int bits = 0;
         int bitPos = 0;
         int resIndex = 0;
@@ -107,33 +118,6 @@ public class LongHuffmanCompressorRam {
         maxHeight = height;
     }
 
-//    /**
-//     * Returns the canonical huffman code in given length.
-//     *
-//     * @param length the length of the returning canonical map.
-//     * @return the canonical huffman map.
-//     */
-//    public byte[] getMap(int length) {
-//
-//        this.freqTable = new int[alphabetSize];
-//        this.lengthTable = new int[alphabetSize];
-//
-//        generateFreqMap();
-//        HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freqTable);
-//        LongHuffmanUtil.generateCodeLengthMap(lengthTable, rootNode, 0);
-//
-//        LongHuffmanUtil.heightControl(lengthTable, freqTable, maxHeight);
-//        codeTable = LongHuffmanUtil.generateCanonicalCode(lengthTable);
-//        byte[] result = new byte[length];
-//        System.arraycopy(
-//                LongHuffmanUtil.generateCanonicalCodeBlock(lengthTable, alphabetSize),
-//                0,
-//                result,
-//                0,
-//                length);
-//        return result;
-//    }
-
     /**
      * Returns the compressed text using the native huffman code of this {@code LongHuffmanCompressorRam}.
      *
@@ -143,47 +127,12 @@ public class LongHuffmanCompressorRam {
         return compressText();
     }
 
-//    /**
-//     * Returns the compressed text using the given huffman code of this {@code LongHuffmanCompressorRam}.
-//     *
-//     * @param anotherMap the canonical huffman code uses for creating another huffman map for compressing.
-//     * @return the compressed text.
-//     */
-//    public byte[] compress(byte[] anotherMap) {
-//        freqTable = new int[alphabetSize];
-//        lengthTable = new int[alphabetSize];
-//        LongHuffmanUtil.generateLengthCode(anotherMap, lengthTable);
-//        codeTable = LongHuffmanUtil.generateCanonicalCode(lengthTable);
-//        return compressText();
-//    }
-//
-//
-//    /**
-//     * Returns the expected length using the given canonical huffman map to encode.
-//     * <p>
-//     * Returns -1 if the given map does not contain all symbol needed.
-//     *
-//     * @param codeLengthMap the canonical huffman map to be used to encode.
-//     * @return the expected total code length using this map if the map contains all symbols needed, otherwise -1.
-//     */
-//    public long calculateExpectLength(byte[] codeLengthMap) {
-//        long aftLen = 0;
-//        for (int i = 0; i < codeLengthMap.length; i++) {
-//            int freq = freqTable[i];
-//            if (freq > 0) {
-//                if (codeLengthMap[i] == 0) return -1;
-//                aftLen += freq * (codeLengthMap[i] & 0xff);
-//            }
-//        }
-//        return aftLen;
-//    }
-
-    private static int expectLength(int[] codeLengthMap, int[] freqMap) {
+    static int expectLength(int[] codeLengthMap, int[] freqMap) {
         int aftLen = 0;
         for (int i = 0; i < codeLengthMap.length; i++) {
             aftLen += freqMap[i] * codeLengthMap[i];
         }
-        return aftLen;
+        return aftLen / 8 + (aftLen % 8 == 0 ? 0 : 1);
     }
 
     public int findOptimalLength(int textBegin, int minLength) {
@@ -194,13 +143,13 @@ public class LongHuffmanCompressorRam {
         int[] codeLengths;
         if (lastFreqTable == null || lastLengthTable == null) {
             freq = new int[alphabetSize];
-            codeLengths = new int[alphabetSize];
             freq[endSig] = 1;
-            LongHuffmanUtil.addArrayToFreqMap(fullText, freq, textBegin, minLength);
+            LongHuffmanUtil.addFrequencies(fullText, freq, textBegin, minLength);
 
-            HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freq);
-            LongHuffmanUtil.generateCodeLengthMap(codeLengths, rootNode, 0);
+//            HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freq);
+//            LongHuffmanUtil.generateCodeLengthMap(codeLengths, rootNode, 0);
 
+            codeLengths = LongHuffmanUtil.generateCodeLengthMap(freq);
             LongHuffmanUtil.heightControl(codeLengths, freq, maxHeight);
         } else {
             freq = lastFreqTable;
@@ -224,8 +173,9 @@ public class LongHuffmanCompressorRam {
             Arrays.fill(newPartFreq, 0);
             Arrays.fill(newPartCodeLengths, 0);
             newPartFreq[endSig] = 1;
-            LongHuffmanUtil.addArrayToFreqMap(fullText, newPartFreq, textBegin + curLength, blockSize);
+            LongHuffmanUtil.addFrequencies(fullText, newPartFreq, textBegin + curLength, blockSize);
             HuffmanNode newPartRootNode = LongHuffmanUtil.generateHuffmanTree(newPartFreq);
+            
             LongHuffmanUtil.generateCodeLengthMap(newPartCodeLengths, newPartRootNode, 0);
             LongHuffmanUtil.heightControl(newPartCodeLengths, newPartFreq, maxHeight);
 
@@ -235,7 +185,7 @@ public class LongHuffmanCompressorRam {
             System.arraycopy(freq, 0, mergedFreq, 0, alphabetSize);
             Arrays.fill(mergedCodeLengths, 0);
 
-            LongHuffmanUtil.addArrayToFreqMap(fullText, mergedFreq, textBegin + curLength, blockSize);
+            LongHuffmanUtil.addFrequencies(fullText, mergedFreq, textBegin + curLength, blockSize);
             HuffmanNode mergedRootNode = LongHuffmanUtil.generateHuffmanTree(mergedFreq);
             LongHuffmanUtil.generateCodeLengthMap(mergedCodeLengths, mergedRootNode, 0);
             LongHuffmanUtil.heightControl(mergedCodeLengths, mergedFreq, maxHeight);
@@ -263,17 +213,125 @@ public class LongHuffmanCompressorRam {
         return curLength;
     }
 
+    public List<HuffmanBlock> findOptimalSegments(int baseChunkSize) {
+        TreeSet<HuffmanBlock> baseChunks = new TreeSet<>();
+        for (int index = 0; index < fullText.length; index += baseChunkSize) {
+            boolean extendAsFinalChunk = false;
+            int chunkEnd;
+            if (index + baseChunkSize * 1.5 >= fullText.length) {
+                // The next chunk is too small, join to this chunk
+                extendAsFinalChunk = true;
+                chunkEnd = fullText.length;
+            } else {
+                chunkEnd = Math.min(index + baseChunkSize, fullText.length);
+            }
+            int[] freq = new int[alphabetSize];
+            LongHuffmanUtil.addFrequencies(fullText, freq, index, chunkEnd - index);
+            freq[endSig] = 1;
+            int[] lengthCodes = LongHuffmanUtil.generateCodeLengthMap(freq);
+            LongHuffmanUtil.heightControl(lengthCodes, freq, maxHeight);
+            baseChunks.add(new HuffmanBlock(index, chunkEnd - index, freq, lengthCodes, endSig));
+            if (extendAsFinalChunk) break;
+        }
+//        System.out.println(baseChunks);
+        
+        while (baseChunks.size() > 1) {
+            TreeSet<HuffmanBlock> newChunks = new TreeSet<>();
+            boolean improved = false;
+            while (baseChunks.size() > 1) {
+                HuffmanBlock hb1 = baseChunks.pollFirst();
+                HuffmanBlock hb2 = baseChunks.pollFirst();
+                if (hb1 == null || hb2 == null) throw new RuntimeException();
+                if (hb1.nonMergeAble.contains(hb2) || hb2.nonMergeAble.contains(hb1)) {
+                    newChunks.add(hb1);
+                    newChunks.add(hb2);
+                    continue;
+                }
+                int sepLen = hb1.estimatedLength() + hb2.estimatedLength();
+                HuffmanBlock merged = hb1.merge(hb2);
+                int mergedLen = merged.estimatedLength();
+                if (mergedLen <= sepLen) {
+                    improved = true;
+                    newChunks.add(merged);
+                    // If we want to reduce memory usage (GC), clear the non-merge-able here
+                } else {
+                    hb1.nonMergeAble.add(hb2);
+                    hb2.nonMergeAble.add(hb1);
+                    newChunks.add(hb1);
+                    newChunks.add(hb2);
+                }
+            }
+            if (!baseChunks.isEmpty()) {
+                // only 1
+                newChunks.addAll(baseChunks);
+            }
+            baseChunks = newChunks;
+//            System.out.println(baseChunks);
+            if (!improved) break;
+        }
+//        System.out.println(baseChunks);
+        
+        return new ArrayList<>(baseChunks);
+    }
+
     public void generateSingleMap() {
         textBegin = 0;
         textSize = fullText.length;
         int[] freq = new int[alphabetSize];
         lengthTable = new int[alphabetSize];
         freq[endSig] = 1;
-        LongHuffmanUtil.addArrayToFreqMap(fullText, freq, textBegin, textSize);
+        LongHuffmanUtil.addFrequencies(fullText, freq, textBegin, textSize);
 
         HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freq);
         LongHuffmanUtil.generateCodeLengthMap(lengthTable, rootNode, 0);
 
         LongHuffmanUtil.heightControl(lengthTable, freq, maxHeight);
+    }
+
+    public static class HuffmanBlock implements Comparable<HuffmanBlock> {
+        final int eof;
+        int textBegin;
+        int textLength;
+        int[] freq;
+        int[] lengthTable;
+        int estLength;
+        Set<HuffmanBlock> nonMergeAble = new HashSet<>();
+        
+        HuffmanBlock(int textBegin, int textLength, int[] freq, int[] lengthTable, int eof) {
+            this.eof = eof;
+            this.textBegin = textBegin;
+            this.textLength = textLength;
+            this.freq = freq;
+            this.lengthTable = lengthTable;
+            
+            this.estLength = LongHuffmanCompressorRam.expectLength(lengthTable, freq) + LongHuffmanCompressorRam.ESTIMATE_CMP_MAP_LENGTH;
+        }
+
+        @Override
+        public int compareTo(HuffmanBlock o) {
+            return Integer.compare(textBegin, o.textBegin);
+        }
+
+        int estimatedLength() {
+            return estLength;
+        }
+        
+        HuffmanBlock merge(HuffmanBlock other) {
+            if (textBegin > other.textBegin) return other.merge(this);
+            
+            if (textBegin + textLength != other.textBegin) 
+                throw new RuntimeException("Non-continuous blocks cannot be merged: " + 
+                        String.format("(%d, %d) - %d", textBegin, textBegin + textLength, other.textBegin));
+            int[] mergedFreq = Util.elementWiseAdd(freq, other.freq);
+            mergedFreq[eof] = 1;
+            int[] mergedMap = LongHuffmanUtil.generateCodeLengthMap(mergedFreq);
+            LongHuffmanUtil.heightControl(mergedMap, mergedFreq, maxHeight);
+            return new HuffmanBlock(textBegin, textLength + other.textLength, mergedFreq, mergedMap, eof);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("Block(%d, %d; %d)", textBegin, textBegin + textLength, estLength);
+        }
     }
 }

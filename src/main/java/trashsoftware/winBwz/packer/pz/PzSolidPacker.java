@@ -20,12 +20,9 @@ package trashsoftware.winBwz.packer.pz;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.Constants;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
-import trashsoftware.winBwz.core.options.AlgOptions;
-import trashsoftware.winBwz.core.options.BWZOptions;
-import trashsoftware.winBwz.core.deflate.DeflateCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
-import trashsoftware.winBwz.core.options.LZOptions;
+import trashsoftware.winBwz.core.options.AlgOptions;
 import trashsoftware.winBwz.encrypters.Encipher;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
@@ -100,8 +97,10 @@ public class PzSolidPacker extends PzPacker {
                 fileCount += 1;
             }
             currentNode.setChildrenRange(currentCount, fileCount);
-            for (int i = 0; i < sub.length; i++) if (!sub[i].isDirectory()) buildIndexTree(sub[i], tempArr[i]);
-            for (int i = 0; i < sub.length; i++) if (sub[i].isDirectory()) buildIndexTree(sub[i], tempArr[i]);
+            for (int i = 0; i < sub.length; i++)
+                if (!sub[i].isDirectory()) buildIndexTree(sub[i], tempArr[i]);
+            for (int i = 0; i < sub.length; i++)
+                if (sub[i].isDirectory()) buildIndexTree(sub[i], tempArr[i]);
         } else {
             long start = totalLength;
             totalLength += file.length();
@@ -337,9 +336,12 @@ public class PzSolidPacker extends PzPacker {
 
                 long cmpSize = processor.getOutputSize() + compressedLength;
                 cmpLength.set(Util.sizeToReadable(cmpSize));
-                double cmpRatio = (double) cmpSize / position;
-                double roundedRatio = (double) Math.round(cmpRatio * 1000) / 10;
-                currentCmpRatio.set(roundedRatio + "%");
+                if (position == 0) currentCmpRatio.set("--%");
+                else {
+                    double cmpRatio = (double) cmpSize / position;
+                    double roundedRatio = (double) Math.round(cmpRatio * 1000) / 10;
+                    currentCmpRatio.set(roundedRatio + "%");
+                }
             }
         }
     }

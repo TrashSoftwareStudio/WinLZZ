@@ -406,9 +406,12 @@ public class PzNsPacker extends PzPacker {
 
                 long cmpSize = processor.getOutputSize() + compressedLength;
                 cmpLength.set(Util.sizeToReadable(cmpSize));
-                double cmpRatio = (double) cmpSize / position;
-                double roundedRatio = (double) Math.round(cmpRatio * 1000) / 10;
-                currentCmpRatio.set(roundedRatio + "%");
+                if (position == 0) currentCmpRatio.set("--%");
+                else {
+                    double cmpRatio = (double) cmpSize / position;
+                    double roundedRatio = (double) Math.round(cmpRatio * 1000) / 10;
+                    currentCmpRatio.set(roundedRatio + "%");
+                }
             }
         }
     }

@@ -330,7 +330,7 @@ public class PzSolidUnPacker extends PzUnPacker {
                     totalProgress.set(origSize);
 
                     DeCompressor mainDec;
-                    mainDec = getDeCompressor(cmpTempName, algOptions);
+                    mainDec = getMainDecompressor(cmpTempName, algOptions);
                     mainDec.setUnPacker(this);
                     mainDec.setThreads(threadNumber);
                     utt.setProcessor(mainDec);

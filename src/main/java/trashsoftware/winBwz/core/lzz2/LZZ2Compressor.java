@@ -3,12 +3,16 @@ package trashsoftware.winBwz.core.lzz2;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.core.RegularCompressor;
 import trashsoftware.winBwz.core.bwz.MTFTransform;
+import trashsoftware.winBwz.core.options.EntropyMethod;
+import trashsoftware.winBwz.core.options.LZZ2Options;
 import trashsoftware.winBwz.huffman.HuffmanCompressor;
 import trashsoftware.winBwz.huffman.HuffmanCompressorBase;
 import trashsoftware.winBwz.huffman.HuffmanCompressorTwoBytes;
 import trashsoftware.winBwz.huffman.MapCompressor.MapCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanUtil;
-import trashsoftware.winBwz.utility.FileBitOutputStream;
+import trashsoftware.winBwz.rangeCodec.AdaptiveFrequencyTable;
+import trashsoftware.winBwz.rangeCodec.RangeCompressor;
+import trashsoftware.winBwz.utility.BitOutputStream;
 import trashsoftware.winBwz.utility.FileInputBufferArray;
 import trashsoftware.winBwz.utility.Util;
 
@@ -37,10 +41,12 @@ public class LZZ2Compressor extends RegularCompressor {
 
     static final int LZZ2_HUF_HEAD_ALPHABET = 19;
 
-//    private static final long PRIME16 = 40499;
+    //    private static final long PRIME16 = 40499;
+    public static final int ENTROPY_BLOCK_SIZE = 65536;
 
     private final InputStream sis;
     private final int windowSize;  // Size of sliding window.
+    private final LZZ2Options lzz2Options;
     protected String mainTempName, lenHeadTempName, disHeadTempName, flagTempName, dlBodyTempName;
     protected long cmpSize;
     protected int itemCount;
@@ -54,16 +60,16 @@ public class LZZ2Compressor extends RegularCompressor {
     /**
      * Constructor of a new {@code LZZ2Compressor} instance.
      *
-     * @param inFile     name of file to compress.
-     * @param windowSize total sliding window size.
-     * @param bufferSize size of look ahead buffer.
+     * @param inFile  name of file to compress.
+     * @param options compression options
      * @throws IOException if error occurs during file reading or writing.
      */
-    public LZZ2Compressor(String inFile, int windowSize, int bufferSize) throws IOException {
+    public LZZ2Compressor(String inFile, LZZ2Options options) throws IOException {
         super(new File(inFile).length());
 
-        this.windowSize = windowSize;
-        this.bufferMaxSize = bufferSize + MINIMUM_MATCH_LEN + 1;
+        this.lzz2Options = options;
+        this.windowSize = options.getWindowSize();
+        this.bufferMaxSize = options.getLabSize() + MINIMUM_MATCH_LEN + 1;
         this.dictSize = windowSize - bufferMaxSize - 1;
 
         this.sis = Files.newInputStream(Paths.get(inFile));
@@ -74,20 +80,20 @@ public class LZZ2Compressor extends RegularCompressor {
      * Constructor of a new {@code LZZ2Compressor} instance.
      *
      * @param mis         the input stream
-     * @param windowSize  total sliding window size.
-     * @param bufferSize  size of look ahead buffer.
+     * @param options     compression options
      * @param totalLength the total length of the files to be compressed
      */
-    public LZZ2Compressor(InputStream mis, int windowSize, int bufferSize, long totalLength) {
+    public LZZ2Compressor(InputStream mis, LZZ2Options options, long totalLength) {
         super(totalLength);
 
-        this.windowSize = windowSize;
-        this.bufferMaxSize = bufferSize + MINIMUM_MATCH_LEN + 1;
+        this.lzz2Options = options;
+        this.windowSize = options.getWindowSize();
+        this.bufferMaxSize = options.getLabSize() + MINIMUM_MATCH_LEN + 1;
         this.dictSize = windowSize - bufferMaxSize - 1;
         this.sis = mis;
         setTempNames("lzz2");
     }
-    
+
     public static boolean compatibleWithVersion(int fileVersion) {
         return VERSION == fileVersion;
     }
@@ -150,27 +156,7 @@ public class LZZ2Compressor extends RegularCompressor {
         }
     }
 
-//    public static void printStream(String name) throws IOException {
-//        BufferedInputStream bbb = new BufferedInputStream(new FileInputStream(name));
-//        byte[] buf = new byte[1];
-//        while (bbb.read(buf) > 0) {
-//            System.out.print((buf[0] & 0xff) + " ");
-//        }
-//        System.out.println();
-//        bbb.close();
-//    }
-
-//    private static int hash(byte b0, byte b1) {
-//        return (b0 & 0xff) << 8 | (b1 & 0xff);
-//    }
-
-//    private static int hash4bytesToInt16(byte b0, byte b1, byte b2, byte b3) {
-//        long first = (long) (b0 & 0xff) << 24 | (b1 & 0xff) << 16 | (b2 & 0xff) << 8 | (b3 & 0xff);
-//        long hash = (first >> 16) ^ ((first & 0xffff) * PRIME16);
-//        return (int) (hash & 0xffff);
-//    }
-
-    protected void compressText() throws IOException {
+    protected void compressText(BlockFlusher blockFlusher) throws IOException {
         FileInputBufferArray fba = new FileInputBufferArray(sis, totalLength, windowSize);
 
         setUpWindow();
@@ -178,22 +164,40 @@ public class LZZ2Compressor extends RegularCompressor {
         int sliderArraySize = sliderArraySize(dictSize, compressionLevel);
 
         Lzz2Matcher matcher;
-        if (compressionLevel < 2) {
-            matcher = new GreedyMatcher(sliderArraySize, dictSize, bufferMaxSize, totalLength);
-        } else if (compressionLevel < 4) {
-            matcher = new NonGreedyMatcherOneStep(sliderArraySize, dictSize, bufferMaxSize, totalLength);
+        if (false) {
+            matcher = new BinaryTreeMatcher.Greedy(dictSize, bufferMaxSize, 64);
         } else {
-            matcher = new NonGreedyMatcherMultiStep(sliderArraySize, dictSize, bufferMaxSize, totalLength);
+            if (compressionLevel < 2) {
+                matcher = new GreedyMatcher(sliderArraySize, dictSize, bufferMaxSize, totalLength);
+            } else if (compressionLevel < 4) {
+                matcher = new NonGreedyMatcherOneStep(sliderArraySize, dictSize, bufferMaxSize, totalLength);
+            } else {
+                matcher = new NonGreedyMatcherMultiStep(sliderArraySize, dictSize, bufferMaxSize, totalLength);
+            }
         }
 
         int[] lastDistances = new int[4];
         int lastDisIndex = 0;
         int lastLength = -1;
 
-        BufferedOutputStream mainFos = new BufferedOutputStream(Files.newOutputStream(Paths.get(mainTempName)));
-        BufferedOutputStream disFos = new BufferedOutputStream(Files.newOutputStream(Paths.get(disHeadTempName)));
-        FileBitOutputStream dlbFos = new FileBitOutputStream(
-                new BufferedOutputStream(Files.newOutputStream(Paths.get(dlBodyTempName))));
+        OutputStream mainFos;
+        OutputStream disFos;
+        OutputStream dlbBase;
+
+        if (blockFlusher == null) {
+            mainFos = new BufferedOutputStream(Files.newOutputStream(Paths.get(mainTempName)));
+            disFos = new BufferedOutputStream(Files.newOutputStream(Paths.get(disHeadTempName)));
+            dlbBase = new BufferedOutputStream(Files.newOutputStream(Paths.get(dlBodyTempName)));
+        } else {
+            mainFos = new ByteArrayOutputStream();
+            disFos = new ByteArrayOutputStream();
+            dlbBase = new ByteArrayOutputStream();
+        }
+
+        BitOutputStream dlbFos = new BitOutputStream(
+                dlbBase);
+
+        long lastFlushPos = position;
 
         while (true) {
 
@@ -241,6 +245,18 @@ public class LZZ2Compressor extends RegularCompressor {
             matcher.fillSlider(prevPos, position, fba);
 
             if (packer != null && packer.isInterrupted) break;
+
+            if (blockFlusher != null && position - lastFlushPos > ENTROPY_BLOCK_SIZE) {
+                dlbFos.flush();
+                // no need to flush others
+                blockFlusher.flush((ByteArrayOutputStream) mainFos,
+                        (ByteArrayOutputStream) disFos,
+                        (ByteArrayOutputStream) dlbBase);
+                ((ByteArrayOutputStream) mainFos).reset();
+                ((ByteArrayOutputStream) disFos).reset();
+                ((ByteArrayOutputStream) dlbBase).reset();
+                lastFlushPos = position;
+            }
         }
 
         if (packer == null || !packer.isInterrupted) {
@@ -250,12 +266,23 @@ public class LZZ2Compressor extends RegularCompressor {
             }
         }
 
-        mainFos.flush();
-        mainFos.close();
-        disFos.flush();
-        disFos.close();
-        dlbFos.flush();
-        dlbFos.close();
+        if (blockFlusher != null && position > lastFlushPos) {
+            dlbFos.flush();
+            // no need to flush others
+            blockFlusher.flush((ByteArrayOutputStream) mainFos,
+                    (ByteArrayOutputStream) disFos,
+                    (ByteArrayOutputStream) dlbBase);
+            ((ByteArrayOutputStream) mainFos).reset();
+            ((ByteArrayOutputStream) disFos).reset();
+            ((ByteArrayOutputStream) dlbBase).reset();
+        } else {
+            mainFos.flush();
+            mainFos.close();
+            disFos.flush();
+            disFos.close();
+            dlbFos.flush();
+            dlbFos.close();
+        }
         fba.close();
 
 //        printStream(flagTempName);
@@ -320,10 +347,26 @@ public class LZZ2Compressor extends RegularCompressor {
      */
     @Override
     public void compress(OutputStream outFile) throws IOException {
-        compressText();
+        BlockFlusher blockFlusher = null;
+        if (lzz2Options.getEntropyMethod() == EntropyMethod.BLOCK_HUFFMAN) {
+            blockFlusher = new BlockFlusher(outFile);
+        }
+        compressText(blockFlusher);
 
         if (isNotCompressible(outFile)) return;
 
+        if (lzz2Options.getEntropyMethod() == EntropyMethod.FULL_HUFFMAN) {
+            entropyFullHuffman(outFile);
+        } else if (lzz2Options.getEntropyMethod() == EntropyMethod.BLOCK_HUFFMAN) {
+            // skip
+        } else if (lzz2Options.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE) {
+            entropyFullAdaptiveRange(outFile);
+        } else {
+            throw new RuntimeException("Unsupported entropy method '" + lzz2Options.getEntropyMethod() + "' for LZZ2.");
+        }
+    }
+
+    private void entropyFullHuffman(OutputStream outFile) throws IOException {
         HuffmanCompressorBase dhc = new HuffmanCompressor(disHeadTempName);
         int[] dhcMap = dhc.getMap(64);
 
@@ -359,6 +402,26 @@ public class LZZ2Compressor extends RegularCompressor {
         byte[] sizeBlock = Util.generateSizeBlock(sizes);
         outFile.write(sizeBlock);
         cmpSize = disHeadLen + dlbLen + mainLen + csqLen + sizeBlock.length;
+    }
+
+    private void entropyFullAdaptiveRange(OutputStream outFile) throws IOException {
+        RangeCompressor dhc = new RangeCompressor(disHeadTempName, 64);
+        dhc.setFreq(new AdaptiveFrequencyTable(65));
+
+        RangeCompressor mtc = new RangeCompressor(mainTempName, MAIN_HUF_ALPHABET);
+        mtc.setFreq(new AdaptiveFrequencyTable(MAIN_HUF_ALPHABET + 1));
+
+        mtc.compress(outFile);
+        long mainLen = mtc.getCompressedLength();
+
+        dhc.compress(outFile);
+        long disHeadLen = dhc.getCompressedLength();
+
+        long dlbLen = Util.fileConcatenate(outFile, new String[]{dlBodyTempName}, 8192);
+
+        deleteTemp();
+
+        cmpSize = mainLen + disHeadLen + dlbLen + 8;
     }
 
     /**
@@ -403,4 +466,44 @@ public class LZZ2Compressor extends RegularCompressor {
 //        }
 //        System.out.println(max + " " + min);
 //    }
+
+    private class BlockFlusher {
+        final OutputStream outFile;
+        
+        BlockFlusher(OutputStream outFile) {
+            this.outFile = outFile;
+        }
+        
+        void flush(ByteArrayOutputStream mainFos,
+                   ByteArrayOutputStream disFos,
+                   ByteArrayOutputStream bitBase) throws IOException {
+            HuffmanCompressorBase dhc = new HuffmanCompressor(disHeadTempName);
+            int[] dhcMap = dhc.getMap(64);
+
+            HuffmanCompressorBase mtc = new HuffmanCompressorTwoBytes(mainTempName);
+            int[] mtcMap = mtc.getMap(MAIN_HUF_ALPHABET);
+
+//        System.out.println(Arrays.toString(dhcMap));
+
+            int[] totalMap = new int[MAIN_HUF_ALPHABET + 64];
+            System.arraycopy(dhcMap, 0, totalMap, 0, 64);
+            System.arraycopy(mtcMap, 0, totalMap, 64, MAIN_HUF_ALPHABET);
+
+//        byte[] rlcMain = new MTFTransformByte(totalMap).Transform(18);
+            int[] rlcMain = new MTFTransform(totalMap).Transform(LZZ2_HUF_HEAD_ALPHABET - 1);
+
+            MapCompressor mc = new MapCompressor(rlcMain);
+            byte[] csq = mc.Compress(LZZ2_HUF_HEAD_ALPHABET);
+
+            outFile.write(csq);
+
+            mtc.SepCompress(outFile);
+            long mainLen = mtc.getCompressedLength();
+
+            dhc.SepCompress(outFile);
+            long disHeadLen = dhc.getCompressedLength();
+
+            long dlbLen = Util.fileConcatenate(outFile, new String[]{dlBodyTempName}, 8192);
+        }
+    }
 }

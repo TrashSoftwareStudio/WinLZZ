@@ -11,9 +11,9 @@ import java.io.OutputStream;
  * @author zbh
  * @since 0.4
  */
-public class FileBitOutputStream {
+public class BitOutputStream {
 
-    private OutputStream bos;
+    private final OutputStream bos;
 
     /**
      * The length written.
@@ -35,7 +35,7 @@ public class FileBitOutputStream {
      *
      * @param fos the {@code OutputStream} to write data in.
      */
-    public FileBitOutputStream(OutputStream fos) {
+    public BitOutputStream(OutputStream fos) {
         if (fos instanceof BufferedOutputStream ||
                 fos instanceof ByteArrayOutputStream ||
                 fos instanceof FixedByteArrayOutputStream) bos = fos;
@@ -94,6 +94,18 @@ public class FileBitOutputStream {
 
     public long getLength() {
         return length;
+    }
+
+    /**
+     * Resets this stream so it can be used again,
+     */
+    public void reset() {
+        if (bos instanceof ByteArrayOutputStream || bos instanceof FixedByteArrayOutputStream) {
+            length = 0;
+            bitPos = 0;
+        } else {
+            throw new RuntimeException("BitOutputStream.reset() only available for array streams");
+        }
     }
 
     /**

@@ -9,6 +9,7 @@ import trashsoftware.winBwz.core.deflate.DeflateCompressor;
 import trashsoftware.winBwz.core.fastLzz.FastLzzCompressor;
 import trashsoftware.winBwz.core.lzz2.LZZ2Compressor;
 import trashsoftware.winBwz.core.options.LZOptions;
+import trashsoftware.winBwz.core.options.LZZ2Options;
 import trashsoftware.winBwz.encrypters.Encipher;
 import trashsoftware.winBwz.encrypters.bzse.BZSEStreamEncoder;
 import trashsoftware.winBwz.encrypters.zse.ZSEFileEncoder;
@@ -56,7 +57,7 @@ public abstract class PzPacker extends Packer {
      * <p>
      * The value will be applied only if the user sets the {@code windowSize} to 0.
      */
-    static final int defaultWindowSize = 32768;
+    public static final int DEFAULT_WINDOW_SIZE = 32768;
     /**
      * List of extra field blocks.
      * <p>
@@ -291,14 +292,15 @@ public abstract class PzPacker extends Packer {
         if (algOptions == null || algOptions.getWindowSize() == 0) {
             switch (alg) {
                 case "lzz2":
-                    headCompressor = new LZZ2Compressor(tempHeadName, defaultWindowSize, 64);
+                    headCompressor = new LZZ2Compressor(tempHeadName, LZZ2Options.newDefault(DEFAULT_WINDOW_SIZE, 64));
                     break;
                 case "fastLzz":
-                    headCompressor = new FastLzzCompressor(tempHeadName, defaultWindowSize, 64);
+                    headCompressor = new FastLzzCompressor(tempHeadName, DEFAULT_WINDOW_SIZE, 64);
                     break;
                 case "bwz":
                     headCompressor = new BWZCompressor(tempHeadName, 
-                            BWZOptions.newDefault(defaultWindowSize));
+                            BWZOptions.newDefault(DEFAULT_WINDOW_SIZE));
+                    headCompressor.setCompressionLevel(BWZCompressor.DEFAULT_STRONG_LEVEL);
                     break;
                 case "deflate":
                     headCompressor = new DeflateCompressor(tempHeadName, 6);
@@ -307,16 +309,15 @@ public abstract class PzPacker extends Packer {
                     throw new NoSuchAlgorithmException("No such algorithm");
             }
         } else {
+            
             switch (alg) {
                 case "lzz2":
-                    LZOptions lzOptions = (LZOptions) algOptions;
-                    headCompressor = new LZZ2Compressor(tempHeadName, 
-                            lzOptions.getWindowSize(), 
-                            lzOptions.getLabSize());
+                    LZZ2Options lzz2opt = (LZZ2Options) algOptions;
+                    headCompressor = new LZZ2Compressor(tempHeadName, lzz2opt);
                     headCompressor.setCompressionLevel(cmpLevel);
                     break;
                 case "fastLzz":
-                    lzOptions = (LZOptions) algOptions;
+                    LZOptions lzOptions = (LZOptions) algOptions;
                     headCompressor = new FastLzzCompressor(tempHeadName, lzOptions.getWindowSize(),
                             lzOptions.getLabSize());
                     headCompressor.setCompressionLevel(cmpLevel);
@@ -324,6 +325,7 @@ public abstract class PzPacker extends Packer {
                 case "bwz":
                     BWZOptions bwzOptions = (BWZOptions) algOptions;
                     headCompressor = new BWZCompressor(tempHeadName, bwzOptions);
+                    headCompressor.setCompressionLevel(cmpLevel);
                     break;
                 case "deflate":
                     headCompressor = new DeflateCompressor(tempHeadName, cmpLevel);
@@ -372,14 +374,13 @@ public abstract class PzPacker extends Packer {
         Compressor mainCompressor;
         switch (alg) {
             case "lzz2":
-                LZOptions lzOptions = (LZOptions) algOptions;
+                LZZ2Options lzz2opt = (LZZ2Options) algOptions;
                 mainCompressor = new LZZ2Compressor(fis,
-                        lzOptions.getWindowSize(),
-                        lzOptions.getLabSize(),
+                        lzz2opt,
                         totalLength);
                 break;
             case "fastLzz":
-                lzOptions = (LZOptions) algOptions;
+                LZOptions lzOptions = (LZOptions) algOptions;
                 mainCompressor = new FastLzzCompressor(fis, lzOptions.getWindowSize(),
                         lzOptions.getLabSize(), totalLength);
                 break;

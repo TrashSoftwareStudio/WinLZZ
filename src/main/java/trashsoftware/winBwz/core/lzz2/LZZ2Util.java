@@ -1,10 +1,11 @@
 package trashsoftware.winBwz.core.lzz2;
 
 import trashsoftware.winBwz.utility.FileBitInputStream;
-import trashsoftware.winBwz.utility.FileBitOutputStream;
+import trashsoftware.winBwz.utility.BitOutputStream;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * Utility function serve for LZZ2 compression and decompression programs.
@@ -18,11 +19,11 @@ public abstract class LZZ2Util {
      *
      * @param length  the length
      * @param minimum the minimum matching length
-     * @param bos     the head output stream
+     * @param bos     the head output stream, need to be buffered
      * @param fbo     the extension bits output stream
      * @throws IOException if any of the two streams is not writable
      */
-    public static void addLength(int length, int minimum, BufferedOutputStream bos, FileBitOutputStream fbo)
+    public static void addLength(int length, int minimum, OutputStream bos, BitOutputStream fbo)
             throws IOException {
         // In this case, "distance" means length
         int bits = 0;
@@ -170,11 +171,11 @@ public abstract class LZZ2Util {
      *
      * @param distance the distance
      * @param minimum  the minimum matching length
-     * @param bos      the head output stream
+     * @param bos      the head output stream, need to be buffered
      * @param fbo      the extension bits output stream
      * @throws IOException if any of the two streams is not writable
      */
-    public static void addDistance(int distance, int minimum, BufferedOutputStream bos, FileBitOutputStream fbo) throws IOException {
+    public static void addDistance(int distance, int minimum, OutputStream bos, BitOutputStream fbo) throws IOException {
         int bits = 0;
         int bitLength = 0;
 

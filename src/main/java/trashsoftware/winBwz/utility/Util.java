@@ -3,6 +3,7 @@ package trashsoftware.winBwz.utility;
 import trashsoftware.winBwz.gui.GUIClient;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
@@ -169,6 +170,22 @@ public abstract class Util {
      */
     public static int arrayAverageInt(int[] source) {
         return arraySum(source) / source.length;
+    }
+
+    /**
+     * Returns the element-wise sum of two same shape arrays.
+     * 
+     * @param arr1 array 1
+     * @param arr2 array 2
+     * @return element-wise sum of two arrays
+     */
+    public static int[] elementWiseAdd(int[] arr1, int[] arr2) {
+        if (arr1.length != arr2.length) throw new IndexOutOfBoundsException();
+        int[] res = new int[arr1.length];
+        for (int i = 0; i < arr1.length; i++) {
+            res[i] = arr1[i] + arr2[i];
+        }
+        return res;
     }
 
     /**
@@ -816,9 +833,16 @@ public abstract class Util {
             if (caseSensitive) {
                 if (s.equals(pattern)) return true;
             } else {
-                if (s.toLowerCase().equals(pattern.toLowerCase())) return true;
+                if (s.equalsIgnoreCase(pattern)) return true;
             }
         }
         return false;
+    }
+    
+    public static byte[] byteBufferContent(ByteBuffer buffer) {
+        if (buffer.hasArray()) return buffer.array();
+        byte[] res = new byte[buffer.limit()];
+        buffer.get(res);
+        return res;
     }
 }

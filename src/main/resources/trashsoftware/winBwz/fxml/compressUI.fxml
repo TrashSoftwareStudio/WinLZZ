@@ -59,7 +59,7 @@
         <Label text="%entropyCoding" GridPane.rowIndex="5"/>
         <ComboBox fx:id="entropyBox" disable="true" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
         <Label text="%strongMode" GridPane.rowIndex="6"/>
-        <ComboBox fx:id="modeBox" disable="true" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+        <ComboBox fx:id="strongModeBox" disable="true" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="6"/>
         
         <Label text="%splitSize" GridPane.rowIndex="7"/>
         <HBox prefHeight="100.0" prefWidth="240.0" maxWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="7">

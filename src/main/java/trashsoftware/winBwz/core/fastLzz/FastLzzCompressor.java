@@ -3,7 +3,7 @@ package trashsoftware.winBwz.core.fastLzz;
 import trashsoftware.winBwz.core.Compressor;
 import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.utility.Bytes;
-import trashsoftware.winBwz.utility.FileBitOutputStream;
+import trashsoftware.winBwz.utility.BitOutputStream;
 import trashsoftware.winBwz.utility.FixedByteArrayOutputStream;
 
 import java.io.*;
@@ -242,7 +242,7 @@ public class FastLzzCompressor implements Compressor {
         private final int bufferStart;
         private final int bufferSize;
         private final FixedSlider slider;
-        private final FileBitOutputStream fos;
+        private final BitOutputStream fos;
 
         private int dis, len;
 
@@ -250,7 +250,7 @@ public class FastLzzCompressor implements Compressor {
             this.bufferStart = bufferStart;
             this.bufferSize = bufferSize;
             this.slider = slider;
-            fos = new FileBitOutputStream(new FixedByteArrayOutputStream((int) ((double) bufferSize * 1.2)));
+            fos = new BitOutputStream(new FixedByteArrayOutputStream((int) ((double) bufferSize * 1.2)));
         }
 
         @Override

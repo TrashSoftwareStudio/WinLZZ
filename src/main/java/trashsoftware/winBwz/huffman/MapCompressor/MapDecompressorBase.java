@@ -70,9 +70,6 @@ public abstract class MapDecompressorBase {
         }
         int[] fullCCL = new int[alphabetSize];
         System.arraycopy(CCL, 0, fullCCL, 0, cclNum);
-//        int[] origCCL;  // this is the length map
-//        if (swap) origCCL = swapCCl(fullCCL);
-//        else origCCL = fullCCL;
 
         int[] canonicalMap = LongHuffmanUtil.generateCanonicalCode(fullCCL);
         HashMap<Integer, Integer> decodeMap = invertMap(canonicalMap, fullCCL);

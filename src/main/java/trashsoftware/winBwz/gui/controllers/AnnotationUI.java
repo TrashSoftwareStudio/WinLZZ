@@ -76,7 +76,7 @@ public class AnnotationUI implements Initializable {
             ByteArrayInputStream ais = new ByteArrayInputStream(byteAnnotation);
 
             BWZCompressor compressor = new BWZCompressor(ais, BWZOptions.oldDefault(32768));
-            compressor.setCompressionLevel(1);
+            compressor.setCompressionLevel(2);
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             compressor.compress(out);

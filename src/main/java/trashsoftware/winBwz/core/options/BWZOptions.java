@@ -23,7 +23,7 @@ public class BWZOptions extends AlgOptions {
      * @return the BWZ option >= version 29, inclusive.
      */
     public static BWZOptions newDefault(int windowSize) {
-        return new BWZOptions(windowSize, EntropyMethod.ADAPTIVE_RANGE);
+        return new BWZOptions(windowSize, EntropyMethod.BLOCK_HUFFMAN);
     }
 
     public static BWZOptions createFromByte(int windowSize, byte byteRep) {

@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.resourcesPack.configLoader;
 
+import com.sun.istack.internal.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
 import trashsoftware.winBwz.resourcesPack.EventLogger;
@@ -127,6 +128,16 @@ public class CacheSaver {
             return (String) obj;
         } else {
             return defaultValue;
+        }
+    }
+
+    @Nullable
+    public String readString(String key) {
+        Object obj = map.get(key);
+        if (obj instanceof String) {
+            return (String) obj;
+        } else {
+            return null;
         }
     }
 

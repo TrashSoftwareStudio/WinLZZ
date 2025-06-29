@@ -269,6 +269,20 @@ public abstract class Bytes {
     }
 
     /**
+     * Convert an integer into a 4-byte array in big-endian.
+     *
+     * @param i      the integer.
+     * @param array  the output array
+     * @param offset the beginning index to put the result in the output array
+     */
+    public static void intToBytes32(long i, int[] array, int offset) {
+        array[offset] = ((int) (i >>> 24)) & 0xff;  // for marginal case: i >= 2G
+        array[offset + 1] = ((int) i >>> 16) & 0xff;
+        array[offset + 2] = ((int) i >>> 8) & 0xff;
+        array[offset + 3] = (int) i & 0xff;
+    }
+
+    /**
      * Convert an integer into a 4-byte array in little-endian.
      *
      * @param i the integer.

@@ -253,6 +253,8 @@ public class PzSolidPacker extends PzPacker {
          * The end position of this file in the uncompressed main part of archive.
          */
         private long end;
+        
+//        private long crc32;
 
         /**
          * Creates a new {@code IndexNode} instance for a directory.
@@ -288,7 +290,7 @@ public class PzSolidPacker extends PzPacker {
          * Returns the byte array representation of this {@code IndexNode}.
          *
          * @return the byte array representation of this {@code IndexNode}.
-         * @throws UnsupportedEncodingException if the file name is too long (>255 bytes) or,
+         * @throws UnsupportedEncodingException if the file name is too long (>255 bytes) or,                                           
          *                                      the name cannot be encoded.
          */
         public byte[] toByteArray() throws UnsupportedEncodingException {
@@ -308,6 +310,7 @@ public class PzSolidPacker extends PzPacker {
                 System.arraycopy(nameBytes, 0, result, 2, nameBytes.length);
                 System.arraycopy(Bytes.longToBytes(start), 0, result, len + 2, 8);
                 System.arraycopy(Bytes.longToBytes(end), 0, result, len + 10, 8);
+                // todo: CRC32 checksum for every file
             }
             return result;
         }

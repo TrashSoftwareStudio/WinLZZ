@@ -12,11 +12,12 @@ public class AdaptiveFrequencyTable extends FrequencyTable {
         this.frequencies = new int[symbolLimit];
         this.tree = new FenwickTree(symbolLimit);
 
-        // Initialize with 1 to avoid zero probabilities
-        for (int i = 0; i < symbolLimit; i++) {
-            frequencies[i] = 1;
-            tree.update(i, 1);
-        }
+        reset();
+    }
+    
+    public static int estimatedMemoryUsage(int symbolLimit) {
+        return symbolLimit * 4 + (symbolLimit + 1) * 4 
+                + 28;  // some pointers and variables
     }
 
     @Override
@@ -101,6 +102,16 @@ public class AdaptiveFrequencyTable extends FrequencyTable {
                 mask >>>= 1;
             }
             return idx;
+        }
+    }
+
+    @Override
+    public void reset() {
+        Arrays.fill(tree.tree, 0);
+        // Initialize with 1 to avoid zero probabilities
+        for (int i = 0; i < nSymbol; i++) {
+            frequencies[i] = 1;
+            tree.update(i, 1);
         }
     }
 }

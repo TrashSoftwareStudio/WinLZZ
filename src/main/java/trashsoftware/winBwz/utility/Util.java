@@ -839,8 +839,7 @@ public abstract class Util {
         return false;
     }
     
-    public static byte[] byteBufferContent(ByteBuffer buffer) {
-        if (buffer.hasArray()) return buffer.array();
+    public static byte[] byteBufferContentExact(ByteBuffer buffer) {
         byte[] res = new byte[buffer.limit()];
         buffer.get(res);
         return res;

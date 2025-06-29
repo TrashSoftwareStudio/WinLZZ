@@ -1,9 +1,5 @@
 package trashsoftware.winBwz.rangeCodec;
 
-import java.util.Arrays;
-
-import static trashsoftware.winBwz.rangeCodec.RangeCodingConstants.MAX_FREQ;
-
 // ===================== Frequency Table =====================
 public abstract class FrequencyTable {
 
@@ -20,6 +16,8 @@ public abstract class FrequencyTable {
     public abstract int getTotal();
 
     public abstract int getSymbolFromValue(int value);
-    
+
     public abstract void increment(int symbol);
+
+    public abstract void reset();
 }

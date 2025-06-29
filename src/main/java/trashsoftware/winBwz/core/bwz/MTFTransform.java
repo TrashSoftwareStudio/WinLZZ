@@ -2,6 +2,8 @@ package trashsoftware.winBwz.core.bwz;
 
 import trashsoftware.winBwz.core.bwz.util.BWZUtil;
 
+import java.util.Arrays;
+
 /**
  * A Move-To-Front transformer, a Zero-Run-Length-Coder is integrated.
  * <p>
@@ -54,6 +56,7 @@ public class MTFTransform {
         }
         int[] rtn = new int[index];
         System.arraycopy(result, 0, rtn, 0, index);
+//        System.out.println(Arrays.toString(rtn));
         return rtn;
     }
     
@@ -81,7 +84,7 @@ public class MTFTransform {
                     return i;
                 }
             }
-            throw new RuntimeException("Cannot find symbol");
+            throw new RuntimeException("Cannot find symbol " + value);
         }
     }
 }

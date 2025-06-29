@@ -78,4 +78,9 @@ public class StaticFrequencyTable extends FrequencyTable {
     public void increment(int symbol) {
         // do nothing
     }
+
+    @Override
+    public void reset() {
+        // do nothing
+    }
 }

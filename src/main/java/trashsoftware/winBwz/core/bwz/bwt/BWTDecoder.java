@@ -17,22 +17,8 @@ public class BWTDecoder {
 
     private final int[] cmpText;
     private final int origIndex;
-
+    
     private static long timeAcc = 0;
-
-    /**
-     * Creates a new {@code BWTDecoder} instance.
-     *
-     * @param cmpText the text after bwt transformation.
-     */
-    public BWTDecoder(int[] cmpText) {
-        int[] indexBytesS = new int[3];
-        System.arraycopy(cmpText, 0, indexBytesS, 0, 3);
-        byte[] indexBytes = new byte[]{(byte) indexBytesS[0], (byte) indexBytesS[1], (byte) indexBytesS[2]};
-        origIndex = Bytes.bytesToInt24(indexBytes);
-        this.cmpText = new int[cmpText.length - 3];
-        System.arraycopy(cmpText, 3, this.cmpText, 0, this.cmpText.length);
-    }
 
     /**
      * Creates a new {@code BWTDecoder} instance.
@@ -40,9 +26,31 @@ public class BWTDecoder {
      * @param cmpText the text after bwt transformation.
      * @param origIndex the index of the original flag row
      */
-    public BWTDecoder(int[] cmpText, int origIndex) {
-        this.origIndex = origIndex;
+    private BWTDecoder(int[] cmpText, int origIndex) {
         this.cmpText = cmpText;
+        this.origIndex = origIndex;
+    }
+    
+    public static BWTDecoder createFromCmpText(int[] cmpText, int sizeBytes) {
+        byte[] indexBytes = new byte[sizeBytes];
+        for (int i = 0; i < sizeBytes; i++) {
+            indexBytes[i] = (byte) cmpText[i];
+        }
+        int origIndex;
+        if (sizeBytes == 3) {
+            origIndex = Bytes.bytesToInt24(indexBytes);
+        } else if (sizeBytes == 4) {
+            origIndex = Bytes.bytesToInt32(indexBytes);
+        } else {
+            throw new IllegalArgumentException("Size bytes can only be 3 or 4");
+        }
+        int[] pureCmpText = new int[cmpText.length - sizeBytes];
+        System.arraycopy(cmpText, sizeBytes, pureCmpText, 0, pureCmpText.length);
+        return new BWTDecoder(pureCmpText, origIndex);
+    }
+    
+    public static BWTDecoder createWithOrigIndex(int[] cmpText, int origIndex) {
+        return new BWTDecoder(cmpText, origIndex);
     }
 
     /**

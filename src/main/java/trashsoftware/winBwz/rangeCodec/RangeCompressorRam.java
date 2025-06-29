@@ -3,18 +3,18 @@ package trashsoftware.winBwz.rangeCodec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-public class LongRangeCompressorRam extends AbstractRangeCompressor {
+public class RangeCompressorRam extends AbstractRangeCompressor {
     
 //    ByteArrayOutputStream out;
     private final int[] fullText;
     private final int textLength;
 
-    public LongRangeCompressorRam(int[] fullText, FrequencyTable freq, int eofSig, int textLength) {
+    public RangeCompressorRam(int[] fullText, FrequencyTable ft, int eofSig, int textLength) {
         super(eofSig);
         this.fullText = fullText;
         this.textLength = textLength;
         
-        setFreq(freq);
+        setFreq(ft);
     }
 
     public byte[] compress() {

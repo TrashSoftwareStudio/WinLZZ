@@ -1,6 +1,5 @@
 package trashsoftware.winBwz.rangeCodec;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -16,20 +15,16 @@ public class AbstractRangeCompressor {
     protected FrequencyTable freq;
     protected final int eofSig;
     protected boolean collapse = false;
-    
+
     protected OutputStream out;
     protected long compressedLength;
-    
+
     public AbstractRangeCompressor(int eofSig) {
         this.eofSig = eofSig;
     }
 
     public void setFreq(FrequencyTable freq) {
         this.freq = freq;
-    }
-
-    public FrequencyTable getFreqTable() {
-        return freq;
     }
 
     protected void encodeSymbol(int symbol) throws IOException {

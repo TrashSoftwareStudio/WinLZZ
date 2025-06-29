@@ -5,7 +5,10 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.TextField;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import trashsoftware.winBwz.core.bwz.BWZCompressor;
@@ -42,12 +45,14 @@ public class CompressUI implements Initializable {
     private static final String[] compressionLevels = new String[6];
     private static final String[] compressionLevelsZip = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
     private static final String[] windowSizeNamesLzz2 = {"4KB", "16KB", "32KB", "64KB", "128KB", "256KB", "1MB"};
-    private static final String[] windowSizeNamesBwz = {"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB"};
+    private static final String[] windowSizeNamesBwz = {"128KB", "256KB", "512KB", "1MB", "2MB", "4MB", "8MB", "16MB",
+            "32MB", "64MB"};
     private static final String[] windowSizeNamesFastLzz = {"4KB", "16KB", "32KB", "64KB", "69KB"};
     private static final String[] splitSizeNames = {"1.44 MB - Floppy", "10 MB", "650 MB - CD", "700 MB - CD",
             "4095 MB - FAT32", "4481 MB - DVD"};
     private static final int[] windowSizesLzz2 = {4096, 16384, 32768, 65536, 131072, 262144, 1048576};
-    private static final int[] windowSizesBwz = {131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
+    private static final int[] windowSizesBwz = {131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216,
+            32 * 1048576, 64 * 1048576};
     private static final int[] windowSizesFastLzz = {4096, 16384, 32768, 65536, FastLzzCompressor.MAXIMUM_DISTANCE};
     /**
      * Indices of units of corresponding pre-selections, 0 for byte, 1 for kb, 2 for mb, 3 for gb.
@@ -56,7 +61,7 @@ public class CompressUI implements Initializable {
     private static final Integer[] labSizesLzz2 = {8, 16, 32, 64, 128, 256, LZZ2Compressor.MAXIMUM_LENGTH};
     private static final Integer[] labSizesFastLzz = {8, 16, 32, 64, 128, 256, FastLzzCompressor.MAXIMUM_LENGTH};
     private static final String[] cmpModeLevels = new String[5];
-    private static final Integer[] threads = {1, 2, 3, 4};
+    private static final Integer[] threads = {1, 2, 3, 4, 5, 6, 7, 8};
     @FXML
     private TextField nameText;
     @FXML
@@ -85,7 +90,7 @@ public class CompressUI implements Initializable {
 
     private int currentThreadIndex = 0;
     private int currentModeIndex = 1;
-//    private int currentAlgIndex = 0;
+    //    private int currentAlgIndex = 0;
     private int currentWindowIndex = 2;
 
     @Override
@@ -164,7 +169,7 @@ public class CompressUI implements Initializable {
         partialBox.getItems().addAll(splitSizeNames);
         unitBox.getItems().addAll("B", "KB", "MB", "GB");
     }
-    
+
     private String entropyReadableName(EntropyMethod item) {
         String key;
         switch (item) {
@@ -178,18 +183,21 @@ public class CompressUI implements Initializable {
             case STATIC_RANGE:
                 key = "entropyStaticRange";
                 break;
+            case CONTEXT_ADAPTIVE_RANGE:
+                key = "entropyAdaptiveRange";
+                break;
             default:
                 throw new IllegalArgumentException();
         }
-        return bundle.getString(key);
+        return bundle.containsKey(key) ? bundle.getString(key) : key;
     }
-    
+
     private void setBoxProperties() {
         entropyBox.setCellFactory(listView -> new ListCell<EntropyMethod>() {
             @Override
             protected void updateItem(EntropyMethod item, boolean empty) {
                 super.updateItem(item, empty);
-                
+
                 if (empty || item == null) {
                     setText(null);
                 } else {
@@ -197,7 +205,7 @@ public class CompressUI implements Initializable {
                 }
             }
         });
-        
+
         entropyBox.setButtonCell(new ListCell<EntropyMethod>() {
             @Override
             protected void updateItem(EntropyMethod item, boolean empty) {
@@ -214,7 +222,8 @@ public class CompressUI implements Initializable {
 
     private void setSizeUnitListener() {
         partialBox.getSelectionModel().selectedIndexProperty().addListener(((observable, oldValue, newValue) -> {
-            if (newValue.intValue() != -1) unitBox.getSelectionModel().select(splitUnits[newValue.intValue()]);
+            if (newValue.intValue() != -1)
+                unitBox.getSelectionModel().select(splitUnits[newValue.intValue()]);
         }));
     }
 
@@ -308,13 +317,16 @@ public class CompressUI implements Initializable {
         }
         nameText.setText(result);
     }
-    
+
     private void updateEntropyBox(String newAlgName) {
         entropyBox.getItems().clear();
         switch (newAlgName) {
             case "bwz":
                 entropyBox.setDisable(false);
-                entropyBox.getItems().addAll(EntropyMethod.ADAPTIVE_RANGE, EntropyMethod.BLOCK_HUFFMAN);
+                entropyBox.getItems().addAll(
+//                        EntropyMethod.ADAPTIVE_RANGE, 
+                        EntropyMethod.CONTEXT_ADAPTIVE_RANGE, 
+                        EntropyMethod.BLOCK_HUFFMAN);
                 entropyBox.getSelectionModel().select(1);
                 break;
             case "lzz2":
@@ -363,11 +375,12 @@ public class CompressUI implements Initializable {
             LoaderManager.getCacheSaver().writeCache("algBoxIndex", newValue.intValue());
         });
     }
-    
+
     private void setEntropyBoxListener() {
         entropyBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
                 LoaderManager.getCacheSaver().writeCache("entropyMethod", newValue.name());
+                estimateMemoryUsage();
             }
         });
     }
@@ -388,8 +401,8 @@ public class CompressUI implements Initializable {
                 updateMemoryLabels(
                         BWZCompressor.estimateMemoryUsage(
                                 threads[currentThreadIndex],
-                                windowSizesBwz[currentWindowIndex],
-                                currentModeIndex
+                                currentModeIndex,
+                                new BWZOptions(windowSizesBwz[currentWindowIndex], entropyBox.getValue())
                         )
                 );
                 break;
@@ -427,9 +440,9 @@ public class CompressUI implements Initializable {
         AlgBoxItem abi = algBox.getSelectionModel().getSelectedItem();
         if (abi != null)
             return abi.code;
-        else
-            if (fmtBox.getValue() == FmtBoxItem.PZ || fmtBox.getValue() == FmtBoxItem.PZN) return "bwz";
-            else return "deflate";
+        else if (fmtBox.getValue() == FmtBoxItem.PZ || fmtBox.getValue() == FmtBoxItem.PZN)
+            return "bwz";
+        else return "deflate";
     }
 
     private void setZipUi() {

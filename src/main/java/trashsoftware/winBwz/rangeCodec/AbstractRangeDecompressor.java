@@ -1,5 +1,6 @@
 package trashsoftware.winBwz.rangeCodec;
 
+import trashsoftware.winBwz.rangeCodec.freq.FrequencyTable;
 import trashsoftware.winBwz.utility.IntArrayOutputStream;
 
 import java.io.EOFException;

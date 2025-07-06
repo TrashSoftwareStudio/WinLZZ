@@ -7,8 +7,6 @@ import java.io.*;
 
 public abstract class HuffmanCompressorBase {
 
-    protected String inFile;
-
     protected final static int bufferSize = 8192;
 
     protected int[] freqMap;
@@ -30,11 +28,8 @@ public abstract class HuffmanCompressorBase {
      * Constructor of a new {@code HuffmanCompressor} instance.
      * <p>
      * Creates a new HuffmanCompressor which takes the "inFile" as the file to compress.
-     *
-     * @param inFile the file to compress.
      */
-    public HuffmanCompressorBase(String inFile) {
-        this.inFile = inFile;
+    public HuffmanCompressorBase() {
     }
 
     protected abstract void generateFreqMap() throws IOException;

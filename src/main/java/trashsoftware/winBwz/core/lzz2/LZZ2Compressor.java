@@ -5,13 +5,13 @@ import trashsoftware.winBwz.core.RegularCompressor;
 import trashsoftware.winBwz.core.bwz.MTFTransform;
 import trashsoftware.winBwz.core.options.EntropyMethod;
 import trashsoftware.winBwz.core.options.LZZ2Options;
-import trashsoftware.winBwz.huffman.HuffmanCompressor;
-import trashsoftware.winBwz.huffman.HuffmanCompressorBase;
-import trashsoftware.winBwz.huffman.HuffmanCompressorTwoBytes;
+import trashsoftware.winBwz.huffman.*;
 import trashsoftware.winBwz.huffman.MapCompressor.MapCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanUtil;
-import trashsoftware.winBwz.rangeCodec.AdaptiveFrequencyTable;
+import trashsoftware.winBwz.rangeCodec.freq.AdaptiveCustomRangeFrequencyTable;
+import trashsoftware.winBwz.rangeCodec.freq.AdaptiveFrequencyTable;
 import trashsoftware.winBwz.rangeCodec.RangeCompressor;
+import trashsoftware.winBwz.rangeCodec.freq.FrequencyTable;
 import trashsoftware.winBwz.utility.BitOutputStream;
 import trashsoftware.winBwz.utility.FileInputBufferArray;
 import trashsoftware.winBwz.utility.Util;
@@ -358,9 +358,11 @@ public class LZZ2Compressor extends RegularCompressor {
         if (lzz2Options.getEntropyMethod() == EntropyMethod.FULL_HUFFMAN) {
             entropyFullHuffman(outFile);
         } else if (lzz2Options.getEntropyMethod() == EntropyMethod.BLOCK_HUFFMAN) {
-            // skip
+            // already flushed, skip
         } else if (lzz2Options.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE) {
-            entropyFullAdaptiveRange(outFile);
+            entropyFullAdaptiveRange(outFile, false);
+        } else if (lzz2Options.getEntropyMethod() == EntropyMethod.AUTO_ADAPTIVE_RANGE) {
+            entropyFullAdaptiveRange(outFile, true);
         } else {
             throw new RuntimeException("Unsupported entropy method '" + lzz2Options.getEntropyMethod() + "' for LZZ2.");
         }
@@ -404,12 +406,21 @@ public class LZZ2Compressor extends RegularCompressor {
         cmpSize = disHeadLen + dlbLen + mainLen + csqLen + sizeBlock.length;
     }
 
-    private void entropyFullAdaptiveRange(OutputStream outFile) throws IOException {
+    private void entropyFullAdaptiveRange(OutputStream outFile, boolean autoRange) throws IOException {
+        FrequencyTable dhcFt, mtcFt;
+        if (autoRange) {
+            dhcFt = AdaptiveCustomRangeFrequencyTable.createExpRanged(65, 64);
+            mtcFt = AdaptiveCustomRangeFrequencyTable.createExpRanged(MAIN_HUF_ALPHABET + 1, MAIN_HUF_ALPHABET);
+        } else {
+            dhcFt = new AdaptiveFrequencyTable(65);
+            mtcFt = new AdaptiveFrequencyTable(MAIN_HUF_ALPHABET + 1);
+        }
+        
         RangeCompressor dhc = new RangeCompressor(disHeadTempName, 64);
-        dhc.setFreq(new AdaptiveFrequencyTable(65));
+        dhc.setFreq(dhcFt);
 
         RangeCompressor mtc = new RangeCompressor(mainTempName, MAIN_HUF_ALPHABET);
-        mtc.setFreq(new AdaptiveFrequencyTable(MAIN_HUF_ALPHABET + 1));
+        mtc.setFreq(mtcFt);
 
         mtc.compress(outFile);
         long mainLen = mtc.getCompressedLength();
@@ -477,10 +488,10 @@ public class LZZ2Compressor extends RegularCompressor {
         void flush(ByteArrayOutputStream mainFos,
                    ByteArrayOutputStream disFos,
                    ByteArrayOutputStream bitBase) throws IOException {
-            HuffmanCompressorBase dhc = new HuffmanCompressor(disHeadTempName);
+            HuffmanCompressorBase dhc = new HuffmanCompressorRam(disFos.toByteArray());
             int[] dhcMap = dhc.getMap(64);
 
-            HuffmanCompressorBase mtc = new HuffmanCompressorTwoBytes(mainTempName);
+            HuffmanCompressorBase mtc = new HuffmanCompressorRamTwoBytes(mainFos.toByteArray());
             int[] mtcMap = mtc.getMap(MAIN_HUF_ALPHABET);
 
 //        System.out.println(Arrays.toString(dhcMap));
@@ -503,7 +514,15 @@ public class LZZ2Compressor extends RegularCompressor {
             dhc.SepCompress(outFile);
             long disHeadLen = dhc.getCompressedLength();
 
-            long dlbLen = Util.fileConcatenate(outFile, new String[]{dlBodyTempName}, 8192);
+//            long dlbLen = Util.fileConcatenate(outFile, new String[]{dlBodyTempName}, 8192);
+            byte[] bits = bitBase.toByteArray();
+            outFile.write(bits);
+
+            int csqLen = csq.length;
+            long[] sizes = new long[]{csqLen, mainLen, disHeadLen};
+            byte[] sizeBlock = Util.generateSizeBlock(sizes);
+            outFile.write(sizeBlock);
+            cmpSize = disHeadLen + bits.length + mainLen + csqLen + sizeBlock.length;
         }
     }
 }

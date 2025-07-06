@@ -6,7 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class HuffmanCompressorTwoBytes extends HuffmanCompressorBase {
+public class HuffmanCompressorTwoBytes extends HuffmanCompressorIOBase {
 
     public static final int END_SIG = 256;
 
@@ -37,8 +37,8 @@ public class HuffmanCompressorTwoBytes extends HuffmanCompressorBase {
         bis.close();
     }
 
-    private static void addArrayToFreqMap(byte[] array, int[] freqMap, int range) {
-        for (int i = 0; i < range; i+=2) {
+    static void addArrayToFreqMap(byte[] array, int[] freqMap, int range) {
+        for (int i = 0; i < range; i += 2) {
             int b = ((array[i] & 0xff) << 8) | (array[i + 1] & 0xff);
             freqMap[b] += 1;
         }

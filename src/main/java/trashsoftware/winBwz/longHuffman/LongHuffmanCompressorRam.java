@@ -12,30 +12,16 @@ import java.util.*;
  * @author zbh
  * @since 0.5
  */
-public class LongHuffmanCompressorRam {
+public class LongHuffmanCompressorRam extends LongHuffmanCompressorRamBase {
 
     private static final int OPTIMAL_BLOCK_SIZE = 16384;
     private static final int ESTIMATE_CMP_MAP_LENGTH = 36;
-
-    private final int[] fullText;
-    private int textBegin;
-    private int textSize;
-    private final int alphabetSize;
+    
     private int[] codeTable;
     private int[] lengthTable;
 
     private int[] lastFreqTable;
     private int[] lastLengthTable;
-
-    /**
-     * The maximum height (depth) of the huffman tree.
-     */
-    private static int maxHeight = 29;  // map alphabet size: 30
-
-    /**
-     * The signal that marks the EOF
-     */
-    private final int endSig;
 
     /**
      * Creates a new {@code LongHuffmanCompressorRam} instance.
@@ -48,9 +34,7 @@ public class LongHuffmanCompressorRam {
      * @param endSig       the mark of the end of stream.
      */
     public LongHuffmanCompressorRam(int[] fullText, int alphabetSize, int endSig) {
-        this.fullText = fullText;
-        this.endSig = endSig;
-        this.alphabetSize = alphabetSize;
+        super(fullText, alphabetSize, endSig);
     }
 
     public byte[] getMap() {
@@ -110,19 +94,11 @@ public class LongHuffmanCompressorRam {
     }
 
     /**
-     * Sets up the {@code maxHeight} value which limits the max depth of the huffman tree.
-     *
-     * @param height the tree-height limit.
-     */
-    public void setMaxHeight(int height) {
-        maxHeight = height;
-    }
-
-    /**
      * Returns the compressed text using the native huffman code of this {@code LongHuffmanCompressorRam}.
      *
      * @return the compressed text.
      */
+    @Override
     public byte[] compress() {
         return compressText();
     }
@@ -145,10 +121,6 @@ public class LongHuffmanCompressorRam {
             freq = new int[alphabetSize];
             freq[endSig] = 1;
             LongHuffmanUtil.addFrequencies(fullText, freq, textBegin, minLength);
-
-//            HuffmanNode rootNode = LongHuffmanUtil.generateHuffmanTree(freq);
-//            LongHuffmanUtil.generateCodeLengthMap(codeLengths, rootNode, 0);
-
             codeLengths = LongHuffmanUtil.generateCodeLengthMap(freq);
             LongHuffmanUtil.heightControl(codeLengths, freq, maxHeight);
         } else {

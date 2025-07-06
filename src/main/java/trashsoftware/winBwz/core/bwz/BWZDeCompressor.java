@@ -8,9 +8,7 @@ import trashsoftware.winBwz.huffman.MapCompressor.BwzMapDeCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanDecompressorRam;
 import trashsoftware.winBwz.longHuffman.LongHuffmanInputStream;
 import trashsoftware.winBwz.packer.pz.PzUnPacker;
-import trashsoftware.winBwz.rangeCodec.AdaptiveFrequencyTable;
-import trashsoftware.winBwz.rangeCodec.AdaptiveOrder1FrequencyTable;
-import trashsoftware.winBwz.rangeCodec.FrequencyTable;
+import trashsoftware.winBwz.rangeCodec.freq.*;
 import trashsoftware.winBwz.rangeCodec.RangeDecompressorRam;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
@@ -343,9 +341,9 @@ public class BWZDeCompressor implements DeCompressor {
                         new DecodeThreadRange(
                                 null,
                                 mainPartLen,
+                                methodFlag,
                                 null,
                                 mainBuf.array(),
-                                false,
                                 origTextCrc));
             } else {
                 int entropyOrdinal = methodFlag & 0x0f;
@@ -353,14 +351,14 @@ public class BWZDeCompressor implements DeCompressor {
                     throw new RuntimeException("Entropy method mismatch.");
                 }
 
-                boolean order1Context = options.getEntropyMethod() == EntropyMethod.CONTEXT_ADAPTIVE_RANGE;
+//                boolean order1Context = options.getEntropyMethod() == EntropyMethod.CONTEXT_ADAPTIVE_RANGE;
                 blockList.add(
                         new DecodeThreadRange(
                                 mainBuf.array(),
                                 mainPartLen,
+                                methodFlag,
                                 rangeEncLengths,
                                 null,
-                                order1Context,
                                 origTextCrc));
             }
 
@@ -461,7 +459,7 @@ public class BWZDeCompressor implements DeCompressor {
                 decodeHuffman(out, fc);
             }
         } else if (options.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE ||
-                options.getEntropyMethod() == EntropyMethod.CONTEXT_ADAPTIVE_RANGE) {
+                options.getEntropyMethod() == EntropyMethod.AUTO_ADAPTIVE_RANGE) {
             decodeAdaptiveRange(out, fc);
         } else {
             throw new IllegalArgumentException("Unsupported entropy method " + options.getEntropyMethod().name());
@@ -704,19 +702,19 @@ public class BWZDeCompressor implements DeCompressor {
     class DecodeThreadRange extends ParallelDecodeThread {
 
         List<Integer> entropyEncLengths;
-        boolean order1Context;
+        final int flagByte;
 
         DecodeThreadRange(byte[] encodedText,
                           int textRealLen,
+                          int flagByte,
                           List<Integer> entropyEncLengths,
                           byte[] result,
-                          boolean order1Context,
                           long origCrc) {
             super(encodedText, textRealLen, origCrc);
 
             this.entropyEncLengths = entropyEncLengths;
             this.result = result;
-            this.order1Context = order1Context;
+            this.flagByte = flagByte;
         }
 
         private int[] rangeDecodeRegular() throws IOException {
@@ -724,9 +722,23 @@ public class BWZDeCompressor implements DeCompressor {
                     encodedText,
                     textRealLen
             );
+            int ftClassRep = flagByte >>> 4;
             FrequencyTable ft;
-            if (order1Context) {
+            if (ftClassRep == 1) {
+                ft = new FixedRangeFrequencyTable(BWZCompressor.HUFFMAN_TABLE_SIZE, BWZCompressor.HUFFMAN_END_SIG, 4);
+            } else if (ftClassRep == 2) {
                 ft = new AdaptiveOrder1FrequencyTable(BWZCompressor.HUFFMAN_TABLE_SIZE, BWZCompressor.HUFFMAN_END_SIG);
+            } else if (ftClassRep >= 3 && ftClassRep < 8) {
+                int detailClass = ftClassRep - 3;
+                if (detailClass == 0) {
+                    ft = AdaptiveCustomRangeFrequencyTable.createTypical(BWZCompressor.HUFFMAN_TABLE_SIZE, BWZCompressor.HUFFMAN_END_SIG);
+                } else if (detailClass == 1) {
+                    ft = AdaptiveCustomRangeFrequencyTable.createExpRanged(BWZCompressor.HUFFMAN_TABLE_SIZE, BWZCompressor.HUFFMAN_END_SIG);
+                } else {
+                    throw new RuntimeException("Cannot interpret range frequency table " + ftClassRep);
+                }
+            } else if (ftClassRep == 8) {
+                ft = new FixedRangeOrder2FrequencyTable(BWZCompressor.HUFFMAN_TABLE_SIZE, BWZCompressor.HUFFMAN_END_SIG, 256);
             } else {
                 ft = new AdaptiveFrequencyTable(BWZCompressor.HUFFMAN_TABLE_SIZE);
             }

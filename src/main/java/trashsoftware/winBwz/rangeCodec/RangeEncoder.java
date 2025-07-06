@@ -1,5 +1,8 @@
 package trashsoftware.winBwz.rangeCodec;
 
+import trashsoftware.winBwz.rangeCodec.freq.AdaptiveFrequencyTable;
+import trashsoftware.winBwz.rangeCodec.freq.FrequencyTable;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

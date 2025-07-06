@@ -6,7 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class HuffmanCompressor extends HuffmanCompressorBase {
+public class HuffmanCompressor extends HuffmanCompressorIOBase {
     /**
      * Constructor of a new {@code HuffmanCompressor} instance.
      * <p>

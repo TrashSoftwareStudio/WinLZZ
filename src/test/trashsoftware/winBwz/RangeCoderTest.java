@@ -1,8 +1,7 @@
 package trashsoftware.winBwz;
 
-import trashsoftware.winBwz.huffman.HuffmanCompressor;
-import trashsoftware.winBwz.rangeCodec.AdaptiveFrequencyTable;
-import trashsoftware.winBwz.rangeCodec.FrequencyTable;
+import trashsoftware.winBwz.rangeCodec.freq.AdaptiveFrequencyTable;
+import trashsoftware.winBwz.rangeCodec.freq.FrequencyTable;
 import trashsoftware.winBwz.rangeCodec.RangeDecoder;
 import trashsoftware.winBwz.rangeCodec.RangeEncoder;
 import trashsoftware.winBwz.utility.Util;

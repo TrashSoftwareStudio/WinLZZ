@@ -5,5 +5,5 @@ public enum EntropyMethod {
     STATIC_RANGE,
     ADAPTIVE_RANGE,
     FULL_HUFFMAN,
-    CONTEXT_ADAPTIVE_RANGE
+    AUTO_ADAPTIVE_RANGE
 }

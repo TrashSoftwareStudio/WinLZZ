@@ -54,6 +54,8 @@ public class CompressUI implements Initializable {
     private static final int[] windowSizesBwz = {131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216,
             32 * 1048576, 64 * 1048576};
     private static final int[] windowSizesFastLzz = {4096, 16384, 32768, 65536, FastLzzCompressor.MAXIMUM_DISTANCE};
+    private static final EntropyMethod[] bwzEntropy = {EntropyMethod.BLOCK_HUFFMAN, EntropyMethod.AUTO_ADAPTIVE_RANGE};
+    private static final EntropyMethod[] lzz2Entropy = {EntropyMethod.FULL_HUFFMAN, EntropyMethod.BLOCK_HUFFMAN, EntropyMethod.AUTO_ADAPTIVE_RANGE};
     /**
      * Indices of units of corresponding pre-selections, 0 for byte, 1 for kb, 2 for mb, 3 for gb.
      */
@@ -109,7 +111,6 @@ public class CompressUI implements Initializable {
         setLevelListener();
         setFmtBoxListener();
         setAlgBoxListener();
-        setEntropyBoxListener();
         setSizeUnitListener();
         setThreadBoxListener();
         setWindowNameBoxListener();
@@ -124,17 +125,9 @@ public class CompressUI implements Initializable {
                 LoaderManager.getCacheSaver().readInt("levelBoxIndex", 3));
 //        strongModeBox.getSelectionModel().select(0);
         unitBox.getSelectionModel().select(0);
-        String cachedEmName = LoaderManager.getCacheSaver().readString("entropyMode");
-        if (cachedEmName != null) {
-            try {
-                EntropyMethod cachedEm = EntropyMethod.valueOf(cachedEmName.toUpperCase());
-                if (entropyBox.getItems().contains(cachedEm)) {
-                    entropyBox.getSelectionModel().select(cachedEm);
-                }
-            } catch (IllegalArgumentException e) {
-                e.printStackTrace();
-            }
-        }
+        selectCachedEntropy();
+
+        setEntropyBoxListener();
     }
 
     void setDir(File[] dir) {
@@ -183,7 +176,7 @@ public class CompressUI implements Initializable {
             case STATIC_RANGE:
                 key = "entropyStaticRange";
                 break;
-            case CONTEXT_ADAPTIVE_RANGE:
+            case AUTO_ADAPTIVE_RANGE:
                 key = "entropyAdaptiveRange";
                 break;
             default:
@@ -317,22 +310,35 @@ public class CompressUI implements Initializable {
         }
         nameText.setText(result);
     }
+    
+    private boolean selectCachedEntropy() {
+        String cachedEmName = LoaderManager.getCacheSaver().readString("entropyMethod");
+        if (cachedEmName != null) {
+            try {
+                EntropyMethod cachedEm = EntropyMethod.valueOf(cachedEmName.toUpperCase());
+                if (entropyBox.getItems().contains(cachedEm)) {
+                    entropyBox.getSelectionModel().select(cachedEm);
+                    return true;
+                }
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
 
     private void updateEntropyBox(String newAlgName) {
         entropyBox.getItems().clear();
         switch (newAlgName) {
             case "bwz":
                 entropyBox.setDisable(false);
-                entropyBox.getItems().addAll(
-//                        EntropyMethod.ADAPTIVE_RANGE, 
-                        EntropyMethod.CONTEXT_ADAPTIVE_RANGE, 
-                        EntropyMethod.BLOCK_HUFFMAN);
-                entropyBox.getSelectionModel().select(1);
+                entropyBox.getItems().addAll(bwzEntropy);
+                if (!selectCachedEntropy()) entropyBox.getSelectionModel().select(1);
                 break;
             case "lzz2":
                 entropyBox.setDisable(false);
-                entropyBox.getItems().addAll(EntropyMethod.ADAPTIVE_RANGE, EntropyMethod.FULL_HUFFMAN);
-                entropyBox.getSelectionModel().select(1);
+                entropyBox.getItems().addAll(lzz2Entropy);
+                if (!selectCachedEntropy()) entropyBox.getSelectionModel().select(0);
                 break;
             default:
                 entropyBox.setDisable(true);
@@ -379,8 +385,8 @@ public class CompressUI implements Initializable {
     private void setEntropyBoxListener() {
         entropyBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                LoaderManager.getCacheSaver().writeCache("entropyMethod", newValue.name());
                 estimateMemoryUsage();
+                LoaderManager.getCacheSaver().writeCache("entropyMethod", newValue.name());
             }
         });
     }

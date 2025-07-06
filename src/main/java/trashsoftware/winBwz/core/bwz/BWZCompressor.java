@@ -15,10 +15,11 @@ import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.core.options.EntropyMethod;
 import trashsoftware.winBwz.huffman.MapCompressor.BwzMapCompressor;
 import trashsoftware.winBwz.longHuffman.LongHuffmanCompressorRam;
+import trashsoftware.winBwz.longHuffman.LongHuffmanCompressorRamContext;
 import trashsoftware.winBwz.longHuffman.LongHuffmanUtil;
-import trashsoftware.winBwz.packer.ChecksumDoesNotMatchException;
 import trashsoftware.winBwz.packer.pz.PzPacker;
 import trashsoftware.winBwz.rangeCodec.*;
+import trashsoftware.winBwz.rangeCodec.freq.*;
 import trashsoftware.winBwz.utility.Bytes;
 import trashsoftware.winBwz.utility.Util;
 
@@ -69,6 +70,7 @@ public class BWZCompressor implements Compressor {
      * This value often changed by {@code setCompressionLevel()}.
      */
     int entropyChunkBaseSize = DEFAULT_HUF_SIZE;
+    int strongLevel = 0;
     /**
      * Length of the main part.
      */
@@ -158,7 +160,7 @@ public class BWZCompressor implements Compressor {
         } else if (options.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE) {
             cmpEachThread += windowSize;  // range output temporarily stored
             cmpEachThread += AdaptiveFrequencyTable.estimatedMemoryUsage(HUFFMAN_TABLE_SIZE);  // adaptive table
-        } else if (options.getEntropyMethod() == EntropyMethod.CONTEXT_ADAPTIVE_RANGE) {
+        } else if (options.getEntropyMethod() == EntropyMethod.AUTO_ADAPTIVE_RANGE) {
             cmpEachThread += windowSize;  // range output temporarily stored
             cmpEachThread += AdaptiveOrder1FrequencyTable.estimatedMemoryUsage(HUFFMAN_TABLE_SIZE);  // adaptive table
         }
@@ -180,7 +182,7 @@ public class BWZCompressor implements Compressor {
         } else if (options.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE) {
             uncEachThread += windowSize;  // range output temporarily stored
             uncEachThread += AdaptiveFrequencyTable.estimatedMemoryUsage(HUFFMAN_TABLE_SIZE);  // adaptive table
-        } else if (options.getEntropyMethod() == EntropyMethod.CONTEXT_ADAPTIVE_RANGE) {
+        } else if (options.getEntropyMethod() == EntropyMethod.AUTO_ADAPTIVE_RANGE) {
             uncEachThread += windowSize;  // range output temporarily stored
             uncEachThread += AdaptiveOrder1FrequencyTable.estimatedMemoryUsage(HUFFMAN_TABLE_SIZE);  // adaptive table
         }
@@ -254,7 +256,7 @@ public class BWZCompressor implements Compressor {
 
         for (EncodeThread et : threads) {
             et.computeHeaders();
-            if ((et.entropyMethod == EntropyMethod.ADAPTIVE_RANGE || et.entropyMethod == EntropyMethod.CONTEXT_ADAPTIVE_RANGE) &&
+            if ((et.entropyMethod == EntropyMethod.ADAPTIVE_RANGE || et.entropyMethod == EntropyMethod.AUTO_ADAPTIVE_RANGE) &&
                     (et.forceDiscard || et.sizeAfterCompression() > et.sizeBeforeCompression() + 5)) {
                 // do not deal with huffman: our huffman hardly ever compresses bigger, and this adds complexity
                 if (et.forceDiscard) {
@@ -298,16 +300,17 @@ public class BWZCompressor implements Compressor {
      */
     @Override
     public void setCompressionLevel(int level) {
+        this.strongLevel = level;
         if (options.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE) {
             if (level == 0) entropyChunkBaseSize = windowSize;
             else {
                 entropyChunkBaseSize = DEFAULT_RANGE_SIZE;
             }
-        } else if (options.getEntropyMethod() == EntropyMethod.CONTEXT_ADAPTIVE_RANGE) {
+        } else if (options.getEntropyMethod() == EntropyMethod.AUTO_ADAPTIVE_RANGE) {
 //            entropyChunkBaseSize = windowSize;
             if (level == 0) entropyChunkBaseSize = windowSize;
             else {
-                entropyChunkBaseSize = Math.min(windowSize, 1048576);
+                entropyChunkBaseSize = Math.min(windowSize, 16777216);
             }
         } else if (options.getEntropyMethod() == EntropyMethod.BLOCK_HUFFMAN) {
             if (level == 0) entropyChunkBaseSize = windowSize;
@@ -382,6 +385,7 @@ public class BWZCompressor implements Compressor {
 
         final EntropyMethod entropyMethod;
         boolean forceDiscard = false;
+        FrequencyTable rangeFt;
 
         /**
          * Creates a new {@code EncodeThread} instance.
@@ -430,16 +434,21 @@ public class BWZCompressor implements Compressor {
 //                    entropyHuffman(array);
                     // todo: different levels
                     entropyHuffmanDeeperSearch(array);
+//                    if (strongLevel == 1) {
+//                        entropyHuffmanDeeperSearch(array);
+//                    } else if (strongLevel == 2) {
+//                        entropyHuffmanContext(array);
+//                    }
                     hufTime += System.currentTimeMillis() - t3;
                     break;
                 case ADAPTIVE_RANGE:
 //                    System.out.print("Len after mtf: " + lenAfterMtf);
-                    entropyRange(array, false);
+                    entropyRange(array);
 //                    System.out.println(", after rc: " + results[0].length);
                     hufTime += System.currentTimeMillis() - t3;
                     break;
-                case CONTEXT_ADAPTIVE_RANGE:
-                    entropyRange(array, true);
+                case AUTO_ADAPTIVE_RANGE:
+                    entropyRange(array);
                     hufTime += System.currentTimeMillis() - t3;
                     break;
                 default:
@@ -466,6 +475,27 @@ public class BWZCompressor implements Compressor {
             for (int i = 0; i < entropyBlocksCount; i++) {
                 LongHuffmanCompressorRam.HuffmanBlock block = blocks.get(i);
                 maps[i] = compressor.setBlock(block);
+                results[i] = compressor.compress();
+            }
+        }
+        
+        void entropyHuffmanContext(int[] array) {
+            LongHuffmanCompressorRamContext compressor = new LongHuffmanCompressorRamContext(
+                    array,
+                    BWZCompressor.HUFFMAN_TABLE_SIZE,
+                    BWZCompressor.HUFFMAN_END_SIG
+            );
+            // todo chunk size
+            List<LongHuffmanCompressorRamContext.Block> blocks = compressor.generateBlocks(windowSize);
+            entropyBlocksCount = blocks.size();
+            int nRng = compressor.nRanges();
+            maps = new byte[entropyBlocksCount * nRng][];
+            results = new byte[entropyBlocksCount][];
+
+            for (int i = 0; i < entropyBlocksCount; i++) {
+                LongHuffmanCompressorRamContext.Block block = blocks.get(i);
+                byte[][] chunkMaps = compressor.setBlock(block);
+                System.arraycopy(chunkMaps, 0, maps, i * nRng, chunkMaps.length);
                 results[i] = compressor.compress();
             }
         }
@@ -501,14 +531,9 @@ public class BWZCompressor implements Compressor {
                 entropyBlocksCount++;
             }
             System.out.println("Map build time: " + mapCumTime);
-//            if (entropyBlocksCount == 1) {
-//                System.out.println(maps[0].length + " " + results[0].length);
-//                System.out.println(Arrays.toString(maps[0]));
-//                System.out.println(Arrays.toString(results[0]));
-//            }
         }
 
-        void entropyRange(int[] array, boolean order1Context) {
+        void entropyRange(int[] array) {
             int nRangeBlocks = Math.max(1, array.length / entropyChunkBaseSize);
             int eachBlockSize = array.length % nRangeBlocks == 0 ?
                     array.length / nRangeBlocks : (array.length / nRangeBlocks + 1);
@@ -517,12 +542,17 @@ public class BWZCompressor implements Compressor {
             entropyBlocksCount = nRangeBlocks;
             int index = 0;
             int[] buffer = new int[eachBlockSize];
-
-            FrequencyTable ft;
-            if (order1Context) {
-                ft = new AdaptiveOrder1FrequencyTable(HUFFMAN_TABLE_SIZE, HUFFMAN_END_SIG);
+            
+            if (strongLevel > 0) {
+//                ft = new AdaptiveOrder1FrequencyTable(HUFFMAN_TABLE_SIZE, HUFFMAN_END_SIG);
+//                ft = AdaptiveCustomRangeFrequencyTable.createTypical(HUFFMAN_TABLE_SIZE, HUFFMAN_END_SIG);
+//                ft = new FixedRangeFrequencyTable(HUFFMAN_TABLE_SIZE, HUFFMAN_END_SIG, 4);
+                rangeFt = AdaptiveCustomRangeFrequencyTable.createExpRanged(HUFFMAN_TABLE_SIZE, HUFFMAN_END_SIG);
+//                rangeFt = AdaptiveCustomRangeFrequencyTable
+//                        .createBalanced(HUFFMAN_TABLE_SIZE, HUFFMAN_END_SIG, array, 9);
+//                ft = new FixedRangeOrder2FrequencyTable(HUFFMAN_TABLE_SIZE, HUFFMAN_END_SIG, 256);
             } else {
-                ft = new AdaptiveFrequencyTable(HUFFMAN_TABLE_SIZE);
+                rangeFt = new AdaptiveFrequencyTable(HUFFMAN_TABLE_SIZE);
             }
 
             for (int i = 0; i < nRangeBlocks; i++) {
@@ -530,14 +560,14 @@ public class BWZCompressor implements Compressor {
                 System.arraycopy(array, index, buffer, 0, len);
                 
                 RangeCompressorRam compressor = new RangeCompressorRam(buffer,
-                        ft,
+                        rangeFt,
                         BWZCompressor.HUFFMAN_END_SIG,
                         len);
                 results[i] = compressor.compress();
                 index += len;
 //                System.out.println(len);
-
-                ft.reset();  // reset for next iteration
+//                rangeFt.printStats();
+                rangeFt.reset();  // reset for next iteration
 
                 if (compressor.isCollapsed()) {
                     System.out.println("Collapsed");
@@ -651,13 +681,27 @@ public class BWZCompressor implements Compressor {
             if (entropyMethod == EntropyMethod.BLOCK_HUFFMAN) {
                 generateCompressedMapHuf();
             } else if (entropyMethod == EntropyMethod.ADAPTIVE_RANGE ||
-                    entropyMethod == EntropyMethod.CONTEXT_ADAPTIVE_RANGE) {
+                    entropyMethod == EntropyMethod.AUTO_ADAPTIVE_RANGE) {
                 int rngCompLen = 0;
                 for (int i = 0; i < entropyBlocksCount; ++i) {
                     rngCompLen += results[i].length;
                 }
                 headNumbers = new byte[12];
-                headNumbers[0] = (byte) entropyMethod.ordinal();
+                int flag = entropyMethod.ordinal();
+                int ftClassRep;
+                if (rangeFt.getClass() == FixedRangeFrequencyTable.class) {
+                    ftClassRep = 1; 
+                } else if (rangeFt.getClass() == AdaptiveOrder1FrequencyTable.class) {
+                    ftClassRep = 2;
+                } else if (rangeFt.getClass() == AdaptiveCustomRangeFrequencyTable.class) {
+                    ftClassRep = 3 + ((AdaptiveCustomRangeFrequencyTable) rangeFt).getCustomMethodFlag();
+                } else if (rangeFt.getClass() == FixedRangeOrder2FrequencyTable.class) {
+                    ftClassRep = 8;
+                } else {
+                    ftClassRep = 0;
+                }
+                flag |= ftClassRep << 4;
+                headNumbers[0] = (byte) flag;
                 Bytes.intToBytes32(rngCompLen + headNumbers.length, headNumbers, 1);
                 Bytes.intToBytes24(entropyBlocksCount, headNumbers, 5);
                 Bytes.intToBytes32(origTextCrc32(), headNumbers, 8);
@@ -684,7 +728,7 @@ public class BWZCompressor implements Compressor {
                 writeCompressedMapHuf(out);
             } else if (entropyMethod == EntropyMethod.ADAPTIVE_RANGE) {
                 writeHeadAdaptiveRange(out);
-            } else if (entropyMethod == EntropyMethod.CONTEXT_ADAPTIVE_RANGE) {
+            } else if (entropyMethod == EntropyMethod.AUTO_ADAPTIVE_RANGE) {
                 writeHeadAdaptiveRange(out);
                 // fixme
             } else {

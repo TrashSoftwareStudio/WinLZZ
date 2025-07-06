@@ -11,7 +11,6 @@ import trashsoftware.winBwz.core.options.BWZOptions;
 import trashsoftware.winBwz.core.options.EntropyMethod;
 import trashsoftware.winBwz.packer.UnPacker;
 import trashsoftware.winBwz.packer.pz.PzPacker;
-import trashsoftware.winBwz.packer.pz.PzSolidPacker;
 import trashsoftware.winBwz.packer.pz.PzUnPacker;
 import trashsoftware.winBwz.packer.pzNonSolid.PzNsUnPacker;
 import trashsoftware.winBwz.packer.zip.ZipUnPacker;
@@ -120,7 +119,8 @@ public class FileInfoUI implements Initializable {
                 BWZOptions bo = (BWZOptions) algOptions;
                 if (bo.getEntropyMethod() == EntropyMethod.BLOCK_HUFFMAN) {
                     alg += " - " + bundle.getString("entropyHuffman");
-                } else if (bo.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE) {
+                } else if (bo.getEntropyMethod() == EntropyMethod.ADAPTIVE_RANGE || 
+                        bo.getEntropyMethod() == EntropyMethod.AUTO_ADAPTIVE_RANGE) {
                     alg += " - " + bundle.getString("entropyAdaptiveRange");
                 }
             }
@@ -255,7 +255,7 @@ public class FileInfoUI implements Initializable {
             case 28:
                 return "1.0 Alpha 16+";
             case 29:
-                return "1.0 Alpha 18+";
+                return "1.0 Alpha 20+";
             default:
                 return bundle.getString("unknown");
         }
